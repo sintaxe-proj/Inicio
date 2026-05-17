@@ -827,7 +827,7 @@ function renderizarGraficosModal(lista) {
 function gerarCargaMassaOitoMil() {
     if (!confirm("Esta ação injetará 8.000 cadastros simulados com strings SOAP completas no seu IndexedDB local para testes de latência. Continuar?")) return;
     
-    mostrarToast("⏳ Processando matriz de dados... Aguarde.");
+    mostrarToast("⏳ Processando matriz epidemiológica distribuída... Aguarde.");
     
     const nomesFalsos = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana"];
     const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa"];
@@ -840,33 +840,70 @@ function gerarCargaMassaOitoMil() {
     for (let i = 0; i < 8000; i++) {
         const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
         const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
-        const prazoSimulado = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1;
+        
+        // --- 📊 DISTRIBUIÇÃO DAS LINHAS DE CUIDADO (GATILHOS) ---
+        const temHas = (i % 2 === 0) ? "Sim" : "Não";
+        const temDm = (i % 3 === 0) ? "Sim" : "Não";
+        
+        // Gestantes (Apenas para nomes femininos indexados par: Ana, Daniela, Fernanda, Helena, Juliana)
+        const ehMulher = (i % 2 === 0);
+        const temGestante = (ehMulher && i % 7 === 0) ? "Sim" : "Não";
+        
+        // Condições Epidemiológicas Raras/Sazonais
+        const temTb = (i % 23 === 0) ? "Sim" : "Não";
+        const temHansen = (i % 31 === 0) ? "Sim" : "Não";
+
+        // --- ⏳ DISTRIBUIÇÃO DOS PRAZOS (FAIXAS DE ATENÇÃO) ---
+        // Cria uma mistura real de prazos: 0 (Crítico), 7, 15, 30, 60, 90 dias
+        let prazoSimulado = 30;
+        if (i % 6 === 0) {
+            prazoSimulado = 0;  // 🔔 Faixa Crítica (Gera o alerta no Sininho e Painel)
+        } else if (i % 11 === 0) {
+            prazoSimulado = 7;  // Atenção Curta
+        } else if (i % 17 === 0) {
+            prazoSimulado = 15; // Atenção Média
+        } else if (i % 25 === 0) {
+            prazoSimulado = 0;  // Mais alguns críticos para encorpar o relatório
+        }
+
+        // --- 🩺 DETALHAMENTO DE SINAIS VITAIS BASEADO NAS DOENÇAS ---
+        const paEstruturada = temHas === "Sim" ? "145x95" : "120x80";
+        const hba1cSimulada = temDm === "Sim" ? "7.8" : "5.4";
 
         const payload = {
             cpf: cpfSimulado,
             nome: nomeCompleto,
-            nasc: "1985-06-15",
-            idade: "41",
+            nasc: temGestante === "Sim" ? "1998-04-12" : "1985-06-15", // Gestantes mais jovens
+            idade: temGestante === "Sim" ? "28" : "41",
             tel: "(21) 98888-7711",
             cep: "20000-000",
             endereco: "Avenida Central do Município Simulador",
             numero: String(i),
-            complemento: "Lote Acadêmico",
+            complemento: "Lote Acadêmico Distribuído",
             ubs: ubsFalsas[i % 4],
             equipe: equipesFalsas[i % 4],
-            has: i % 2 === 0 ? "Sim" : "Não",
-            pas: i % 2 === 0 ? "145" : "",
-            pad: i % 2 === 0 ? "95" : "",
-            classifHas: i % 2 === 0 ? "Hipertensão Estágio 1 ou 2" : "",
-            dm: i % 3 === 0 ? "Sim" : "Não",
-            hba1c: i % 3 === 0 ? "7.5" : "",
-            classifDm: i % 3 === 0 ? "Controle Limítrofe" : "",
-            gestante: "Não",
-            tb: "Não",
-            hansen: "Não",
+            
+            // Linhas de Cuidado Ativadas
+            has: temHas,
+            pas: temHas === "Sim" ? "145" : "",
+            pad: temHas === "Sim" ? "95" : "",
+            classifHas: temHas === "Sim" ? "Hipertensão Estágio 1 ou 2" : "",
+            
+            dm: temDm,
+            hba1c: hba1cSimulada,
+            classifDm: temDm === "Sim" ? "Controle Limítrofe" : "",
+            
+            gestante: temGestante,
+            dum: temGestante === "Sim" ? "2026-01-10" : "",
+            ig: temGestante === "Sim" ? "18 Semanas e 2 Dias" : "",
+            dpp: temGestante === "Sim" ? "17/10/2026" : "",
+            
+            tb: temTb,
+            hansen: temHansen,
             ampi: "Idoso Robusto",
             
-            objPA: i % 2 === 0 ? "140x90" : "120x80",
+            // Dados estruturados que alimentam o SOAP ao abrir o prontuário
+            objPA: paEstruturada,
             objFC: "76",
             objFR: "16",
             objSatO2: "98",
@@ -874,22 +911,25 @@ function gerarCargaMassaOitoMil() {
             exameFisicoStatus: "Normal",
             soapObjetivoAlterado: "",
 
-            reavaliacaoDias: prazoSimulado,
+            reavaliacaoDias: prazoSimulado, // Indexador numérico crucial para o Painel Epidemiológico
             historicoEvolucoes: [
-                `--- ATENDIMENTO SIMULADO DE ESTRESSE DE MEMÓRIA (LOTE ${i}) ---\nS: Sem queixas.\nO: [SSVV -> PA: 120x80 | FC: 76 bpm] Exame Físico Normal.\nA: Inserido via robô acadêmico.\nP: Manter monitoramento. Prazo: ${prazoSimulado} dias.`
+                `--- ATENDIMENTO SIMULADO DE VIGILÂNCIA TERRITORIAL (LOTE DE ESTRESSE ${i}) ---\n` +
+                `S: Acompanhamento de rotina na APS.\n` +
+                `O: [SSVV -> PA: ${paEstruturada} | FC: 76 bpm] Exame Clínico Direcionado.\n` +
+                `A: Registro acadêmico automatizado para análise de latência.\n` +
+                `P: Plano terapêutico mantido. Monitoramento aprazado para ${prazoSimulado} dias.`
             ]
         };
         store.put(payload);
     }
 
     transaction.oncomplete = function() {
-        mostrarToast("🚀 Injeção de 8.000 cadastros concluída com sucesso!");
+        mostrarToast("🚀 Matriz com 8.000 cadastros e indicadores epidemiológicos injetada!");
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
     };
 }
-
 function processarArquivoEsus(input) {
     const file = input.files[0];
     if (!file) return;
