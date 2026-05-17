@@ -523,8 +523,13 @@ function abrirParaEdicao(cpf) {
         document.getElementById("nascPaciente").value = p.nascPaciente || "";
         document.getElementById("idadePaciente").value = p.idadePaciente || "";
         document.getElementById("telPaciente").value = p.telPaciente || "";
+        
+        // Novos Campos Territoriais e Complementos Sincronizados
         document.getElementById("endPaciente").value = p.endPaciente || "";
+        document.getElementById("endNumero").value = p.endNumero || "";
+        document.getElementById("endComplemento").value = p.endComplemento || "";
         document.getElementById("CEP").value = p.CEP || "";
+        
         document.getElementById("unidadePaciente").value = p.unidadePaciente || "";
         document.getElementById("equipePaciente").value = p.equipePaciente || "";
         
@@ -590,8 +595,13 @@ function salvarProntuario() {
             nascPaciente: document.getElementById("nascPaciente").value,
             idadePaciente: document.getElementById("idadePaciente").value,
             telPaciente: document.getElementById("telPaciente").value,
+            
+            // Persistência das caixas estruturadas de endereço
             endPaciente: document.getElementById("endPaciente").value,
+            endNumero: document.getElementById("endNumero").value,
+            endComplemento: document.getElementById("endComplemento").value,
             CEP: document.getElementById("CEP").value,
+            
             unidadePaciente: document.getElementById("unidadePaciente").value,
             equipePaciente: document.getElementById("equipePaciente").value,
             hasSN: document.getElementById("hasSN").value.toLowerCase(),
@@ -719,7 +729,9 @@ function gerarCargaMassaOitoMil() {
             nascPaciente: "1980-05-15",
             idadePaciente: "46",
             telPaciente: "(21) 98888-7777",
-            endPaciente: "Rua Projetada Municipal, s/n",
+            endPaciente: "Rua Projetada Municipal",
+            endNumero: String(Math.floor(Math.random() * 500) + 1),
+            endComplemento: Math.random() > 0.5 ? "Casa" : "Ap " + (Math.floor(Math.random() * 401) + 101),
             CEP: "20000-000",
             unidadePaciente: ubsLista[Math.floor(Math.random() * ubsLista.length)],
             equipePaciente: equipesLista[Math.floor(Math.random() * equipesLista.length)],
@@ -737,7 +749,7 @@ function gerarCargaMassaOitoMil() {
             obsPaciente: "Carga automatizada via motor de estresse.",
             dataUltimaConsulta: gerarDataPassada(45),
             historicoEvolucoes: [
-                { data: "2026-01-10", profissional: "Sistema", texto: "Carga Inicial e Sincronização e-SUS APS." }
+                { data: "2026-01-10", profesional: "Sistema", texto: "Carga Inicial e Sincronização e-SUS APS." }
             ]
         };
 
@@ -865,7 +877,7 @@ function calcIG() {
 
     const hoje = new Date();
     const dum = new Date(dumValor);
-    const diferencaDias = Math.floor((hoje - dum) / (1000 * 60 * 60 * 24));
+    const diferencaDias = Math.floor((open - dum) / (1000 * 60 * 60 * 24));
     
     const semanas = Math.floor(diferencaDias / 7);
     const diasRestantes = diferencaDias % 7;
@@ -932,13 +944,17 @@ function buscarCEP() {
                 return;
             }
 
+            // O ViaCEP entrega Logradouro, Bairro e Município. Salvamos no campo de Endereço Principal.
             const enderecoFormatado = `${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`;
             const campoEndereco = document.getElementById("endPaciente");
             campoEndereco.value = enderecoFormatado;
 
-            // Feedback tátil visual temporário de sucesso no campo
+            // Feedback visual de preenchimento de sucesso no campo principal
             campoEndereco.style.backgroundColor = "#f0fdf4";
             setTimeout(() => { campoEndereco.style.backgroundColor = ""; }, 1500);
+
+            // Move o foco do teclado direto para o Número para acelerar a digitação
+            document.getElementById("endNumero").focus();
 
             showToast("📍 Endereço territorial preenchido!");
         })
