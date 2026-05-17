@@ -76,17 +76,81 @@ function efetuarLoginSucesso(usuario) {
     navigate("inicio");
 }
 
+/* ============================================================
+   🔄 CONTROLE DE ACESSO DINÂMICO E TRANSIÇÃO DE PERFIS (RBAC)
+============================================================ */
 function aplicarPermissoesPerfil(tipoPerfil) {
     const btnAuditoria = document.getElementById("btnAuditoria");
-    if (btnAuditoria) {
-        btnAuditoria.style.display = tipoPerfil === "admin" ? "inline-block" : "none";
+    const seletorAcesso = document.getElementById("seletorNivelAcesso");
+
+    // Se o usuário logado for originalmente um Administrador, ele ganha o direito de transitar entre as visões
+    const sessaoOriginal = JSON.parse(localStorage.getItem("usuarioLogado"));
+    if (sessaoOriginal && sessaoOriginal.tipo === "admin" && seletorAcesso) {
+        seletorAcesso.style.display = "inline-block";
+    } else if (seletorAcesso) {
+        seletorAcesso.style.display = "none"; // Clínicos comuns não veem o seletor
     }
+
+    // Comportamento das telas baseado no perfil temporário/selecionado
+    if (tipoPerfil === "admin") {
+        if (btnAuditoria) btnAuditoria.style.display = "inline-block";
+        desbloquearFormularios(true); // Acesso Total
+        console.log("🔐 Interface alterada para: Administrador Central.");
+        
+    } else if (tipoPerfil === "clinico") {
+        if (btnAuditoria) btnAuditoria.style.display = "none";
+        desbloquearFormularios(true); // Acesso Assistencial Completo
+        console.log("🩺 Interface alterada para: Perfil Clínico.");
+        
+    } else if (tipoPerfil === "leitura") {
+        if (btnAuditoria) btnAuditoria.style.display = "none";
+        desbloquearFormularios(false); // Bloqueia todos os inputs para escrita (Auditoria Passiva)
+        console.log("👁️ Interface alterada para: Apenas Leitura.");
+    }
+}
+
+// Função que roda ao mudar o Dropdown do cabeçalho
+function alternarVisaoGestor(novaVisao) {
+    aplicarPermissoesPerfil(novaVisao);
+    
+    const campoNome = document.getElementById("nomeUsuarioLogado");
+    const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
+    
+    if (campoNome && sessao) {
+        let sufixo = novaVisao === "admin" ? " (Gestor)" : (novaVisao === "clinico" ? " (Modo Clínico)" : " (Modo Leitura)");
+        campoNome.innerText = sessao.nome.split(" (")[0] + sufixo;
+    }
+    
+    navigate("inicio");
+}
+
+// Função auxiliar para bloquear ou liberar a escrita em prontuários (Modo Leitura)
+function desbloquearFormularios(permitirEscrita) {
+    const elementosProntuario = document.querySelectorAll("#view-prontuario input, #view-prontuario select, #view-prontuario textarea");
+    
+    elementosProntuario.forEach(elemento => {
+        // Ignora campos de cálculos automáticos que já são naturalmente travados
+        if (!["idadePaciente", "hasClassif", "dmClassif", "gestIG", "gestDPP"].includes(elemento.id)) {
+            elemento.disabled = !permitirEscrita;
+            elemento.style.background = permitirEscrita ? "" : "#e2e8f0";
+            elemento.style.cursor = permitirEscrita ? "" : "not-allowed";
+        }
+    });
+
+    const botoesAcao = document.querySelectorAll("#view-prontuario button");
+    botoesAcao.forEach(btn => {
+        if (!btn.innerText.includes("Cancelar")) {
+            btn.disabled = !permitirEscrita;
+            btn.style.opacity = permitirEscrita ? "1" : "0.5";
+            btn.style.cursor = permitirEscrita ? "pointer" : "not-allowed";
+        }
+    });
 }
 
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = mensagem;
+        erroDiv.innerText = mensagem; // 💡 Corrigido de 'mensaje' para 'mensagem'
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -105,7 +169,7 @@ function efetuarLogout() {
    🔄 SISTEMA DE NAVEGAÇÃO INTERNA (SPA)
 ============================================================ */
 function navigate(screenId) {
-    const pages = document.querySelectorAll(".view");
+    const pages = document.querySelectorAll(".view"); // 💡 Sincronizado com a classe '.view' do HTML
     pages.forEach(page => page.style.display = "none");
 
     const targetId = screenId.startsWith("view-") ? screenId : "view-" + screenId;
@@ -124,8 +188,6 @@ function navigate(screenId) {
 /* ============================================================
    🩺 INTELIGÊNCIA CLÍNICA E REGRAS DE NEGÓCIO DA APS
 ============================================================ */
-
-// GATILHOS VISUAIS DE CONDUTA
 function mostrarCard(idCard, valor) {
     const elemento = document.getElementById(idCard);
     if (elemento) {
@@ -133,7 +195,6 @@ function mostrarCard(idCard, valor) {
     }
 }
 
-// CÁLCULO AUTOMÁTICO DE IDADE E APARIÇÃO DO BLOCO IDOSO (AMPI)
 function calcIdade() {
     const dataNasc = document.getElementById("nascPaciente").value;
     if (!dataNasc) return;
@@ -149,14 +210,12 @@ function calcIdade() {
 
     document.getElementById("idadePaciente").value = idade + " anos";
 
-    // Se o utente tiver 60 anos ou mais, dispara o bloco de triagem da AMPI
     const ampiBloco = document.getElementById("ampiBloco");
     if (ampiBloco) {
         ampiBloco.style.display = idade >= 60 ? "block" : "none";
     }
 }
 
-// STRATIFICAÇÃO DE RISCO CARDIOVASCULAR (HAS)
 function classificarHAS() {
     const pas = parseInt(document.getElementById("hasPAS").value) || 0;
     const pad = parseInt(document.getElementById("hasPAD").value) || 0;
@@ -179,7 +238,6 @@ function classificarHAS() {
     }
 }
 
-// MONITORAMENTO METABÓLICO (DM)
 function classificarDM() {
     const hba1c = parseFloat(document.getElementById("dmHbA1c").value) || 0;
     const campo = document.getElementById("dmClassif");
@@ -198,7 +256,6 @@ function classificarDM() {
     }
 }
 
-// CALCULADORA OBSTÉTRICA (DUM / IG / DPP)
 function calcIG() {
     const dumValue = document.getElementById("gestDUM").value;
     if (!dumValue) return;
@@ -206,7 +263,6 @@ function calcIG() {
     const dum = new Date(dumValue);
     const hoje = new Date();
 
-    // Diferença em milissegundos convertida para semanas
     const diffTime = Math.abs(hoje - dum);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const semanas = Math.floor(diffDays / 7);
@@ -214,7 +270,6 @@ function calcIG() {
 
     document.getElementById("gestIG").value = `${semanas} Semanas e ${diasRestantes} Dias`;
 
-    // Data Provável do Parto (Regra de Nægele: DUM + 7 dias - 3 meses + 1 ano)
     let dpp = new Date(dum);
     dpp.setDate(dpp.getDate() + 7);
     dpp.setMonth(dpp.getMonth() + 9); 
@@ -245,7 +300,6 @@ function salvarProntuario() {
         equipe: document.getElementById("equipePaciente").value,
         obs: document.getElementById("obsPaciente").value,
         
-        // Linhas de Cuidado
         has: document.getElementById("hasSN").value,
         hasPAS: document.getElementById("hasPAS").value,
         hasPAD: document.getElementById("hasPAD").value,
@@ -259,25 +313,20 @@ function salvarProntuario() {
         hanseniase: document.getElementById("hansenSN").value,
         tuberculose: document.getElementById("tbSN").value,
         
-        // AMPI
         ampiClassif: document.getElementById("ampiPaciente") ? document.getElementById("ampiPaciente").value : "",
-        
-        // Registro Clínico Textual
         evolucao: document.getElementById("evoTexto").value,
         ciaps2: document.getElementById("inputBuscaCIAPS").value,
         dataRegistro: new Date().toLocaleDateString('pt-BR')
     };
 
     if (atualPacienteEdicaoId) {
-        // Modo Edição: substitui registro existente
         bancoPacientes = bancoPacientes.map(p => p.id === atualPacienteEdicaoId ? paciente : p);
     } else {
-        // Modo Novo Prontuário
         bancoPacientes.push(paciente);
     }
 
     localStorage.setItem("sintaxe_db", JSON.stringify(bancoPacientes));
-    alert("💾 Prontuário registrado e criptografado com sucesso na base municipal!");
+    alert("💾 Prontuário registrado com sucesso na base municipal!");
     
     limparFormularioProntuario();
     navigate("inicio");
@@ -285,16 +334,16 @@ function salvarProntuario() {
 
 function limparFormularioProntuario() {
     atualPacienteEdicaoId = null;
-    document.getElementById("cabecalhoProntuario").style.display = "none";
+    if (document.getElementById("cabecalhoProntuario")) {
+        document.getElementById("cabecalhoProntuario").style.display = "none";
+    }
     
-    // Reseta inputs comuns
     const inputs = document.querySelectorAll("#view-prontuario input, #view-prontuario textarea, #view-prontuario select");
     inputs.forEach(input => {
         if (input.tagName === "SELECT") input.value = "Não";
         else input.value = "";
     });
 
-    // Oculta cards condicionais
     mostrarCard('cardHAS', 'Não');
     mostrarCard('cardDM', 'Não');
     mostrarCard('cardGestante', 'Não');
@@ -358,13 +407,11 @@ function carregarPacienteParaEdicao(id) {
     if (!p) return;
 
     atualPacienteEdicaoId = p.id;
-    
     navigate("prontuario");
 
     document.getElementById("cabecalhoProntuario").style.display = "block";
     document.getElementById("cabecalhoNome").innerText = `Editando: ${p.nome}`;
 
-    // Preenche dados estruturais
     document.getElementById("nomePaciente").value = p.nome;
     document.getElementById("cpfPaciente").value = p.cpf || "";
     document.getElementById("nascPaciente").value = p.nascimento || "";
@@ -376,14 +423,12 @@ function carregarPacienteParaEdicao(id) {
     document.getElementById("equipePaciente").value = p.equipe || "";
     document.getElementById("obsPaciente").value = p.obs || "";
 
-    // Linhas de cuidado select
     document.getElementById("hasSN").value = p.has || "Não";
     document.getElementById("dmSN").value = p.dm || "Não";
     document.getElementById("gestanteSN").value = p.gestante || "Não";
     document.getElementById("hansenSN").value = p.hanseniase || "Não";
     document.getElementById("tbSN").value = p.tuberculose || "Não";
 
-    // Dispara gatilhos de renderização dos cards adicionais
     mostrarCard('cardHAS', p.has);
     if (p.has === "Sim") {
         document.getElementById("hasPAS").value = p.hasPAS || "";
@@ -476,6 +521,7 @@ function initSistema() {
         document.getElementById("app").style.display = "block";
         const campoNome = document.getElementById("nomeUsuarioLogado");
         if (campoNome) campoNome.innerText = sessao.nome;
+        
         aplicarPermissoesPerfil(sessao.tipo);
         navigate("inicio");
     }
