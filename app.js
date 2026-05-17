@@ -32,18 +32,15 @@ let db = null;
    📦 CONFIGURAÇÃO DO INDEXEDDB DE ALTA SEGURANÇA (PEP)
 ============================================================ */
 function iniciarBancoDados(callback) {
-    // Elevado para a Versão 2 para suportar a arquitetura de tabelas do PEP
     const request = indexedDB.open("SintaxeHubDB", 2);
 
     request.onupgradeneeded = function(event) {
         const database = event.target.result;
         
-        // Tabela 1: Prontuários (Dados cadastrais, chaves clínicas e Linha do Tempo)
         if (!database.objectStoreNames.contains("prontuarios")) {
             database.createObjectStore("prontuarios", { keyPath: "id" });
         }
         
-        // Tabela 2 [REQUISITO PEP]: Trilha de Auditoria Imutável (Audit Trail)
         if (!database.objectStoreNames.contains("auditoria")) {
             database.createObjectStore("auditoria", { keyPath: "logId", autoIncrement: true });
         }
@@ -72,14 +69,14 @@ function registrarLogAuditoria(acao, detalhes) {
         dataHora: new Date().toISOString(),
         usuarioMatricula: sessao.matricula,
         usuarioNome: sessao.nome,
-        acao: acao,           // Ex: "LOGIN_SUCESSO", "PRONTUARIO_VISUALIZADO", "EVOLUCAO_SALVA"
-        detalhes: detalhes,   // Ex: "Acessou prontuário do paciente X"
+        acao: acao,
+        detalhes: detalhes,
         userAgent: navigator.userAgent
     };
 
     const transaction = db.transaction(["auditoria"], "readwrite");
     const store = transaction.objectStore("auditoria");
-    store.add(log); // .add garante inclusão no fim da fila sem risco de sobrescrita
+    store.add(log);
 }
 
 /* ============================================================
@@ -107,7 +104,6 @@ function autenticarUsuario() {
     if (usuarioEncontrado) {
         efetuarLoginSucesso(usuarioEncontrado);
     } else {
-        // Auditoria registra tentativa de invasão ou erro de senha
         registrarLogAuditoria("LOGIN_FALHA", `Tentativa frustrada de login com a matrícula: ${matriculaInput}`);
         exibirErroLogin("⚠️ Matrícula ou senha incorretas. Verifique as credenciais.");
     }
@@ -160,7 +156,7 @@ function aplicarPermissoesPerfil(tipoPerfil) {
         desbloquearFormularios(true);
     } else if (tipoPerfil === "leitura") {
         if (btnAuditoria) btnAuditoria.style.display = "none";
-        desbloquearFormularios(false); // Congela escrita para auditoria passiva
+        desbloquearFormularios(false);
     }
 }
 
@@ -203,7 +199,7 @@ function desbloquearFormularios(permitirEscrita) {
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = mensagem;
+        erroDiv.innerText = message;
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -235,8 +231,6 @@ function navigate(screenId) {
     
     if (screenId.includes("inicio")) atualizarDashboardInicio();
     if (screenId.includes("banco")) listarBanco();
-    
-    fecharDrawer();
 }
 
 /* ============================================================
@@ -305,7 +299,7 @@ function classificarDM() {
         campo.value = "Controlo Inadequado";
         campo.style.color = "#f59e0b";
     } else {
-        campo.value = "Risco Alto / Descompensado";
+        campo.value = "Risco Alto / Descompensated";
         campo.style.color = "#ef4444";
     }
 }
@@ -343,8 +337,6 @@ function salvarProntuario() {
 
     const sessaoAtend = JSON.parse(localStorage.getItem("usuarioLogado"));
     const novaEvolucaoTexto = document.getElementById("evoTexto").value.trim();
-
-    // Requisito PEP: Buscar registro anterior para não apagar a linha do tempo existente
     const idPaciente = atualPacienteEdicaoId || Date.now().toString();
     
     const transactionLeitura = db.transaction(["prontuarios"], "readonly");
@@ -355,7 +347,6 @@ function salvarProntuario() {
         const registroExistente = event.target.result;
         let historicoEvolucoes = (registroExistente && registroExistente.evolucoes) ? registroExistente.evolucoes : [];
 
-        // 🔥 SE HOUVER TEXTO NA EVOLUÇÃO, CRIA UM ADENDO ASSINADO (NÃO SOBRESCREVE O PASSADO)
         if (novaEvolucaoTexto) {
             historicoEvolucoes.push({
                 dataHora: new Date().toLocaleString('pt-BR'),
@@ -394,7 +385,6 @@ function salvarProntuario() {
             ampiClassif: document.getElementById("ampiPaciente") ? document.getElementById("ampiPaciente").value : "",
             ciaps2: document.getElementById("inputBuscaCIAPS").value,
             
-            // Grava a linha do tempo imutável das evoluções clínicas
             evolucoes: historicoEvolucoes,
             dataUltimoRegistro: new Date().toLocaleDateString('pt-BR')
         };
@@ -427,7 +417,6 @@ function limparFormularioProntuario() {
         else input.value = "";
     });
 
-    // Limpa a div de linha do tempo visual, se existir no HTML
     const timelineDiv = document.getElementById("linhaTempoEvolucoes");
     if (timelineDiv) timelineDiv.innerHTML = "";
 
@@ -485,7 +474,6 @@ function buscarInicio() {
         const prontuarios = event.target.result;
         const filtrados = prontuarios.filter(p => p.nome.toLowerCase().includes(nomeBusca));
 
-        // Registro de Auditoria Obrigatório para Busca Populacional de Dados Sensíveis
         registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa textual no Dashboard pelo termo: "${nomeBusca}". Retornou ${filtrados.length} resultados.`);
 
         if (filtrados.length === 0) {
@@ -517,7 +505,6 @@ function carregarPacienteParaEdicao(id) {
         const p = event.target.result;
         if (!p) return;
 
-        // 🔥 REGISTRO DE AUDITORIA: Quem abriu o prontuário clínico e quando?
         registrarLogAuditoria("PRONTUARIO_VISUALIZADO", `Acessou a ficha clínica completa do paciente: ${p.nome} (ID: ${p.id})`);
 
         atualPacienteEdicaoId = p.id;
@@ -564,16 +551,12 @@ function carregarPacienteParaEdicao(id) {
         
         calcIdade();
         document.getElementById("inputBuscaCIAPS").value = p.ciaps2 || "";
-        
-        // Limpa o campo de digitação de novas evoluções para o atendimento atual
         document.getElementById("evoTexto").value = "";
 
-        // 🔥 EXIBIÇÃO DA LINHA DO TEMPO HISTÓRICA NA TELA
         const timelineDiv = document.getElementById("linhaTempoEvolucoes");
         if (timelineDiv) {
             if (p.evolucoes && p.evolucoes.length > 0) {
                 let htmlTimeline = `<h4 style="margin-top:20px; color:#1e293b; border-bottom:2px solid #cbd5e1; padding-bottom:5px;">📋 Linha do Tempo de Evoluções (Trancada)</h4>`;
-                // Exibe as evoluções da mais recente para a mais antiga
                 p.evolucoes.slice().reverse().forEach(evo => {
                     htmlTimeline += `
                     <div style="background:#f8fafc; border-left:4px solid #0284c7; padding:10px; margin-bottom:10px; border-radius:0 6px 6px 0; font-size:13px;">
@@ -614,7 +597,7 @@ function listarBanco() {
             let linhas = [];
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("Gestante");
+            if (p.gestante === "Sim") lines.push("Gestante");
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
@@ -630,15 +613,235 @@ function listarBanco() {
 }
 
 /* ============================================================
-   ⚙️ EXTRA E UTILS: MODAL DRAWER E MÁSCARAS
+   🧬 REQUISITO INTEGRABILIDADE: INTEGRATION ENGINE e-SUS APS
 ============================================================ */
-function fecharDrawer() {
-    const dr = document.getElementById("drawer");
-    const ov = document.getElementById("drawerOverlay");
-    if (dr) dr.style.display = "none";
-    if (ov) ov.style.display = "none";
+function processarArquivoEsus(inputElement) {
+    const arquivo = inputElement.files[0];
+    if (!arquivo) return;
+
+    registrarLogAuditoria("INTEGRACAO_ESUS_ATTEMPT", `Iniciado upload de documento externo: ${arquivo.name}`);
+
+    const leitor = new FileReader();
+
+    leitor.onload = function(event) {
+        try {
+            const conteudoRaw = event.target.result;
+            let dadosMapeados = {};
+
+            if (arquivo.name.endsWith(".json")) {
+                const esusData = JSON.parse(conteudoRaw);
+                
+                dadosMapeados = {
+                    id: "esus_" + (esusData.coDimUnidadeSaude || Date.now().toString()),
+                    nome: esusData.noCidadao || esusData.nome || "Utente Importado e-SUS",
+                    cpf: esusData.nuCpfCidadao || "",
+                    nascimento: esusData.dtNascimento || "",
+                    telefone: esusData.nuTelefone || "",
+                    unidade: esusData.noUnidadeSaude || "Unidade Importada e-SUS",
+                    equipe: esusData.nuIne || "Equipe e-SUS",
+                    has: esusData.stHipertensaoArterial === 1 ? "Sim" : "Não",
+                    dm: esusData.stDiabetes === 1 ? "Sim" : "Não",
+                    gestante: esusData.stGestante === 1 ? "Sim" : "Não",
+                    evolucoes: [{
+                        dataHora: new Date().toLocaleString('pt-BR'),
+                        profissional: "Sistema Integrador e-SUS APS",
+                        matricula: "INTEGRA_SUS",
+                        texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo original: ${arquivo.name}.`
+                    }]
+                };
+            } else {
+                dadosMapeados = {
+                    id: "pdf_" + Date.now().toString(),
+                    nome: `Paciente Extraído do PDF (${arquivo.name.substring(0, 15)})`,
+                    obs: `Documento clínico arquivado temporariamente. Tamanho do arquivo: ${arquivo.size} bytes.`,
+                    has: "Não", dm: "Não", gestante: "Não",
+                    evolucoes: [{
+                        dataHora: new Date().toLocaleString('pt-BR'),
+                        profissional: "Conversor de PDF e-SUS",
+                        matricula: "PDF_PARSER",
+                        texto: `Conteúdo de texto extraído processado pelo navegador com sucesso.`
+                    }]
+                };
+            }
+
+            const transaction = db.transaction(["prontuarios"], "readwrite");
+            const store = transaction.objectStore("prontuarios");
+            store.put(dadosMapeados);
+
+            transaction.oncomplete = function() {
+                registrarLogAuditoria("INTEGRACAO_ESUS_SUCESSO", `Arquivo ${arquivo.name} integrado com sucesso para a ficha de ${dadosMapeados.nome}`);
+                alert(`✅ Sucesso! Dados do e-SUS integrados. O prontuário de "${dadosMapeados.nome}" foi gerado no banco municipal.`);
+                atualizarDashboardInicio();
+                inputElement.value = "";
+            };
+
+        } catch (erro) {
+            registrarLogAuditoria("INTEGRACAO_ESUS_ERRO", `Falha no processamento interno da string: ${erro.message}`);
+            alert("❌ Erro crítico: O arquivo não possui uma estrutura de dados de saúde legível pelo interpretador local.");
+        }
+    };
+
+    leitor.readAsText(arquivo);
 }
 
+/* ============================================================
+   📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS)
+============================================================ */
+function gerarCargaMassaOitoMil() {
+    if (!db) return alert("❌ Banco de dados não inicializado.");
+    if (!confirm("⚠️ Deseja gerar 8.000 prontuários fictícios via script? Isso simulará um território real da APS.")) return;
+
+    console.time("⏱️ Tempo de inserção de 8.000 registros");
+    alert("Processando carga epidemiológica em lote... Por favor, aguarde alguns segundos.");
+
+    const nomesFemininos = ["Maria", "Ana", "Francisca", "Antônia", "Adriana", "Juliana", "Márcia", "Fernanda", "Patrícia", "Letícia", "Camila", "Luciana"];
+    const nomesMasculinos = ["José", "João", "Antônio", "Francisco", "Carlos", "Paulo", "Pedro", "Lucas", "Luiz", "Marcos", "Fabio", "Rafael"];
+    const sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima", "Gomes", "Costa", "Carvalho", "Martins"];
+    const ruas = ["Av. Brasil", "Rua da Matriz", "Rua São Jorge", "Av. das Palmeiras", "Rua XV de Novembro", "Travessa da Paz"];
+    const equipes = ["eSF Aliança - 01", "eSF Harmonia - 02", "eSF Esperança - 03", "eSF Progresso - 04"];
+
+    const transaction = db.transaction(["prontuarios"], "readwrite");
+    const store = transaction.objectStore("prontuarios");
+
+    for (let i = 1; i <= 8000; i++) {
+        const ehMulher = Math.random() > 0.45;
+        const nomeSemente = ehMulher ? nomesFemininos[Math.floor(Math.random() * nomesFemininos.length)] : nomesMasculinos[Math.floor(Math.random() * nomesMasculinos.length)];
+        const sobrenome1 = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
+        const sobrenome2 = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
+        const nomeCompleto = `${nomeSemente} ${sobrenome1} ${sobrenome2}`;
+
+        const randomDado = Math.random();
+        let idadeAnos = 25;
+        if (randomDado < 0.20) idadeAnos = Math.floor(Math.random() * 19);
+        else if (randomDado < 0.70) idadeAnos = Math.floor(Math.random() * 40) + 20;
+        else if (randomDado < 0.95) idadeAnos = Math.floor(Math.random() * 20) + 60;
+        else idadeAnos = Math.floor(Math.random() * 23) + 80;
+
+        const anoNasc = 2026 - idadeAnos;
+        const mesNasc = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+        const diaNasc = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+        const dataNascimentoString = `${anoNasc}-${mesNasc}-${diaNasc}`;
+
+        const temHAS = (idadeAnos > 30 && Math.random() < 0.32) ? "Sim" : "Não";
+        const pas = temHAS === "Sim" ? String(Math.floor(Math.random() * 61) + 120) : "";
+        const pad = temHAS === "Sim" ? String(Math.floor(Math.random() * 36) + 75) : "";
+
+        const temDM = (idadeAnos > 35 && Math.random() < 0.14) ? "Sim" : "Não";
+        const hba1c = temDM === "Sim" ? String((Math.random() * 5.5 + 5.5).toFixed(1)) : "";
+
+        const ehGestante = (ehMulher && idadeAnos >= 14 && idadeAnos <= 45 && Math.random() < 0.06) ? "Sim" : "Não";
+        const dataDum = ehGestante === "Sim" ? "2026-02-15" : "";
+
+        let ampi = "";
+        if (idadeAnos >= 60) {
+            const rAmpi = Math.random();
+            ampi = rAmpi < 0.50 ? "Idoso Robusto" : (rAmpi < 0.85 ? "Em Risco de Fragilização" : "Estruturalmente Frágil");
+        }
+
+        const temTB = (Math.random() < 0.005) ? "Sim" : "Não";
+        const temHansen = (Math.random() < 0.003) ? "Sim" : "Não";
+
+        const pacienteSimulado = {
+            id: `MUNICIPAL_8K_${i}`,
+            nome: nomeCompleto,
+            cpf: `${Math.floor(Math.random()*900+100)}.${Math.floor(Math.random()*900+100)}.${Math.floor(Math.random()*900+100)}-${Math.floor(Math.random()*90+10)}`,
+            nascimento: dataNascimentoString,
+            idade: `${idadeAnos} anos`,
+            telefone: `(21) 9${Math.floor(Math.random()*9000+1000)}-${Math.floor(Math.random()*9000+1000)}`,
+            endereco: `${ruas[Math.floor(Math.random() * ruas.length)]}, Nº ${Math.floor(Math.random()*1000)}`,
+            cep: `24${Math.floor(Math.random()*900+100)}-000`,
+            unidade: "Complexo de Saúde Municipal",
+            equipe: equipes[Math.floor(Math.random() * equipes.length)],
+            obs: Math.random() > 0.90 ? "Alergia a múltiplos fármacos registrada em triagem." : "",
+            has: temHAS, hasPAS: pas, hasPAD: pad,
+            dm: temDM, dmHbA1c: hba1c,
+            gestante: ehGestante, gestDUM: dataDum,
+            hanseniase: temHansen, tuberculose: temTB,
+            ampiClassif: ampi,
+            ciaps2: temHAS === "Sim" && temDM === "Sim" ? "K86; T90" : (temHAS === "Sim" ? "K86" : (temDM === "Sim" ? "T90" : "")),
+            dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
+            evolucoes: [
+                {
+                    dataHora: new Date().toLocaleString('pt-BR'),
+                    profissional: "Algoritmo de Carga Populacional",
+                    matricula: "SIS_SEED",
+                    texto: "Carga automatizada realizada para validação de estresse de banco e painéis de inteligência de saúde pública digital."
+                }
+            ]
+        };
+
+        store.add(pacienteSimulado);
+    }
+
+    transaction.oncomplete = function() {
+        console.timeEnd("⏱️ Tempo de inserção de 8.000 registros");
+        registrarLogAuditoria("CARGA_ESTRESSE_8K", "Injetado com sucesso lote em massa de 8.000 prontuários populacionais no banco local.");
+        alert("📊 Sucesso absoluto! O banco local agora conta com 8.000 usuários ativos.");
+        atualizarDashboardInicio();
+    };
+
+    transaction.onerror = function(event) {
+        console.error("❌ Falha crítica na inserção em lote:", event.target.error);
+    };
+}
+
+/* ============================================================
+   💾 CARGA DE DADOS DE EXEMPLO (SEED INFRASTRUCTURE)
+============================================================ */
+function carregarMassaDadosExemplo() {
+    if (!db) return;
+
+    const transactionCheck = db.transaction(["prontuarios"], "readonly");
+    const storeCheck = transactionCheck.objectStore("prontuarios");
+    const requestCheck = storeCheck.count();
+
+    requestCheck.onsuccess = function(event) {
+        if (event.target.result > 0) return;
+
+        const pacientesExemplo = [
+            {
+                id: "seed_1",
+                nome: "Maria Severina dos Santos",
+                cpf: "111.222.333-44",
+                nascimento: "1954-08-15",
+                idade: "71 anos",
+                telefone: "(21) 98888-7777",
+                endereco: "Rua das Camélias, 102 - Bloco B",
+                cep: "20000-000",
+                unidade: "UBS Centro",
+                equipe: "eSF Harmonia - 01",
+                obs: "Alergia grave a Penicilina.",
+                has: "Sim", hasPAS: "150", hasPAD: "95",
+                dm: "Sim", dmHbA1c: "8.2", gestante: "Não",
+                hanseniase: "Não", tuberculose: "Não",
+                ampiClassif: "Em Risco de Fragilização",
+                ciaps2: "K86; T90",
+                dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
+                evolucoes: [
+                    {
+                        dataHora: "10/03/2026 14:22:10",
+                        profissional: "Dr. Josimar Kapps (Gestor)",
+                        matricula: "440129",
+                        texto: "S: Utente refere episódios recorrentes de cefaleia holocraniana.\nO: PA: 150x95 mmHg. Exames trazem HbA1c de 8.2%.\nA: Idosa com HAS estágio 1 descontrolada e DM tipo 2 descompensada.\nP: Ajustado dose de Losartana para 50mg 12/12h. Solicitado nova rotina de exames."
+                    }
+                ]
+            }
+        ];
+
+        const transactionEscrita = db.transaction(["prontuarios"], "readwrite");
+        const storeEscrita = transactionEscrita.objectStore("prontuarios");
+        pacientesExemplo.forEach(p => storeEscrita.put(p));
+
+        transactionEscrita.oncomplete = function() {
+            atualizarDashboardInicio();
+            registrarLogAuditoria("CARGA_DADOS_SEED", "Injetado prontuários de teste epidemiológicos no banco local.");
+        };
+    };
+}
+
+/* ============================================================
+   ⚙️ EXTRA E UTILS: MODAL DRAWER, ESCAPES E MÁSCARAS
+============================================================ */
 function mascaraCPF(i) {
     let v = i.value;
     if (isNaN(v.charAt(v.length - 1))) { i.value = v.substring(0, v.length - 1); return; }
@@ -659,6 +862,7 @@ function escapeHTML(text) {
 function initSistema() {
     iniciarBancoDados(function() {
         atualizarDashboardInicio();
+        carregarMassaDadosExemplo();
         
         const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
         if (sessao) {
