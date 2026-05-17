@@ -841,39 +841,35 @@ function gerarCargaMassaOitoMil() {
         const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
         const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
         
-        // --- 📊 DISTRIBUIÇÃO DAS LINHAS DE CUIDADO (GATILHOS) ---
+        // --- 📊 DISTRIBUIÇÃO DAS LINHAS DE CUIDADO ---
         const temHas = (i % 2 === 0) ? "Sim" : "Não";
         const temDm = (i % 3 === 0) ? "Sim" : "Não";
         
-        // Gestantes (Apenas para nomes femininos indexados par: Ana, Daniela, Fernanda, Helena, Juliana)
-        const ehMulher = (i % 2 === 0);
-        const temGestante = (ehMulher && i % 7 === 0) ? "Sim" : "Não";
+        // Gestantes (Apenas indexadores específicos para consistência demográfica feminina)
+        const temGestante = (i % 2 === 0 && i % 7 === 0) ? "Sim" : "Não";
         
-        // Condições Epidemiológicas Raras/Sazonais
+        // Condições Epidemiológicas (Normalizadas para bater com a checagem exata do dashboard)
         const temTb = (i % 23 === 0) ? "Sim" : "Não";
         const temHansen = (i % 31 === 0) ? "Sim" : "Não";
 
         // --- ⏳ DISTRIBUIÇÃO DOS PRAZOS (FAIXAS DE ATENÇÃO) ---
-        // Cria uma mistura real de prazos: 0 (Crítico), 7, 15, 30, 60, 90 dias
         let prazoSimulado = 30;
-        if (i % 6 === 0) {
-            prazoSimulado = 0;  // 🔔 Faixa Crítica (Gera o alerta no Sininho e Painel)
+        if (i % 6 === 0 || i % 25 === 0) {
+            prazoSimulado = 0;  // 🔔 Popula a faixa de ATENÇÃO CRÍTICA (Sininho e Painel de Alertas)
         } else if (i % 11 === 0) {
-            prazoSimulado = 7;  // Atenção Curta
+            prazoSimulado = 7;
         } else if (i % 17 === 0) {
-            prazoSimulado = 15; // Atenção Média
-        } else if (i % 25 === 0) {
-            prazoSimulado = 0;  // Mais alguns críticos para encorpar o relatório
+            prazoSimulado = 15;
         }
 
-        // --- 🩺 DETALHAMENTO DE SINAIS VITAIS BASEADO NAS DOENÇAS ---
+        // Definição clínica baseada nos agravos
         const paEstruturada = temHas === "Sim" ? "145x95" : "120x80";
         const hba1cSimulada = temDm === "Sim" ? "7.8" : "5.4";
 
         const payload = {
             cpf: cpfSimulado,
             nome: nomeCompleto,
-            nasc: temGestante === "Sim" ? "1998-04-12" : "1985-06-15", // Gestantes mais jovens
+            nasc: temGestante === "Sim" ? "1998-04-12" : "1985-06-15",
             idade: temGestante === "Sim" ? "28" : "41",
             tel: "(21) 98888-7711",
             cep: "20000-000",
@@ -883,7 +879,7 @@ function gerarCargaMassaOitoMil() {
             ubs: ubsFalsas[i % 4],
             equipe: equipesFalsas[i % 4],
             
-            // Linhas de Cuidado Ativadas
+            // Mapeamento correto das propriedades lidas por atualizarIndicadoresDashboard()
             has: temHas,
             pas: temHas === "Sim" ? "145" : "",
             pad: temHas === "Sim" ? "95" : "",
@@ -902,7 +898,7 @@ function gerarCargaMassaOitoMil() {
             hansen: temHansen,
             ampi: "Idoso Robusto",
             
-            // Dados estruturados que alimentam o SOAP ao abrir o prontuário
+            // Sinais Vitais estruturados do bloco O (Objetivo)
             objPA: paEstruturada,
             objFC: "76",
             objFR: "16",
@@ -911,7 +907,7 @@ function gerarCargaMassaOitoMil() {
             exameFisicoStatus: "Normal",
             soapObjetivoAlterado: "",
 
-            reavaliacaoDias: prazoSimulado, // Indexador numérico crucial para o Painel Epidemiológico
+            reavaliacaoDias: prazoSimulado, 
             historicoEvolucoes: [
                 `--- ATENDIMENTO SIMULADO DE VIGILÂNCIA TERRITORIAL (LOTE DE ESTRESSE ${i}) ---\n` +
                 `S: Acompanhamento de rotina na APS.\n` +
@@ -930,6 +926,7 @@ function gerarCargaMassaOitoMil() {
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
     };
 }
+
 function processarArquivoEsus(input) {
     const file = input.files[0];
     if (!file) return;
