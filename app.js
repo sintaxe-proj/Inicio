@@ -80,7 +80,7 @@ function registrarLogAuditoria(acao, detalhes) {
 }
 
 /* ============================================================
-   🚀 FUNÇÃO PRINCIPAL DE AUTENTICAÇÃO SECURA
+   🔑 FUNÇÃO PRINCIPAL DE AUTENTICAÇÃO SECURA
 ============================================================ */
 function autenticarUsuario() {
     const matriculaInput = document.getElementById("loginUser").value.trim();
@@ -741,7 +741,7 @@ function buscarInicio() {
     request.onsuccess = function(event) {
         const prontuarios = event.target.result;
         
-        // Filtragem estendida para abranger Nome ou CPF (removendo pontos e traços para busca limpa)
+        // Filtragem por Nome ou CPF (limpando caracteres não numéricos para o cruzamento de dados)
         const filtrados = prontuarios.filter(p => {
             const nomeMatch = p.nome.toLowerCase().includes(termoBusca);
             const cpfLimpo = p.cpf ? p.cpf.replace(/\D/g, "") : "";
@@ -758,15 +758,15 @@ function buscarInicio() {
             return;
         }
 
-        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
-            <tr style="background:#f1f5f9; text-align:left;">
-                <th style="padding:10px;">Nome / CPF</th>
-                <th>Nascimento (Idade)</th>
-                <th>Ações</th>
+        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:14px;">
+            <tr style="background:#f1f5f9; color:var(--dark); text-align:left; border-bottom:2px solid #cbd5e1;">
+                <th style="padding:12px;">Identificação / Cadastro</th>
+                <th style="padding:12px;">Data de Nasc.</th>
+                <th style="padding:12px; text-align:center;">Ações</th>
             </tr>`;
         
         filtrados.forEach(p => {
-            // Tratamento visual para converter datas ISO (AAAA-MM-DD) para padrão pt-BR se necessário
+            // Tratamento visual e formatação de data (ISO para pt-BR)
             let dataNascFormatada = "---";
             if (p.nascimento) {
                 if (p.nascimento.includes("-")) {
@@ -777,18 +777,21 @@ function buscarInicio() {
                 }
             }
 
-            html += `<tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px; font-weight:500;">
-                    <div style="color:#0f172a;">${escapeHTML(p.nome)}</div>
-                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'}</small>
+            html += `
+            <tr style="border-bottom:1px solid #e2e8f0;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <td style="padding:12px;">
+                    <div style="font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</div>
+                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'} | Idade: ${p.idade || 'N/A'}</small>
                 </td>
-                <td style="color:#334155;">
-                    <div>${dataNascFormatada}</div>
-                    <small style="color:#94a3b8; font-size:11px;">(${p.idade || 'Não calculada'})</small>
+                <td style="padding:12px; color:#475569; font-size:13px;">
+                    ${dataNascFormatada}
                 </td>
-                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button></td>
+                <td style="padding:12px; text-align:center;">
+                    <button class="btn-primary" style="padding:5px 12px; font-size:12px; background:var(--primary);" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button>
+                </td>
             </tr>`;
         });
+        
         html += `</table>`;
         container.innerHTML = html;
     };
@@ -900,7 +903,7 @@ function listarBanco() {
             let linhas = [];
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") lines.push("Gestante");
+            if (p.gestante === "Sim") linhas.push("Gestante");
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
@@ -1118,7 +1121,7 @@ function carregarMassaDadosExemplo() {
                 evolucoes: [
                     {
                         dataHora: "14/05/2026 14:22",
-                        professional: "Dr. Josimar Kapps (Gestor)",
+                        profissional: "Dr. Josimar Kapps (Gestor)",
                         matricula: "440129",
                         texto: "S: Paciente refere picos hipertensivos. O: PA: 165x105 mmHg. HbA1c recente de 8.9%.\nA: Hipertensa e diabética descompensada de alto risco.\nP: Ajuste farmacológico imediato e inclusão no monitoramento de busca ativa."
                     }
