@@ -45,6 +45,8 @@
         button:hover { background: var(--primary-hover); }
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #059669; }
         
         /* Dashboard e Tabelas */
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
@@ -88,6 +90,10 @@
         .busca-ativa-card { background: var(--surface-secondary); padding: 15px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
         .busca-ativa-card:hover { border-color: var(--primary); background: #3e4e68; }
         .tag-clinica { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-top: 8px; color: #fff; }
+        
+        /* Estilos específicos do botão WhatsApp */
+        .btn-whatsapp { background: #25d366; color: #fff; font-size: 12px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn-whatsapp:hover { background: #128c7e; }
     </style>
 </head>
 <body>
@@ -114,6 +120,7 @@
                 <span class="nav-link active" onclick="navigate('inicio')">🏠 Início</span>
                 <span class="nav-link" onclick="navigate('prontuario')">🩺 Novo Atendimento (SOAP)</span>
                 <span class="nav-link" onclick="navigate('banco')">🗄️ Base Territorial</span>
+                <span class="nav-link" onclick="navigate('discador')">📞 Busca Ativa (WhatsApp)</span>
                 <span id="btnAuditoria" class="nav-link" onclick="navigate('config')" style="display: none;">⚙️ Coordenação / Lotes</span>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -199,7 +206,7 @@
                     </div>
                     <div class="form-group">
                         <label>CEP</label>
-                        <input type="text" id="CEP" placeholder="Somente números" onblur="buscarCEP()">
+                        <input type="text" id="CEP" placeholder="Somente numbers" onblur="buscarCEP()">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Endereço Completo (ViaCep)</label>
@@ -244,7 +251,7 @@
                 
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>S - Subjetivo (Motivo da Consulta, Queixas, Anamnese, Histórico Atual)</label>
-                    <textarea id="soapSubjetivo" rows="3" placeholder="Relato livre do paciente, sintomas, queixas principais e cronologia do quadro..."></textarea>
+                    <textarea id="soapSubjetivo" rows="3" placeholder="Relato livre do paciente..."></textarea>
                 </div>
 
                 <div style="margin-bottom: 20px; padding: 15px; background: var(--surface-secondary); border-radius: 6px;">
@@ -291,20 +298,20 @@
                             <label style="text-transform:none;"><input type="radio" name="exameFisicoStatus" value="Alterado" onchange="alternarExameFisico(this.value)"> Apresenta alterações</label>
                         </div>
                         <div id="blocoExameAlterado" style="display:none; margin-top:5px;">
-                            <textarea id="soapObjetivoAlterado" rows="2" placeholder="Descreva detalhadamente os achados patológicos do exame físico..."></textarea>
+                            <textarea id="soapObjetivoAlterado" rows="2" placeholder="Descreva os achados patológicos..."></textarea>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>A - Avaliação (Diagnóstico por Codificação Internacional CIAP-2)</label>
-                    <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Busque digitando o termo clínico ou código do CIAP-2 (Ex: K86 - Hipertensão)...">
+                    <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Busque digitando o termo clínico ou código do CIAP-2...">
                     <datalist id="listaCIAP"></datalist>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>P - Plano (Prescrição, Conduta, Encaminhamentos, Orientações)</label>
-                    <textarea id="soapPlanoConduta" rows="3" placeholder="Descreva as condutas terapêuticas, medicações, exames solicitados e orientações de autocuidado..."></textarea>
+                    <textarea id="soapPlanoConduta" rows="3" placeholder="Descreva as condutas terapêuticas..."></textarea>
                 </div>
 
                 <div class="form-grid" style="background: #231f20; padding: 10px; border-radius: 4px; border: 1px dashed var(--border);">
@@ -322,7 +329,7 @@
                     </div>
                     <div style="display: flex; align-items: flex-end; justify-content: flex-end; gap: 10px;">
                         <button type="button" class="btn-danger" onclick="limparFormularioProntuario()">Descartar / Limpar</button>
-                        <button type="button" style="background: var(--success);" onclick="salvarProntuario()">Gravar Prontuário SOAP</button>
+                        <button type="button" class="btn-success" onclick="salvarProntuario()">Gravar Prontuário SOAP</button>
                     </div>
                 </div>
             </div>
@@ -372,7 +379,7 @@
                     <h4>🎯 Monitoramento Clínico da Diabetes Mellitus</h4>
                     <div class="form-grid" style="margin-top:10px;">
                         <div class="form-group"><label>Último Valor HbA1c (%)</label><input type="text" id="dmHbA1c" oninput="classificarDM()"></div>
-                        <div class="form-group" style="grid-column: span 3;"><label>Estratificação Metabólica</label><input type="text" id="dmClassif" readonly></div>
+                        <div class="form-group" style="grid-column: span 3;"><label>Estratificação Metabolic</label><input type="text" id="dmClassif" readonly></div>
                     </div>
                 </div>
 
@@ -391,8 +398,8 @@
                         <label>Estratificação de Vulnerabilidade do Idoso</label>
                         <select id="ampiPaciente">
                             <option value="Idoso Robusto">Idoso Robusto (Autônomo/Independente)</option>
-                            <option value="Idoso em Risco de Fragilização">Idoso em Risco de Fragilização (Sinais Iniciais)</option>
-                            <option value="Idoso Fragilizado">Idoso Fragilizado (Múltiplas Comorbidades/Dependência)</option>
+                            <option value="Idoso em Risco de Fragilização">Idoso em Risco de Fragilização</option>
+                            <option value="Idoso Fragilizado">Idoso Fragilizado</option>
                         </select>
                     </div>
                 </div>
@@ -411,21 +418,34 @@
             </div>
         </div>
 
+        <div id="view-discador" class="view">
+            <div class="card">
+                <h3 style="color: var(--primary);">📞 Central Operational de Busca Ativa Territorial</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">
+                    Este módulo exibe listas de contato imediato baseadas em abandono clínico ou criticidade. 
+                    Utilize os botões de ação rápidos para disparar mensagens diretas via API do WhatsApp Web.
+                </p>
+                <div id="tabelaDiscadorContainer" class="table-responsive">
+                    <p style="color:#64748b;">Buscando linhas de cuidado ativas para acionamento...</p>
+                </div>
+            </div>
+        </div>
+
         <div id="view-config" class="view">
             <div class="card">
                 <h3>⚙️ Painel de Operações Avançadas e Interoperabilidade</h3>
-                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ações reservadas à gestão de dados municipais e testes de estresse de latência de banco.</p>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Ações reservadas à gestão de dados municipais.</p>
                 
                 <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <div style="flex:1; min-width:300px; background:var(--surface-secondary); padding:15px; border-radius:6px;">
                         <h4>📥 Importação de Prontuário do e-SUS PEC (JSON)</h4>
-                        <p style="font-size:12px; color:var(--text-muted); margin: 5px 0 10px 0;">Sincronize arquivos extraídos de ferramentas de saúde pública para a base local.</p>
+                        <p style="font-size:12px; color:var(--text-muted); margin: 5px 0 10px 0;">Sincronize arquivos extraídos para a base local.</p>
                         <input type="file" id="fileEsus" onchange="processarArquivoEsus(this)" style="width:100%; font-size:12px;">
                     </div>
 
                     <div style="flex:1; min-width:300px; background:var(--surface-secondary); padding:15px; border-radius:6px;">
                         <h4>🚀 Injeção de Carga de Estresse (8.000 Cadastros)</h4>
-                        <p style="font-size:12px; color:var(--text-muted); margin: 5px 0 10px 0;">Gera artificialmente 8.000 utentes simulados com evoluções complexas para testar latência de buscas do robô.</p>
+                        <p style="font-size:12px; color:var(--text-muted); margin: 5px 0 10px 0;">Gera artificialmente 8.000 utentes simulados para testar latência.</p>
                         <button onclick="gerarCargaMassaOitoMil()" style="background:var(--warning); color:#000; width:100%;">Injetar Matriz Acadêmica</button>
                     </div>
                 </div>
@@ -466,7 +486,6 @@
                 </div>
                 <div class="chart-box">
                     <label style="margin-bottom:10px; display:block;">Volumetria Absoluta</label>
-                    <div id="containerGraficoBars"></div>
                     <div id="containerGraficoBarras"></div>
                 </div>
             </div>
