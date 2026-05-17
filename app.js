@@ -302,7 +302,7 @@ function classificarDM() {
         campo.value = "Controlo Inadequado";
         campo.style.color = "#f59e0b";
     } else {
-        campo.value = "Risco Alto / Descompensado";
+        campo.value = "Risco Alto / Descompensated";
         campo.style.color = "#ef4444";
     }
 }
@@ -723,13 +723,13 @@ function fecharPainelEpidemiologico() {
 }
 
 /* ============================================================
-   🔍 MOTOR DE PESQUISA TEXTUAL RÁPIDA DA HOME
+   🔍 MOTOR DE PESQUISA TEXTUAL RÁPIDA DA HOME (ATUALIZADO)
 ============================================================ */
 function buscarInicio() {
-    const nomeBusca = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
+    const termoBusca = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
     const container = document.getElementById("resultadoInicio");
 
-    if (!nomeBusca) {
+    if (!termoBusca) {
         container.innerHTML = `<em style="color: #94a3b8;">Introduza um critério acima para pesquisar.</em>`;
         return;
     }
@@ -740,9 +740,18 @@ function buscarInicio() {
 
     request.onsuccess = function(event) {
         const prontuarios = event.target.result;
-        const filtrados = prontuarios.filter(p => p.nome.toLowerCase().includes(nomeBusca));
+        
+        // Filtragem estendida para abranger Nome ou CPF (removendo pontos e traços para busca limpa)
+        const filtrados = prontuarios.filter(p => {
+            const nomeMatch = p.nome.toLowerCase().includes(termoBusca);
+            const cpfLimpo = p.cpf ? p.cpf.replace(/\D/g, "") : "";
+            const termoLimpo = termoBusca.replace(/\D/g, "");
+            const cpfMatch = termoLimpo && cpfLimpo.includes(termoLimpo);
+            
+            return nomeMatch || cpfMatch;
+        });
 
-        registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa textual por: "${nomeBusca}".`);
+        registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa por Nome/CPF por: "${termoBusca}".`);
 
         if (filtrados.length === 0) {
             container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado.</span>`;
@@ -750,12 +759,33 @@ function buscarInicio() {
         }
 
         let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
-            <tr style="background:#f1f5f9; text-align:left;"><th style="padding:10px;">Nome</th><th>Idade</th><th>Ações</th></tr>`;
+            <tr style="background:#f1f5f9; text-align:left;">
+                <th style="padding:10px;">Nome / CPF</th>
+                <th>Nascimento (Idade)</th>
+                <th>Ações</th>
+            </tr>`;
         
         filtrados.forEach(p => {
+            // Tratamento visual para converter datas ISO (AAAA-MM-DD) para padrão pt-BR se necessário
+            let dataNascFormatada = "---";
+            if (p.nascimento) {
+                if (p.nascimento.includes("-")) {
+                    const partes = p.nascimento.split("-");
+                    dataNascFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+                } else {
+                    dataNascFormatada = p.nascimento;
+                }
+            }
+
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px; font-weight:500;">${escapeHTML(p.nome)}</td>
-                <td>${p.idade || 'Não informada'}</td>
+                <td style="padding:10px; font-weight:500;">
+                    <div style="color:#0f172a;">${escapeHTML(p.nome)}</div>
+                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'}</small>
+                </td>
+                <td style="color:#334155;">
+                    <div>${dataNascFormatada}</div>
+                    <small style="color:#94a3b8; font-size:11px;">(${p.idade || 'Não calculada'})</small>
+                </td>
                 <td><button class="btn-primary" style="padding:4px 10px; font-size:13px;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button></td>
             </tr>`;
         });
@@ -870,12 +900,12 @@ function listarBanco() {
             let linhas = [];
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("Gestante");
+            if (p.gestante === "Sim") lines.push("Gestante");
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
                 <td style="color:#475569;">${p.cpf || 'Não cadastrado'}</td>
-                <td>${linhas.length > 0 ? lines.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
+                <td>${linhas.length > 0 ? linhas.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
                 <td><button class="btn-primary" style="padding:5px 12px;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
             </tr>`;
         });
@@ -917,7 +947,7 @@ function processarArquivoEsus(inputElement) {
                     gestante: esusData.stGestante === 1 ? "Sim" : "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        professional: "Sistema Integrador e-SUS APS",
+                        profissional: "Sistema Integrador e-SUS APS",
                         matricula: "INTEGRA_SUS",
                         texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo: ${arquivo.name}.`
                     }]
@@ -930,7 +960,7 @@ function processarArquivoEsus(inputElement) {
                     has: "Não", dm: "Não", gestante: "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        professional: "Conversor de Documentos",
+                        profissional: "Conversor de Documentos",
                         matricula: "PDF_PARSER",
                         texto: `Texto bruto extraído com sucesso.`
                     }]
@@ -1035,7 +1065,7 @@ function gerarCargaMassaOitoMil() {
             evolucoes: [
                 {
                     dataHora: new Date().toLocaleString('pt-BR'),
-                    professional: "Algoritmo Seed Territorial",
+                    profissional: "Algoritmo Seed Territorial",
                     matricula: "SIS_SEED",
                     texto: "Prontuário estruturado para testes de performance e cruzamento de relatórios."
                 }
