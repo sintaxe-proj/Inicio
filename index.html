@@ -54,12 +54,12 @@
         .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
 
-        /* 📋 Formulários Estruturados */
+        /* 📋 Formulários Estruturados e SOAP */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-weight: 600; font-size: 12px; color: #475569; }
         .form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-main); font-size: 13px; width: 100%; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
         .form-group input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
         
         .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
@@ -98,7 +98,7 @@
         .dash-card .dash-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; }
         .dash-card .dash-value { font-size: 28px; font-weight: 700; color: var(--primary); margin-top: 5px; }
         
-        /* 📈 Painel Epidemiológico Pop-up Modal Injetado */
+        /* 📈 Painel Epidemiológico Pop-up Modal */
         .epidemiologico-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: none; z-index: 5000; padding: 40px 20px; overflow-y: auto; backdrop-filter: blur(2px); }
         .epidemiologico-modal { background: white; border-radius: 8px; max-width: 1100px; margin: 0 auto; width: 100%; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
@@ -109,7 +109,7 @@
         .analytics-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px; }
         @media(max-width: 768px) { .analytics-layout { grid-template-columns: 1fr; } }
         
-        /* Graficos SVG/CSS Nativos */
+        /* Gráficos SVG/CSS Nativos */
         .donut-wrapper { position: relative; width: 140px; height: 140px; margin: 0 auto; }
         .donut-svg { transform: rotate(-90deg); }
         .donut-bg { fill: none; stroke: #f1f5f9; stroke-width: 5; }
@@ -164,6 +164,11 @@
                 <h1>🧬 SINTAXEHUB | Atenção Primária Inteligente</h1>
             </div>
             <div class="header-user">
+                <div id="centralAvisosContainer" style="display: flex; align-items: center; gap: 5px; background: #334155; padding: 4px 10px; border-radius: 20px; color: #f8fafc; font-weight: bold; font-size: 12px; cursor: pointer; transition: background 0.2s;" onclick="abrirPainelEpidemiologico('criticos')">
+                    <span>🔔</span>
+                    <span id="contadorAvisosSininho">0</span>
+                </div>
+
                 <span id="nomeUsuarioLogado">Carregando Profissional...</span>
                 <select id="seletorNivelAcesso" style="display: none;" onchange="alternarVisaoGestor(this.value)">
                     <option value="user">Visão Assistencial</option>
@@ -393,20 +398,50 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-title">✍️ Atendimento do Dia e Registro Clínico</div>
+                    <div class="card-title">✍️ Registro Clínico Estruturado (Método S.O.A.P.)</div>
                     <div id="linhaTempoEvolucoes" style="margin-bottom: 15px;"></div>
-                    <div class="form-group">
-                        <label for="inputBuscaCIAPS">Problema Detectado / Código CIAP-2:</label>
-                        <input type="text" id="inputBuscaCIAPS" placeholder="Ex: K86 - Hipertensão sem complicações">
+                    
+                    <div class="soap-container" style="display: flex; flex-direction: column; gap: 15px;">
+                        
+                        <div class="form-group">
+                            <label for="soapSubjetivo"><strong>S - Subjetivo:</strong> (Queixas, anamnese, história clínica atual ou relato do utente)</label>
+                            <textarea id="soapSubjetivo" rows="2" placeholder="Ex: Paciente refere cefaleia holocraniana leve há 2 dias..."></textarea>
+                        </div>
+
+                        <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <label style="font-weight: 700; color: var(--primary);">O - Objetivo: (Exame físico e dados vitais estruturados)</label>
+                            <div style="display: flex; gap: 15px; align-items: center; margin-top: 5px; margin-bottom: 10px;">
+                                <label style="font-weight: 600; font-size: 13px;">Exame Físico Geral:</label>
+                                <label><input type="radio" name="exameFisicoStatus" value="Normal" checked onchange="alternarExameFisico(this.value)"> Normal / Sem Particularidades</label>
+                                <label><input type="radio" name="exameFisicoStatus" value="Alterado" onchange="alternarExameFisico(this.value)"> Alterado</label>
+                            </div>
+                            <div id="blocoExameAlterado" style="display: none; margin-top: 5px;">
+                                <label for="soapObjetivoAlterado" style="font-size: 11px; font-weight: 600; color: var(--danger);">Descreva as alterações observadas:</label>
+                                <textarea id="soapObjetivoAlterado" rows="2" placeholder="Ex: Presença de edema maleolar bilateral +/4V..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inputBuscaCIAPS"><strong>A - Avaliação:</strong> (Problema Detectado / Código CIAP-2 do Catálogo Oficial)</label>
+                            <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Ex: K86 - Hipertensão arterial não complicada (HAS)">
+                            <datalist id="listaCIAP"></datalist>
+                        </div>
+
+                        <div class="form-group" style="background: #f0fdf4; padding: 12px; border-radius: 6px; border: 1px solid #bbf7d0;">
+                            <label style="font-weight: 700; color: #166534;">P - Plano de Cuidados e Acompanhamento:</label>
+                            <textarea id="soapPlanoConduta" rows="2" placeholder="Ex: Prescrita conduta terapêutica conforme protocolo de APS, orientadas mudanças no estilo de vida (MEV)..."></textarea>
+                            
+                            <div style="display: flex; gap: 15px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="soapReavaliacaoDias" style="font-weight: 600; font-size: 12px; color: #166534;">Reavaliação Aprazada em (Dias):</label>
+                                    <input type="number" id="soapReavaliacaoDias" value="0" min="0" style="width: 80px; padding: 4px 8px;">
+                                </div>
+                                <small style="color: #16a34a; font-weight: 600;">⚠️ Caso defina como 0 (Zero), o utente aparecerá como um alerta urgente na Central de Avisos 🔔.</small>
+                            </div>
+                        </div>
+
                     </div>
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label for="evoTexto">Evolução Clínica Atual (Padrão S.O.A.P.):</label>
-                        <textarea id="evoTexto" rows="6" placeholder="S: Subjetivo&#10;O: Objetivo&#10;A: Avaliação&#10;P: Plano Clínico Conduta..."></textarea>
-                    </div>
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label for="obsPaciente">Notas de Vigilância Epidemiológica / Alertas Intersetoriais:</label>
-                        <input type="text" id="obsPaciente" placeholder="Notas internas para o Agente Comunitário de Saúde (ACS)...">
-                    </div>
+
                     <div style="margin-top: 20px; display: flex; gap: 10px;">
                         <button class="btn" onclick="salvarProntuario()">Gravar Atendimento e Fechar</button>
                         <button class="btn btn-danger" onclick="limparFormularioProntuario()">Descartar Modificações</button>
@@ -489,6 +524,7 @@
 
     <div id="toastNotification">Notificação Geral</div>
 
+    <script src="CIAP.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
