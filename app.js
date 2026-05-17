@@ -1,5 +1,5 @@
 /* ============================================================
-   🔐 CONFIGURAÇÃO E BASE DE USUÁRIOS (SIMULADA)
+   🔐 CONFIGURAÇÃO E BASE DE USUÁRIOS
 ============================================================ */
 const usuariosPermitidos = [
     { 
@@ -25,9 +25,33 @@ const usuariosPermitidos = [
     }
 ];
 
-// Banco de dados em memória para os Prontuários (Persiste localmente no navegador)
-let bancoPacientes = JSON.parse(localStorage.getItem("sintaxe_db")) || [];
 let atualPacienteEdicaoId = null;
+let db = null;
+
+/* ============================================================
+   📦 CONFIGURAÇÃO E INICIALIZAÇÃO DO INDEXEDDB
+============================================================ */
+function iniciarBancoDados(callback) {
+    const request = indexedDB.open("SintaxeHubDB", 1);
+
+    request.onupgradeneeded = function(event) {
+        const database = event.target.result;
+        // Cria a tabela de prontuários usando o 'id' como chave primária
+        if (!database.objectStoreNames.contains("prontuarios")) {
+            database.createObjectStore("prontuarios", { keyPath: "id" });
+        }
+    };
+
+    request.onsuccess = function(event) {
+        db = event.target.result;
+        console.log("📦 Banco de Dados IndexedDB inicializado com sucesso!");
+        if (callback) callback();
+    };
+
+    request.onerror = function(event) {
+        console.error("❌ Erro ao abrir o IndexedDB:", event.target.error);
+    };
+}
 
 /* ============================================================
    🚀 FUNÇÃO PRINCIPAL DE AUTENTICAÇÃO SECURA
@@ -72,6 +96,13 @@ function efetuarLoginSucesso(usuario) {
     const campoNome = document.getElementById("nomeUsuarioLogado");
     if (campoNome) campoNome.innerText = usuario.nome;
 
+    // 🔥 FORÇA O APARECIMENTO DO SELETOR IMEDIATAMENTE NO LOGIN
+    const seletorAcesso = document.getElementById("seletorNivelAcesso");
+    if (usuario.tipo === "admin" && seletorAcesso) {
+        seletorAcesso.style.display = "inline-block";
+        seletorAcesso.value = "admin"; 
+    }
+
     aplicarPermissoesPerfil(usuario.tipo);
     navigate("inicio");
 }
@@ -83,33 +114,25 @@ function aplicarPermissoesPerfil(tipoPerfil) {
     const btnAuditoria = document.getElementById("btnAuditoria");
     const seletorAcesso = document.getElementById("seletorNivelAcesso");
 
-    // Se o usuário logado for originalmente um Administrador, ele ganha o direito de transitar entre as visões
     const sessaoOriginal = JSON.parse(localStorage.getItem("usuarioLogado"));
     if (sessaoOriginal && sessaoOriginal.tipo === "admin" && seletorAcesso) {
         seletorAcesso.style.display = "inline-block";
     } else if (seletorAcesso) {
-        seletorAcesso.style.display = "none"; // Clínicos comuns não veem o seletor
+        seletorAcesso.style.display = "none";
     }
 
-    // Comportamento das telas baseado no perfil temporário/selecionado
     if (tipoPerfil === "admin") {
         if (btnAuditoria) btnAuditoria.style.display = "inline-block";
-        desbloquearFormularios(true); // Acesso Total
-        console.log("🔐 Interface alterada para: Administrador Central.");
-        
+        desbloquearFormularios(true);
     } else if (tipoPerfil === "clinico") {
         if (btnAuditoria) btnAuditoria.style.display = "none";
-        desbloquearFormularios(true); // Acesso Assistencial Completo
-        console.log("🩺 Interface alterada para: Perfil Clínico.");
-        
+        desbloquearFormularios(true);
     } else if (tipoPerfil === "leitura") {
         if (btnAuditoria) btnAuditoria.style.display = "none";
-        desbloquearFormularios(false); // Bloqueia todos os inputs para escrita (Auditoria Passiva)
-        console.log("👁️ Interface alterada para: Apenas Leitura.");
+        desbloquearFormularios(false);
     }
 }
 
-// Função que roda ao mudar o Dropdown do cabeçalho
 function alternarVisaoGestor(novaVisao) {
     aplicarPermissoesPerfil(novaVisao);
     
@@ -124,12 +147,10 @@ function alternarVisaoGestor(novaVisao) {
     navigate("inicio");
 }
 
-// Função auxiliar para bloquear ou liberar a escrita em prontuários (Modo Leitura)
 function desbloquearFormularios(permitirEscrita) {
     const elementosProntuario = document.querySelectorAll("#view-prontuario input, #view-prontuario select, #view-prontuario textarea");
     
     elementosProntuario.forEach(elemento => {
-        // Ignora campos de cálculos automáticos que já são naturalmente travados
         if (!["idadePaciente", "hasClassif", "dmClassif", "gestIG", "gestDPP"].includes(elemento.id)) {
             elemento.disabled = !permitirEscrita;
             elemento.style.background = permitirEscrita ? "" : "#e2e8f0";
@@ -150,7 +171,7 @@ function desbloquearFormularios(permitirEscrita) {
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = mensagem; // 💡 Corrigido de 'mensaje' para 'mensagem'
+        erroDiv.innerText = mensagem;
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -169,7 +190,7 @@ function efetuarLogout() {
    🔄 SISTEMA DE NAVEGAÇÃO INTERNA (SPA)
 ============================================================ */
 function navigate(screenId) {
-    const pages = document.querySelectorAll(".view"); // 💡 Sincronizado com a classe '.view' do HTML
+    const pages = document.querySelectorAll(".view");
     pages.forEach(page => page.style.display = "none");
 
     const targetId = screenId.startsWith("view-") ? screenId : "view-" + screenId;
@@ -278,7 +299,7 @@ function calcIG() {
 }
 
 /* ============================================================
-   💾 PERSISTÊNCIA: GRAVAÇÃO E CRUD DE PRONTUÁRIOS
+   💾 PERSISTÊNCIA: GRAVAÇÃO E CRUD NO INDEXEDDB
 ============================================================ */
 function salvarProntuario() {
     const nome = document.getElementById("nomePaciente").value.trim();
@@ -319,17 +340,20 @@ function salvarProntuario() {
         dataRegistro: new Date().toLocaleDateString('pt-BR')
     };
 
-    if (atualPacienteEdicaoId) {
-        bancoPacientes = bancoPacientes.map(p => p.id === atualPacienteEdicaoId ? paciente : p);
-    } else {
-        bancoPacientes.push(paciente);
-    }
-
-    localStorage.setItem("sintaxe_db", JSON.stringify(bancoPacientes));
-    alert("💾 Prontuário registrado com sucesso na base municipal!");
+    const transaction = db.transaction(["prontuarios"], "readwrite");
+    const store = transaction.objectStore("prontuarios");
     
-    limparFormularioProntuario();
-    navigate("inicio");
+    store.put(paciente); // Salva ou Atualiza o objeto nativo
+
+    transaction.oncomplete = function() {
+        alert("💾 Prontuário registrado com sucesso no IndexedDB Municipal!");
+        limparFormularioProntuario();
+        navigate("inicio");
+    };
+
+    transaction.onerror = function() {
+        alert("❌ Erro técnico ao tentar salvar no IndexedDB.");
+    };
 }
 
 function limparFormularioProntuario() {
@@ -352,24 +376,33 @@ function limparFormularioProntuario() {
 }
 
 /* ============================================================
-   📊 MONITORAMENTO: DASHBOARD EM TEMPO REAL E BANCO
+   📊 MONITORAMENTO: DASHBOARD EM TEMPO REAL E BUSCAS (ASSÍNCRONAS)
 ============================================================ */
 function atualizarDashboardInicio() {
-    let has = 0, dm = 0, gest = 0, tb = 0, hansen = 0;
+    if (!db) return;
+    
+    const transaction = db.transaction(["prontuarios"], "readonly");
+    const store = transaction.objectStore("prontuarios");
+    const request = store.getAll();
 
-    bancoPacientes.forEach(p => {
-        if (p.has === "Sim") has++;
-        if (p.dm === "Sim") dm++;
-        if (p.gestante === "Sim") gest++;
-        if (p.tuberculose === "Sim") tb++;
-        if (p.hanseniase === "Sim") hansen++;
-    });
+    request.onsuccess = function(event) {
+        const prontuarios = event.target.result;
+        let has = 0, dm = 0, gest = 0, tb = 0, hansen = 0;
 
-    if (document.getElementById("dashHAS")) document.getElementById("dashHAS").innerText = has;
-    if (document.getElementById("dashDM")) document.getElementById("dashDM").innerText = dm;
-    if (document.getElementById("dashGest")) document.getElementById("dashGest").innerText = gest;
-    if (document.getElementById("dashTB")) document.getElementById("dashTB").innerText = tb;
-    if (document.getElementById("dashHansen")) document.getElementById("dashHansen").innerText = hansen;
+        prontuarios.forEach(p => {
+            if (p.has === "Sim") has++;
+            if (p.dm === "Sim") dm++;
+            if (p.gestante === "Sim") gest++;
+            if (p.tuberculose === "Sim") tb++;
+            if (p.hanseniase === "Sim") hansen++;
+        });
+
+        if (document.getElementById("dashHAS")) document.getElementById("dashHAS").innerText = has;
+        if (document.getElementById("dashDM")) document.getElementById("dashDM").innerText = dm;
+        if (document.getElementById("dashGest")) document.getElementById("dashGest").innerText = gest;
+        if (document.getElementById("dashTB")) document.getElementById("dashTB").innerText = tb;
+        if (document.getElementById("dashHansen")) document.getElementById("dashHansen").innerText = hansen;
+    };
 }
 
 function buscarInicio() {
@@ -381,150 +414,72 @@ function buscarInicio() {
         return;
     }
 
-    const filtrados = bancoPacientes.filter(p => p.nome.toLowerCase().includes(nomeBusca));
+    const transaction = db.transaction(["prontuarios"], "readonly");
+    const store = transaction.objectStore("prontuarios");
+    const request = store.getAll();
 
-    if (filtrados.length === 0) {
-        container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado com este critério.</span>`;
-        return;
-    }
+    request.onsuccess = function(event) {
+        const prontuarios = event.target.result;
+        const filtrados = prontuarios.filter(p => p.nome.toLowerCase().includes(nomeBusca));
 
-    let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
-        <tr style="background:#f1f5f9; text-align:left;"><th style="padding:10px;">Nome</th><th>Idade</th><th>Ações</th></tr>`;
-    
-    filtrados.forEach(p => {
-        html += `<tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:10px; font-weight:500;">${escapeHTML(p.nome)}</td>
-            <td>${p.idade || 'Não informada'}</td>
-            <td><button class="btn-primary" style="padding:4px 10px; font-size:13px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir Prontuário</button></td>
-        </tr>`;
-    });
-    html += `</table>`;
-    container.innerHTML = html;
+        if (filtrados.length === 0) {
+            container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado com este critério.</span>`;
+            return;
+        }
+
+        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
+            <tr style="background:#f1f5f9; text-align:left;"><th style="padding:10px;">Nome</th><th>Idade</th><th>Ações</th></tr>`;
+        
+        filtrados.forEach(p => {
+            html += `<tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:10px; font-weight:500;">${escapeHTML(p.nome)}</td>
+                <td>${p.idade || 'Não informada'}</td>
+                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir Prontuário</button></td>
+            </tr>`;
+        });
+        html += `</table>`;
+        container.innerHTML = html;
+    };
 }
 
 function carregarPacienteParaEdicao(id) {
-    const p = bancoPacientes.find(pac => pac.id === id);
-    if (!p) return;
+    const transaction = db.transaction(["prontuarios"], "readonly");
+    const store = transaction.objectStore("prontuarios");
+    const request = store.get(id);
 
-    atualPacienteEdicaoId = p.id;
-    navigate("prontuario");
+    request.onsuccess = function(event) {
+        const p = event.target.result;
+        if (!p) return;
 
-    document.getElementById("cabecalhoProntuario").style.display = "block";
-    document.getElementById("cabecalhoNome").innerText = `Editando: ${p.nome}`;
+        atualPacienteEdicaoId = p.id;
+        navigate("prontuario");
 
-    document.getElementById("nomePaciente").value = p.nome;
-    document.getElementById("cpfPaciente").value = p.cpf || "";
-    document.getElementById("nascPaciente").value = p.nascimento || "";
-    document.getElementById("idadePaciente").value = p.idade || "";
-    document.getElementById("telPaciente").value = p.telefone || "";
-    document.getElementById("endPaciente").value = p.endereco || "";
-    document.getElementById("CEP").value = p.cep || "";
-    document.getElementById("unidadePaciente").value = p.unidade || "";
-    document.getElementById("equipePaciente").value = p.equipe || "";
-    document.getElementById("obsPaciente").value = p.obs || "";
+        document.getElementById("cabecalhoProntuario").style.display = "block";
+        document.getElementById("cabecalhoNome").innerText = `Editando: ${p.nome}`;
 
-    document.getElementById("hasSN").value = p.has || "Não";
-    document.getElementById("dmSN").value = p.dm || "Não";
-    document.getElementById("gestanteSN").value = p.gestante || "Não";
-    document.getElementById("hansenSN").value = p.hanseniase || "Não";
-    document.getElementById("tbSN").value = p.tuberculose || "Não";
+        document.getElementById("nomePaciente").value = p.nome;
+        document.getElementById("cpfPaciente").value = p.cpf || "";
+        document.getElementById("nascPaciente").value = p.nascimento || "";
+        document.getElementById("idadePaciente").value = p.idade || "";
+        document.getElementById("telPaciente").value = p.telefone || "";
+        document.getElementById("endPaciente").value = p.endereco || "";
+        document.getElementById("CEP").value = p.cep || "";
+        document.getElementById("unidadePaciente").value = p.unidade || "";
+        document.getElementById("equipePaciente").value = p.equipe || "";
+        document.getElementById("obsPaciente").value = p.obs || "";
 
-    mostrarCard('cardHAS', p.has);
-    if (p.has === "Sim") {
-        document.getElementById("hasPAS").value = p.hasPAS || "";
-        document.getElementById("hasPAD").value = p.hasPAD || "";
-        classificarHAS();
-    }
+        document.getElementById("hasSN").value = p.has || "Não";
+        document.getElementById("dmSN").value = p.dm || "Não";
+        document.getElementById("gestanteSN").value = p.gestante || "Não";
+        document.getElementById("hansenSN").value = p.hanseniase || "Não";
+        document.getElementById("tbSN").value = p.tuberculose || "Não";
 
-    mostrarCard('cardDM', p.dm);
-    if (p.dm === "Sim") {
-        document.getElementById("dmHbA1c").value = p.dmHbA1c || "";
-        classificarDM();
-    }
+        mostrarCard('cardHAS', p.has);
+        if (p.has === "Sim") {
+            document.getElementById("hasPAS").value = p.hasPAS || "";
+            document.getElementById("hasPAD").value = p.hasPAD || "";
+            classificarHAS();
+        }
 
-    mostrarCard('cardGestante', p.gestante);
-    if (p.gestante === "Sim") {
-        document.getElementById("gestDUM").value = p.gestDUM || "";
-        calcIG();
-    }
-    
-    calcIdade();
-    document.getElementById("evoTexto").value = p.evolucao || "";
-    document.getElementById("inputBuscaCIAPS").value = p.ciaps2 || "";
-}
-
-function listarBanco() {
-    const container = document.getElementById("tabelaBancoContainer");
-    if (!container) return;
-
-    if (bancoPacientes.length === 0) {
-        container.innerHTML = `<p style="color:#64748b; padding:15px;">Base de dados municipal vazia.</p>`;
-        return;
-    }
-
-    let html = `<table style="width:100%; border-collapse:collapse;">
-        <tr style="background:#1e293b; color:white; text-align:left;">
-            <th style="padding:12px;">Nome</th><th>CPF</th><th>Linhas Ativas</th><th>Ações</th>
-        </tr>`;
-
-    bancoPacientes.forEach(p => {
-        let linhas = [];
-        if (p.has === "Sim") linhas.push("HAS");
-        if (p.dm === "Sim") linhas.push("DM");
-        if (p.gestante === "Sim") linhas.push("Gestante");
-
-        html += `<tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
-            <td style="color:#475569;">${p.cpf || 'Não cadastrado'}</td>
-            <td>${linhas.length > 0 ? linhas.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
-            <td><button class="btn-primary" style="padding:5px 12px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
-        </tr>`;
-    });
-
-    html += `</table>`;
-    container.innerHTML = html;
-}
-
-/* ============================================================
-   ⚙️ EXTRA E UTILS: MODAL DRAWER E MÁSCARAS
-============================================================ */
-function fecharDrawer() {
-    const dr = document.getElementById("drawer");
-    const ov = document.getElementById("drawerOverlay");
-    if (dr) dr.style.display = "none";
-    if (ov) ov.style.display = "none";
-}
-
-function mascaraCPF(i) {
-    let v = i.value;
-    if (isNaN(v.charAt(v.length - 1))) { i.value = v.substring(0, v.length - 1); return; }
-    i.setAttribute("maxlength", "14");
-    if (v.length == 3 || v.length == 7) i.value += ".";
-    if (v.length == 11) i.value += "-";
-}
-
-function escapeHTML(text) {
-    return String(text)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
-/* ============================================================
-   🛡️ INITIALIZATION SYSTEM
-============================================================ */
-function initSistema() {
-    atualizarDashboardInicio();
-    
-    const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
-    if (sessao) {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "block";
-        const campoNome = document.getElementById("nomeUsuarioLogado");
-        if (campoNome) campoNome.innerText = sessao.nome;
-        
-        aplicarPermissoesPerfil(sessao.tipo);
-        navigate("inicio");
-    }
-}
-
-window.onload = initSistema;
+        mostrarCard('cardDM', p.dm);
+        if
