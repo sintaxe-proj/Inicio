@@ -923,7 +923,7 @@ function processarArquivoEsus(input) {
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
     if (!toast) return;
-    toast.innerText = message = mensagem;
+    toast.innerText = mensagem;
     toast.style.display = "block";
     setTimeout(() => { toast.style.display = "none"; }, 3500);
 }
