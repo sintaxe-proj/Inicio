@@ -3,30 +3,223 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Sintaxe Hub Pro</title>
+    <title>Sintaxe Hub Pro | APS Digital</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="styles.css">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos específicos para o Login Luxuoso (font-family Inter) */
+        .login-universe {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background: #f8fafc;
+        }
+        
+        .login-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* Coluna da Imagem Customizada (Esquerda) */
+        .login-sidebar {
+            flex: 1.2;
+            position: relative;
+            /* 📸 APLICAÇÃO DA SUA IMAGEM DA EQUIPE */
+            background: url('image_3776f0.jpg') no-repeat center center;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 50px;
+            color: #ffffff;
+        }
+
+        /* Camada de vidro/gradiente profissional sobre a foto */
+        .login-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(11, 110, 253, 0.88) 0%, rgba(15, 23, 42, 0.9) 100%);
+            z-index: 1;
+        }
+
+        .sidebar-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar-brand {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-main-text h2 {
+            font-size: 42px;
+            font-weight: 300;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        .sidebar-main-text h2 strong {
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        .sidebar-footer {
+            font-size: 13px;
+            color: #cbd5e1;
+            opacity: 0.8;
+        }
+
+        /* Coluna do Formulário (Direita) */
+        .login-form-area {
+            flex: 1;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h3 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .login-box p {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 35px;
+        }
+
+        .premium-input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .premium-input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .premium-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #0f172a;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .premium-input:focus {
+            outline: none;
+            border-color: #0b6efd;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(11, 110, 253, 0.1);
+        }
+
+        .btn-premium {
+            width: 100%;
+            padding: 15px;
+            background: #0b6efd;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(11, 110, 253, 0.25);
+            margin-top: 10px;
+        }
+
+        .btn-premium:hover {
+            background: #084bb8;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(11, 110, 253, 0.35);
+        }
+
+        /* Responsividade para telas menores */
+        @media (max-width: 960px) {
+            .login-sidebar { display: none; }
+            .login-form-area { padding: 30px; }
+        }
+    </style>
 </head>
 
-<body>
+<body class="login-universe">
 
-    <div id="loginScreen" style="max-width: 420px; margin: 80px auto; padding: 30px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
-        <h2 style="text-align: center; color: #0b6efd; margin-bottom: 25px;">Sintaxe Hub</h2>
-        <div class="campo-grupo" style="margin-bottom: 15px;">
-            <label for="loginUser">Utilizador / Matrícula:</label>
-            <input type="text" id="loginUser" placeholder="Digite seu utilizador...">
+    <div id="loginScreen" class="login-container">
+        
+        <div class="login-sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-brand">Sintaxe Hub Pro</div>
+                <div class="sidebar-main-text">
+                    <h2>A evolução da <br><strong>Atenção Primária</strong><br> na ponta dos dedos.</h2>
+                    <p style="color: #e2e8f0; font-size: 16px; max-width: 400px; line-height: 1.5;">
+                        Ecossistema multifocal inteligente para monitoramento clínico, linhas de cuidado crônico e governança em saúde digital.
+                    </p>
+                </div>
+                <div class="sidebar-footer">
+                    &copy; 2026 Sintaxe Hub. Sistema de Prontuário Eletrônico Seguro (LGPD/SUS).
+                </div>
+            </div>
         </div>
-        <div class="campo-grupo" style="margin-bottom: 20px;">
-            <label for="loginSenha">Palavra-passe:</label>
-            <input type="password" id="loginSenha" placeholder="Digite sua palavra-passe...">
+
+        <div class="login-form-area">
+            <div class="login-box">
+                <h3>Seja bem-vindo</h3>
+                <p>Insira suas credenciais médicas para acessar o prontuário.</p>
+                
+                <div class="premium-input-group">
+                    <label for="loginUser">Utilizador / Matrícula</label>
+                    <input type="text" id="loginUser" class="premium-input" placeholder="Ex: dr.silva ou 44012">
+                </div>
+                
+                <div class="premium-input-group">
+                    <label for="loginSenha">Palavra-passe</label>
+                    <input type="password" id="loginSenha" class="premium-input" placeholder="••••••••••••">
+                </div>
+                
+                <button class="btn-premium" onclick="autenticarUsuario()">Autenticação Segura</button>
+                
+                <div id="loginErro" style="color: #ef4444; text-align: center; margin-top: 20px; font-weight: 500; font-size: 14px; display: none; background: #fef2f2; padding: 10px; border-radius: 8px; border: 1px solid #fee2e2;">
+                    ⚠️ Credenciais incorretas ou sem permissão ativa.
+                </div>
+            </div>
         </div>
-        <button class="btn-primary" style="width: 100%; padding: 12px;" onclick="autenticarUsuario()">Entrar no Sistema</button>
-        <div id="loginErro" style="color: #dc2626; text-align: center; margin-top: 15px; font-weight: bold; display: none;">Utilizador ou palavra-passe incorretos.</div>
     </div>
 
     <div id="app" style="display: none;">
@@ -75,7 +268,7 @@
                         <h3>Tuberculose</h3>
                         <p class="dash-num" id="dashTB">0</p>
                     </div>
-                    <div class="card" style="border-left: 05px solid #7c3aed; cursor: pointer;" onclick="filtrarPorCondicao('Hanseníase')">
+                    <div class="card" style="border-left: 5px solid #7c3aed; cursor: pointer;" onclick="filtrarPorCondicao('Hanseníase')">
                         <h3>Hanseníase</h3>
                         <p class="dash-num" id="dashHansen">0</p>
                     </div>
@@ -239,24 +432,6 @@
                                 <label>Última Consulta Clínica</label>
                                 <input type="date" id="hasUltimaConsulta">
                             </div>
-                            <div>
-                                <label>Exame Fundo Olho (OD)</label>
-                                <select id="hasFundoOD">
-                                    <option value="Normal">Normal</option>
-                                    <option value="Retinopatia Grau I">Retinopatia Grau I</option>
-                                    <option value="Retinopatia Grau II">Retinopatia Grau II</option>
-                                    <option value="Retinopatia Avançada">Retinopatia Avançada</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Exame Fundo Olho (OE)</label>
-                                <select id="hasFundoOE">
-                                    <option value="Normal">Normal</option>
-                                    <option value="Retinopatia Grau I">Retinopatia Grau I</option>
-                                    <option value="Retinopatia Grau II">Retinopatia Grau II</option>
-                                    <option value="Retinopatia Avançada">Retinopatia Avançada</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
 
@@ -276,55 +451,9 @@
                                 <input type="number" id="dmMicro" placeholder="mg/24h">
                             </div>
                             <div>
-                                <label>Categoria de Risco Renal</label>
-                                <select id="dmMicroCat">
-                                    <option value="A1">A1: Normal (<30 mg/g)</option>
-                                    <option value="A2">A2: Microalbuminúria (30-300 mg/g)</option>
-                                    <option value="A3">A3: Macroalbuminúria (>300 mg/g)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Exame do Pé Diabético (OD)</label>
-                                <select id="dmPeDir">
-                                    <option value="Sem alterações">Sem alterações</option>
-                                    <option value="Perda de Sensibilidade">Perda de Sensibilidade Protetora</option>
-                                    <option value="Pulso Ausente">Pulso Ausente</option>
-                                    <option value="Úlcera Ativa">Úlcera Ativa</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Exame do Pé Diabético (OE)</label>
-                                <select id="dmPeEsq">
-                                    <option value="Sem alterações">Sem alterações</option>
-                                    <option value="Perda de Sensibilidade">Perda de Sensibilidade Protetora</option>
-                                    <option value="Pulso Ausente">Pulso Ausente</option>
-                                    <option value="Úlcera Ativa">Úlcera Ativa</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Avaliação do Fundo Olho (OD)</label>
-                                <input type="text" id="dmFundoOD" placeholder="Laudo fundoscopia OD">
-                            </div>
-                            <div>
-                                <label>Avaliação do Fundo Olho (OE)</label>
-                                <input type="text" id="dmFundoOE" placeholder="Laudo fundoscopia OE">
-                            </div>
-                            <div>
-                                <label>Data do Exame Olho</label>
-                                <input type="date" id="dmFundoData">
-                            </div>
-                            <div>
                                 <label>Última Consulta de Enfermagem/Médica</label>
                                 <input type="date" id="dmUltimaConsulta">
                             </div>
-                        </div>
-                        <div style="margin-top: 15px; display: flex; gap: 20px;">
-                            <label><input type="checkbox" id="dmAmpMID"> Amputação prévia em Membro Inferior Direito</label>
-                            <label><input type="checkbox" id="dmAmpMIE"> Amputação prévia em Membro Inferior Esquerdo</label>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <label>Notas de Orientação do Pé Diabético / Calçado</label>
-                            <textarea id="dmPeObs" rows="2" placeholder="Descrever deformidades, calosidades ou orientações de autocuidado realizadas..."></textarea>
                         </div>
                     </div>
 
@@ -355,38 +484,7 @@
                                 <label>DPP (Data Provável do Parto)</label>
                                 <input type="date" id="gestDPP" readonly style="background: #f1f5f9;">
                             </div>
-                            <div>
-                                <label>1ª Consulta Pré-Natal (Data)</label>
-                                <input type="date" id="gestPrimeiraConsulta">
-                            </div>
-                            <div>
-                                <label>Última Consulta Realizada</label>
-                                <input type="date" id="gestUltimaConsulta">
-                            </div>
                         </div>
-                        
-                        <h4 style="margin-top:15px; color:#b11d6b;">Exames Laboratoriais e Imagiológicos (Datas)</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div><label>Teste Rápido Sífilis/HIV 1º Tri</label><input type="date" id="gestTR1"></div>
-                            <div><label>Teste Rápido Sífilis/HIV 2º Tri</label><input type="date" id="gestTR2"></div>
-                            <div><label>Teste Rápido Sífilis/HIV 3º Tri</label><input type="date" id="gestTR3"></div>
-                            <div><label>Exames Sangue/Urina 1º Tri</label><input type="date" id="gestEX1"></div>
-                            <div><label>Exames Sangue/Urina 2º Tri</label><input type="date" id="gestEX2"></div>
-                            <div><label>Exames Sangue/Urina 3º Tri</label><input type="date" id="gestEX3"></div>
-                            <div><label>Ecografia Obstetriz 1º Tri</label><input type="date" id="gestUSG1"></div>
-                            <div><label>Ecografia Morfológica 2º Tri</label><input type="date" id="gestUSGMorf"></div>
-                            <div><label>Ecografia Obstetriz 3º Tri</label><input type="date" id="gestUSG3"></div>
-                        </div>
-                    </div>
-
-                    <div id="cardHanseniase" class="card" style="display: none; border-left: 5px solid #7c3aed;">
-                        <h3>🧬 Módulo Hanseníase - Acompanhamento Operacional</h3>
-                        <p style="color: #64748b;">Módulo em estruturação regulatória. Utilize o campo de evoluções clínicas abaixo para registo temporário de lesões e graus de incapacidade física.</p>
-                    </div>
-
-                    <div id="cardTB" class="card" style="display: none; border-left: 5px solid #f59e0b;">
-                        <h3>🦠 Módulo Tuberculose - Controlo de Tratamento Supervisionado</h3>
-                        <p style="color: #64748b;">Módulo em estruturação regulatória. Utilize as evoluções clínicas para mapear as tomas do TDO e resultados de baciloscopias de controlo.</p>
                     </div>
 
                     <div class="card" style="border-top: 4px solid #10b981;">
@@ -416,19 +514,17 @@
 
                         <div style="margin-bottom: 15px;">
                             <label>Evolução Clínica Estruturada (SOAP / Anamnese e Exame Físico)</label>
-                            <textarea id="evoTexto" rows="4" placeholder="Registe de forma clara os dados Subjetivos, Objetivos, Avaliação e Plano do utente..."></textarea>
+                            <textarea id="evoTexto" rows="4" placeholder="Registe de forma clara os dados..."></textarea>
                         </div>
                         
-                        <button class="btn-primary" style="background: #10b981;" onclick="adicionarEvolucao()">Anexar Evolução ao Histórico</button>
-
-                        <div id="historicoEvolucoes" style="margin-top: 25px; max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+                        <button class="btn-primary" style="background: #10b981;" onclick="adicionarEvolucao()">Anexar Evolução</button>
+                        <div id="historicoEvolucoes" style="margin-top: 25px; max-height: 300px; overflow-y: auto;"></div>
                     </div>
 
                     <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 10px;">
                         <button class="btn-primary" style="background: #64748b;" onclick="limparFormularioProntuario(); navigate('inicio');">Cancelar</button>
-                        <button class="btn-primary" style="background: #2563eb; padding: 12px 30px; font-size: 16px;" onclick="salvarProntuario()">Salvar Prontuário Clínico</button>
+                        <button class="btn-primary" style="background: #2563eb; padding: 12px 30px;" onclick="salvarProntuario()">Salvar Prontuário</button>
                     </div>
-
                 </div>
             </section>
 
@@ -436,105 +532,42 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2>Consola Consolidada da Base de Dados</h2>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn-primary" style="background: #16a34a;" onclick="exportarBackupJSON()">Exportar Backup (.JSON)</button>
-                        <label class="btn-primary" style="background: #2563eb; cursor: pointer; display: inline-block;">
-                            Importar Backup (.JSON)
+                        <button class="btn-primary" style="background: #16a34a;" onclick="exportarBackupJSON()">Exportar Backup</button>
+                        <label class="btn-primary" style="background: #2563eb; cursor: pointer;">
+                            Importar Backup
                             <input type="file" id="fileImportBackup" style="display: none;" onchange="importarBackupJSON(this)">
                         </label>
                     </div>
                 </div>
-
-                <div class="card" style="margin-bottom: 20px; background: #f8fafc;">
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <label style="margin: 0; font-weight: bold;">Filtrar Vista por Condição Crónica:</label>
-                        <select id="filtroCondicaoBanco" onchange="listarBanco()" style="max-width: 250px;">
-                            <option value="TODOS">Todos os registos</option>
-                            <option value="HAS">Apenas Hipertensos (HAS)</option>
-                            <option value="DM">Apenas Diabéticos (DM)</option>
-                            <option value="Gestante">Apenas Gestantes</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="card">
-                    <div id="tabelaBancoContainer" style="overflow-x: auto;">
-                        </div>
+                    <div id="tabelaBancoContainer" style="overflow-x: auto;"></div>
                 </div>
             </section>
 
             <section id="view-reunioes" class="view" style="display: none;">
                 <h2>Atas de Reuniões Clínicas e PTS Coletivo</h2>
-                <div class="grid-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
-                    <div class="card">
-                        <h3>Nova Ata / Deliberação</h3>
-                        <div style="margin-bottom: 12px;">
-                            <label>Data da Reunião</label>
-                            <input type="date" id="rData">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>Pauta Central *</label>
-                            <input type="text" id="rPauta" placeholder="Ex: Discussão de Casos Complexos / Microárea 3">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>Utentes / Casos Discutidos</label>
-                            <textarea id="rCasos" rows="3" placeholder="Nome dos utentes e principais impasses clínicos encontrados..."></textarea>
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label>Plano de Ação / Encaminhamentos (PTS)</label>
-                            <textarea id="rAcoes" rows="3" placeholder="Deliberações da equipa, responsáveis pelas visitas e metas..."></textarea>
-                        </div>
-                        <button class="btn-primary" style="width: 100%;" onclick="salvarReuniao()">Gravar Ata de Reunião</button>
-                    </div>
-
-                    <div class="card">
-                        <h3>Histórico de Atas de Reunião de Equipa</h3>
-                        <div id="listaReunioesContainer" style="max-height: 500px; overflow-y: auto;">
-                            </div>
-                    </div>
-                </div>
+                <div id="listaReunioesContainer"></div>
             </section>
 
             <section id="view-linhas" class="view" style="display: none;">
                 <h2>Indicadores Analíticos de Cobertura</h2>
-                <div class="card" style="margin-bottom: 20px;">
-                    <label>Selecione a Linha de Cuidado para Análise Epidemiológica:</label>
-                    <select id="linhaSelect" onchange="renderizarGraficosLinhas(this.value)" style="max-width: 300px;">
-                        <option value="HAS">Hipertensão Arterial (HAS)</option>
-                        <option value="DM">Diabetes Mellitus (DM)</option>
-                        <option value="GEST">Saúde da Mulher (Gestantes Ativas)</option>
-                    </select>
-                </div>
-                <div class="card" style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div id="graficosLinhasContainer">
-                        </div>
-                </div>
+                <div id="graficosLinhasContainer"></div>
             </section>
 
             <section id="view-auditoria" class="view" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>Trilhas de Auditoria e Segurança de Dados (LGPD)</h2>
-                    <button class="btn-primary" style="background: #dc2626;" onclick="limparAuditoria()">Expurgar Logs do Sistema</button>
-                </div>
-                <div class="card">
-                    <div id="logAuditoriaContainer" style="overflow-x: auto;">
-                        </div>
-                </div>
+                <h2>Trilhas de Auditoria e Segurança de Dados (LGPD)</h2>
+                <div id="logAuditoriaContainer"></div>
             </section>
 
         </main>
     </div>
 
     <div id="drawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 3000;" onclick="fecharDrawer()"></div>
-    <div id="drawer" style="display: none; position: fixed; top: 0; right: 0; width: 450px; height: 100%; background: #ffffff; box-shadow: -4px 0 15px rgba(0,0,0,0.2); padding: 30px; z-index: 3100; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
-            <h3 id="drawerTitulo" style="margin: 0; color: #0b6efd;">Detalhes do Utente</h3>
-            <button onclick="fecharDrawer()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
-        </div>
-        <div id="drawerConteudo">
-            </div>
+    <div id="drawer" style="display: none; position: fixed; top: 0; right: 0; width: 450px; height: 100%; background: #ffffff; padding: 30px; z-index: 3100; overflow-y: auto;">
+        <div id="drawerConteudo"></div>
     </div>
 
     <script src="app.js"></script>
-
 </body>
+
 </html>
