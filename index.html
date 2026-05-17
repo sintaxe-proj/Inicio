@@ -9,7 +9,7 @@
         :root {
             --primary: #10b981;          /* Verde Esmeralda (Ações principais) */
             --primary-hover: #059669;    /* Verde Escuro (Hover de botões) */
-            --dark: #064e3b;             /* Verde Floresta Profundo (Headers e Identidade) */
+            --dark: #064e3b;              /* Verde Floresta Profundo (Headers e Identidade) */
             --light: #f0fdf4;            /* Fundo suave verde-claro para áreas de destaque */
             --border: #cbd5e1;           /* Borda neutra estrutural */
             --text: #1e293b;             /* Texto principal em grafite escuro */
@@ -63,6 +63,15 @@
         .dash-card h3 { font-size: 14px; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
         .dash-card .number { font-size: 32px; font-weight: 700; color: var(--dark); }
 
+        /* 🔍 Grid Customizado para a Busca Ativa espelhar o Dashboard */
+        .busca-ativa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; }
+        .busca-ativa-card { background: white; padding: 16px; border-radius: 8px; border: 1px solid var(--border); text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.15s ease-in-out; }
+        .busca-ativa-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+        .busca-ativa-card h4 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .busca-ativa-card p { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+        .busca-ativa-card .badges-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .tag-clinica { font-size: 11px; font-weight: 700; color: white; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+
         /* 📊 CSS de Gráficos Criativos e Nativos (Sem Libs) */
         .analytics-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px; }
         @media (max-width: 768px) { .analytics-layout { grid-template-columns: 1fr; } }
@@ -87,9 +96,10 @@
         .form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; }
         .col-12 { grid-column: span 12; }
         .col-6 { grid-column: span 6; }
-        .col-4 { grid-column: span 4; }
         .col-3 { grid-column: span 3; }
         .col-2 { grid-column: span 2; }
+        .col-4 { grid-column: span 4; }
+        .col-5 { grid-column: span 5; }
         label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
 
         /* 🩺 Módulos Clínicos */
@@ -150,7 +160,6 @@
                         <div class="number" id="dashHAS">0</div>
                     </div>
                     <div class="dash-card" style="border-left-color: #f59e0b; cursor: pointer;" onclick="abrirPainelEpidemiologico('dm')">
-                        <h3 style="color:#f59e0b;">Diabetes (DM)</h3>
                         <div class="number" id="dashDM">0</div>
                     </div>
                     <div class="dash-card" style="border-left-color: #ec4899; cursor: pointer;" onclick="abrirPainelEpidemiologico('gestante')">
@@ -186,7 +195,7 @@
                             <label for="filtroRisco">Status de Risco Clínico</label>
                             <select id="filtroRisco" class="form-control" style="margin-bottom:0;" onchange="aplicarFiltrosRelatorio()">
                                 <option value="TODOS">Todos os Casos</option>
-                                <option value="CRITICO">Apenas Críticos / Descompensados</option>
+                                <option value="CRITICO">Apenas Críticos / Descompensated</option>
                                 <option value="CONTROLADO">Apenas Controlados</option>
                             </select>
                         </div>
@@ -195,21 +204,18 @@
                     <div class="analytics-layout">
                         <div class="card" style="margin-bottom:0; padding:15px; border-color:#e2e8f0; display:flex; flex-direction:column; align-items:center;">
                             <span style="font-size:13px; font-weight:700; color:var(--dark); margin-bottom:10px; text-align:center;">Proporção de Casos na Seleção</span>
-                            <div class="donut-wrapper" id="containerGraficoDonut">
-                                </div>
+                            <div class="donut-wrapper" id="containerGraficoDonut"></div>
                         </div>
 
                         <div class="card" style="margin-bottom:0; padding:15px; border-color:#e2e8f0;">
                             <span style="font-size:13px; font-weight:700; color:var(--dark); display:block; margin-bottom:10px;">Distribuição de Indicadores de Saúde</span>
-                            <div class="bar-chart-container" id="containerGraficoBarras">
-                                </div>
+                            <div class="bar-chart-container" id="containerGraficoBarras"></div>
                         </div>
                     </div>
 
                     <div id="metricasPainelEpidemiologico" style="margin-bottom: 15px;"></div>
 
-                    <div id="tabelaPainelEpidemiologico" style="overflow-x: auto;">
-                        </div>
+                    <div id="tabelaPainelEpidemiologico" style="overflow-x: auto;"></div>
                 </div>
 
                 <div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
@@ -227,7 +233,8 @@
                         <span>🔍 Busca Ativa Coordenada de Utentes (Dados Locais)</span>
                         <button type="button" class="btn-primary" style="background: #047857; font-size: 12px; padding: 6px 12px;" onclick="gerarCargaMassaOitoMil()">⚡ Injetar 8.000 Prontuários (Estresse)</button>
                     </div>
-                    <input type="text" id="buscaNomeInicio" class="form-control" placeholder="Digite o nome completo do paciente para buscar no IndexedDB..." oninput="buscarInicio()">
+                    <input type="text" id="buscaNomeInicio" class="form-control" placeholder="Digite o nome completo ou CPF do paciente para buscar no IndexedDB..." oninput="buscarInicio()">
+                    
                     <div id="resultadoInicio" style="margin-top: 15px;">
                         <em style="color: #94a3b8;">Introduza um critério acima para pesquisar.</em>
                     </div>
@@ -333,7 +340,7 @@
                     <div class="form-grid">
                         <div class="form-group col-12"><label>Cód. CIAP-2 / Diagnóstico Provisório</label><input type="text" id="inputBuscaCIAPS" class="form-control" placeholder="Ex: K86 (Hipertensão sem complicações) ou T90 (Diabetes)"></div>
                         <div class="form-group col-12">
-                            <label for="evoTexto" style="font-weight: 700; color: var(--dark);">Evolução Clínica Atual / Conduta (S.O.A.P.):</label>
+                            <label for="evoTexto" style="font-weight: 700; color: var(--dark);">Evolução Clínia Atual / Conduta (S.O.A.P.):</label>
                             <textarea id="evoTexto" rows="6" placeholder="Digite aqui o atendimento do dia de forma detalhada..." class="form-control" style="resize: vertical;"></textarea>
                         </div>
                         <div class="form-group col-12"><label>Observações Gerais / Alergias Críticas</label><input type="text" id="obsPaciente" class="form-control"></div>
@@ -359,6 +366,4 @@
         </main>
     </div>
 
-    <script src="app.js"></script>
-</body>
-</html>
+    <script src="
