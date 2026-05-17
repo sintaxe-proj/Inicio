@@ -3,7 +3,7 @@
    ========================================================================== */
 let db;
 const DB_NAME = "SintaxeHubDB";
-const DB_VERSION = 3; // Elevado para 3 para forçar a atualização das ObjectStores no cache
+const DB_VERSION = 3; // Mantido em 3 para forçar a sincronização de ObjectStores
 
 // Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
@@ -138,7 +138,10 @@ function navigate(viewName) {
 }
 
 function mostrarCard(id, valor) {
-    document.getElementById(id).style.display = (valor === "Sim") ? "block" : "none";
+    const alvo = document.getElementById(id);
+    if (alvo) {
+        alvo.style.display = (valor === "Sim") ? "block" : "none";
+    }
 }
 
 /* ==========================================================================
@@ -191,7 +194,11 @@ function calcIdade() {
         idade--;
     }
     document.getElementById("idadePaciente").value = idade;
-    document.getElementById("ampiBloco").style.display = (idade >= 60) ? "block" : "none";
+    
+    const blocoAmpi = document.getElementById("ampiBloco");
+    if (blocoAmpi) {
+        blocoAmpi.style.display = (idade >= 60) ? "block" : "none";
+    }
 }
 
 function classificarHAS() {
@@ -321,7 +328,8 @@ function salvarProntuario() {
     const sat = document.getElementById("objSatO2").value;
     const dor = document.getElementById("objDor").value;
 
-    const examenStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
+    const elExameStatus = document.querySelector('input[name="exameFisicoStatus"]:checked');
+    const examenStatus = elExameStatus ? elExameStatus.value : "Normal";
     const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
     
     const ciap = document.getElementById("inputBuscaCIAPS").value;
@@ -418,16 +426,22 @@ function limparFormularioProntuario() {
     document.getElementById("objFR").value = "";
     document.getElementById("objSatO2").value = "";
     document.getElementById("objDor").value = "0";
-    document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+    
+    const rdbNormal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
+    if (rdbNormal) rdbNormal.checked = true;
+    
     document.getElementById("blocoExameAlterado").style.display = "none";
     document.getElementById("soapObjetivoAlterado").value = "";
     
     document.getElementById("soapPlanoConduta").value = "";
-    document.getElementById("soapReavaliacaoDias").value = "0";
+    document.getElementById("soapReavaliacaoDias").value = "30";
     document.getElementById("inputBuscaCIAPS").value = "";
 
     const campos = ["nomePaciente", "cpfPaciente", "nascPaciente", "idadePaciente", "telPaciente", "CEP", "endPaciente", "endNumero", "endComplemento", "hasPAS", "hasPAD", "hasClassif", "dmHbA1c", "dmClassif", "gestDUM", "gestIG", "gestDPP"];
-    campos.forEach(c => document.getElementById(c).value = "");
+    campos.forEach(c => {
+        const el = document.getElementById(c);
+        if (el) el.value = "";
+    });
 
     document.getElementById("hasSN").value = "Não";
     document.getElementById("dmSN").value = "Não";
@@ -441,9 +455,11 @@ function limparFormularioProntuario() {
     document.getElementById("cardHAS").style.display = "none";
     document.getElementById("cardDM").style.display = "none";
     document.getElementById("cardGestante").style.display = "none";
-    document.getElementById("ampiBloco").style.display = "none";
-    document.getElementById("cabecalhoProntuario").style.display = "none";
     
+    const bAmpi = document.getElementById("ampiBloco");
+    if (bAmpi) bAmpi.style.display = "none";
+    
+    document.getElementById("cabecalhoProntuario").style.display = "none";
     document.getElementById("linhaTempoEvolucoes").innerHTML = "";
 }
 
@@ -527,11 +543,13 @@ function abrirAtendimentoExistente(cpf) {
 
         // Comportamento dinâmico do Exame Físico Geral
         if (p.exameFisicoStatus === "Alterado") {
-            document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
+            const rdbAlterado = document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]');
+            if (rdbAlterado) rdbAlterado.checked = true;
             document.getElementById("blocoExameAlterado").style.display = "block";
             document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
         } else {
-            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+            const rdbNormal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
+            if (rdbNormal) rdbNormal.checked = true;
             document.getElementById("blocoExameAlterado").style.display = "none";
         }
 
@@ -556,7 +574,11 @@ function abrirAtendimentoExistente(cpf) {
         document.getElementById("tbSN").checked = (p.tb === "Sim");
         document.getElementById("hansenSN").checked = (p.hansen === "Sim");
         document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
-        if (parseInt(p.idade) >= 60) document.getElementById("ampiBloco").style.display = "block";
+        
+        const bAmpi = document.getElementById("ampiBloco");
+        if (bAmpi) {
+            bAmpi.style.display = (parseInt(p.idade) >= 60) ? "block" : "none";
+        }
 
         // Montagem da Linha de Tempo de Atendimentos Anteriores
         if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
@@ -913,7 +935,9 @@ function mostrarToast(mensagem) {
     if (!toast) return;
     toast.innerText = mensagem;
     toast.style.display = "block";
-    setTimeout(() => { toast.style.display = "none"; }, 3500);
+    setTimeout(() => { 
+        toast.style.display = "none"; 
+    }, 3500);
 }
 
 function mascaraCPF(campo) {
