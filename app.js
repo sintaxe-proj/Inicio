@@ -243,7 +243,6 @@ function abrirPainelEpidemiologico(agravo) {
 }
 
 function fecharPainelEpidemiologico() {
-    document.getElementById("painelEpidemiologicoContainer").style.none = "none";
     document.getElementById("painelEpidemiologicoContainer").style.display = "none";
 }
 
@@ -296,14 +295,14 @@ function aplicarFiltrosRelatorio() {
     const equipe = document.getElementById("filtroEquipe").value;
     const risco = document.getElementById("filtroRisco").value;
 
-    // 1. Filtramos por território para amparar a volumetria dos gráficos
+    // 1. Filtramos por território para amparar a volumetria correta dos gráficos (Donut/Barras)
     let dadosTerritorio = dadosFiltradosAtuais.filter(p => {
         if (ubs !== "TODAS" && p.unidadePaciente !== ubs) return false;
         if (equipe !== "TODAS" && p.equipePaciente !== equipe) return false;
         return true;
     });
 
-    // 2. Contabilizamos os riscos reais daquele território (Acorda os cards do Alerta)
+    // 2. Contabilizamos os riscos reais desse recorte territorial
     let totalCriticos = 0;
     let totalAlertas = 0;
     let totalControlados = 0;
@@ -318,7 +317,7 @@ function aplicarFiltrosRelatorio() {
     renderizarGraficoDonut(totalCriticos, totalAlertas, totalControlados);
     renderizarGraficoBarras(totalCriticos, totalAlertas, totalControlados);
 
-    // 3. Aplica o filtro de risco para desenhar as linhas visíveis da tabela
+    // 3. Aplica o filtro de risco especificamente para desenhar as linhas visíveis da tabela
     let exibicaoTabela = dadosTerritorio.filter(p => {
         const diagnostico = processarRiscoPaciente(p);
         if (risco === "CRITICO" && diagnostico.statusRisco !== "CRITICO") return false;
@@ -911,4 +910,40 @@ function mascaraCPF(i) {
     v = v.replace(/(\d{3})(\d)/, "$1.$2");
     v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     i.value = v;
+}
+
+/**
+ * 🗺️ INTEGRAÇÃO TERRITORIAL: Busca de Endereço Automática via API ViaCEP
+ * Executada automaticamente no evento onblur do input de CEP
+ */
+function buscarCEP() {
+    const campoCEP = document.getElementById("CEP");
+    const cep = campoCEP.value.replace(/\D/g, "");
+    
+    if (cep.length !== 8) return;
+
+    showToast("Mapeando território pelo CEP...");
+
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => response.json())
+        .then(dados => {
+            if (dados.erro) {
+                showToast("⚠️ CEP não localizado na base dos Correios.");
+                return;
+            }
+
+            const enderecoFormatado = `${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`;
+            const campoEndereco = document.getElementById("endPaciente");
+            campoEndereco.value = enderecoFormatado;
+
+            // Feedback tátil visual temporário de sucesso no campo
+            campoEndereco.style.backgroundColor = "#f0fdf4";
+            setTimeout(() => { campoEndereco.style.backgroundColor = ""; }, 1500);
+
+            showToast("📍 Endereço territorial preenchido!");
+        })
+        .catch(err => {
+            console.error("Erro na requisição do ViaCEP:", err);
+            showToast("Não foi possível conectar ao serviço de CEP. Preencha manualmente.");
+        });
 }
