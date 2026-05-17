@@ -199,7 +199,7 @@ function desbloquearFormularios(permitirEscrita) {
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = message;
+        erroDiv.innerText = mensagem; // 🔥 Corrigido de message para mensagem
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -299,7 +299,7 @@ function classificarDM() {
         campo.value = "Controlo Inadequado";
         campo.style.color = "#f59e0b";
     } else {
-        campo.value = "Risco Alto / Descompensated";
+        campo.value = "Risco Alto / Descompensado";
         campo.style.color = "#ef4444";
     }
 }
@@ -597,7 +597,7 @@ function listarBanco() {
             let linhas = [];
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") lines.push("Gestante");
+            if (p.gestante === "Sim") linhas.push("Gestante"); // 🔥 Corrigido de lines.push para linhas.push
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
@@ -644,7 +644,7 @@ function processarArquivoEsus(inputElement) {
                     gestante: esusData.stGestante === 1 ? "Sim" : "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        profissional: "Sistema Integrador e-SUS APS",
+                        professional: "Sistema Integrador e-SUS APS",
                         matricula: "INTEGRA_SUS",
                         texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo original: ${arquivo.name}.`
                     }]
@@ -657,7 +657,7 @@ function processarArquivoEsus(inputElement) {
                     has: "Não", dm: "Não", gestante: "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        profissional: "Conversor de PDF e-SUS",
+                        professional: "Conversor de PDF e-SUS",
                         matricula: "PDF_PARSER",
                         texto: `Conteúdo de texto extraído processado pelo navegador com sucesso.`
                     }]
