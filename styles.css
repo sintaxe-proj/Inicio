@@ -13,10 +13,23 @@ html, body {
     color: #333;
 }
 
+/* ============================================================
+   VARIÁVEIS DE TEMA (Mantendo consistência visual)
+============================================================ */
+:root {
+    --azul: #0b6efd;
+    --azul-escuro: #084bb8;
+    --cinza-claro: #f4f6f9;
+    --cinza-medio: #d7dce2;
+    --cinza-escuro: #2a2f35;
+    --branco: #ffffff;
+    --radius: 12px;
+    --shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
 
 
 /* ============================================================
-   TELA DE LOGIN (NOVA) — sem afetar layout do app
+   TELA DE LOGIN (Isolada e Fixa)
 ============================================================ */
 .login-container {
     position: fixed;
@@ -61,18 +74,24 @@ html, body {
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
+    transition: background 0.2s;
 }
 
-.erro {
+.login-box button:hover {
+    background: #084bb8;
+}
+
+/* Alterado de classe para ID para sincronizar com login.js */
+#loginErro {
     color: red;
     display: none;
     margin-top: 10px;
+    font-weight: bold;
 }
 
 
-
 /* ============================================================
-   CABEÇALHO ORIGINAL (idêntico ao seu código)
+   CABEÇALHO ORIGINAL (topo e menu)
 ============================================================ */
 .topo {
     background: #084bb8;
@@ -91,6 +110,7 @@ html, body {
     padding: 8px 12px;
     border-radius: 8px;
     cursor: pointer;
+    font-weight: bold;
 }
 
 .logout {
@@ -100,13 +120,17 @@ html, body {
     padding: 10px 14px;
     border-radius: 10px;
     cursor: pointer;
+    font-weight: bold;
 }
 
 
-
 /* ============================================================
-   CARTÕES — preservação do visual original
+   ESTRUTURA DE CORPO, VIEWS E CARTÕES
 ============================================================ */
+.container {
+    padding: 20px;
+}
+
 .card {
     background: white;
     padding: 15px;
@@ -115,11 +139,6 @@ html, body {
     box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
 }
 
-
-
-/* ============================================================
-   VIEWS DO SISTEMA (mantidas como no original)
-============================================================ */
 .view {
     padding: 20px;
 }
@@ -129,9 +148,8 @@ html, body {
 }
 
 
-
 /* ============================================================
-   LISTAS / CAMPOS — preservados
+   FORMULÁRIOS, LISTAS E CAMPOS DO APP
 ============================================================ */
 input, textarea, select {
     width: 100%;
@@ -147,40 +165,49 @@ button {
 }
 
 
-
 /* ============================================================
-   ELEMENTOS DO PRONTUÁRIO (baseado no seu layout)
+   ELEMENTOS DO PRONTUÁRIO E ALERTAS CLÍNICOS
 ============================================================ */
 .prontuario-bloco {
     background: white;
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
 }
 
-
-
-/* ============================================================
-   ALERTAS CLÍNICOS (original)
-============================================================ */
 .alerta {
     color: red;
     font-weight: bold;
 }
 
+/* Painel Suspenso de Alertas Notificados */
+.alertas-painel {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    width: 300px;
+    color: #333 !important;
+}
 
 
 /* ============================================================
-   RESPONSIVIDADE (melhorada)
+   RESPONSIVIDADE MELHORADA
 ============================================================ */
 @media (max-width: 768px) {
-
     .topo {
         flex-direction: column;
         text-align: center;
+        gap: 10px;
     }
 
     .menu button {
-        margin: 5px 0;
+        margin: 5px 4px;
     }
 }
