@@ -186,4 +186,4 @@ const CATALOGO_CIAPS2 = {
     "T93": "Dislipidemia / hipercolesterolemia",
     "T99": "Outra patologia endócrina / metabólica",
 
-    // CAPÍTULO U: Ap
+window.CATALOGO_CIAPS2 = CATALOGO_CIAPS2;
