@@ -26,7 +26,6 @@ function configurarIndexedDB() {
         db = event.target.result;
         console.log("🗄️ IndexedDB conectado com sucesso na versão " + DB_VERSION);
         
-        // Verifica se o usuário já está logado para inicializar os dados da tela principal
         if (localStorage.getItem("pep_sessao_ativa")) {
             inicializarAutocompleteCIAP();
             atualizarIndicadoresDashboard();
@@ -38,7 +37,6 @@ function configurarIndexedDB() {
     request.onupgradeneeded = function(event) {
         const dbInstance = event.target.result;
         
-        // Cria ou atualiza a store de pacientes garantindo sua existência
         if (!dbInstance.objectStoreNames.contains("pacientes")) {
             const store = dbInstance.createObjectStore("pacientes", { keyPath: "cpf" });
             store.createIndex("nome", "nome", { unique: false });
@@ -68,7 +66,6 @@ function autenticarUsuario() {
         erroDiv.style.display = "none";
         verificarSessao();
         
-        // Inicializa os dados do ecossistema após login
         inicializarAutocompleteCIAP();
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
@@ -135,10 +132,18 @@ function navigate(viewName) {
     const viewAlvo = document.getElementById(`view-${viewName}`);
     if (viewAlvo) viewAlvo.style.display = 'block';
 
-    const linkAtivo = Array.from(document.querySelectorAll('.nav-link')).find(l => l.innerText.toLowerCase().includes(viewName === 'prontuario' ? 'novo' : viewName));
+    // Procura o link de navegação correspondente para marcar como active
+    const linkAtivo = Array.from(document.querySelectorAll('.nav-link')).find(l => {
+        const txt = l.innerText.toLowerCase();
+        if (viewName === 'prontuario') return txt.includes('novo');
+        if (viewName === 'banco') return txt.includes('base');
+        return txt.includes(viewName);
+    });
     if (linkAtivo) linkAtivo.classList.add('active');
 
+    // Gatilhos de renderização de views dinâmicas
     if (viewName === 'banco') listarTodosBanco();
+    if (viewName === 'discador') renderizarAbaDiscador();
 }
 
 function mostrarCard(id, valor) {
@@ -172,7 +177,6 @@ function inicializarAutocompleteCIAP() {
 /* ==========================================================================
    🩺 LÓGICA CLÍNICA E SUPORTE DINÂMICO AO REGISTRO S.O.A.P.
    ========================================================================== */
-
 function alternarExameFisico(status) {
     const bloco = document.getElementById("blocoExameAlterado");
     if (status === "Alterado") {
@@ -364,21 +368,26 @@ function salvarProntuario() {
             equipe: document.getElementById("equipePaciente").value,
             
             has: document.getElementById("hasSN").value,
+            hasSN: document.getElementById("hasSN").value,
             pas: document.getElementById("hasPAS").value,
             pad: document.getElementById("hasPAD").value,
             classifHas: document.getElementById("hasClassif").value,
             
             dm: document.getElementById("dmSN").value,
+            dmSN: document.getElementById("dmSN").value,
             hba1c: document.getElementById("dmHbA1c").value,
             classifDm: document.getElementById("dmClassif").value,
             
             gestante: document.getElementById("gestanteSN").value,
+            gestanteSN: document.getElementById("gestanteSN").value,
             dum: document.getElementById("gestDUM").value,
             ig: document.getElementById("gestIG").value,
             dpp: document.getElementById("gestDPP").value,
             
             tb: document.getElementById("tbSN").checked ? "Sim" : "Não",
+            tbSN: document.getElementById("tbSN").checked ? "Sim" : "Não",
             hansen: document.getElementById("hansenSN").checked ? "Sim" : "Não",
+            hansenSN: document.getElementById("hansenSN").checked ? "Sim" : "Não",
             ampi: document.getElementById("ampiPaciente").value,
             
             objPA: pa,
@@ -596,7 +605,6 @@ function atualizarIndicadoresDashboard() {
     request.onsuccess = function() {
         const dados = request.result;
         
-        // Mapeamentos blindados para cobrir qualquer variação estrutural (Maiúsculas/Minúsculas)
         const totalHAS = dados.filter(p => p.has === "Sim" || p.hasSN === "Sim").length;
         const totalDM = dados.filter(p => p.dm === "Sim" || p.dmSN === "Sim").length;
         const totalGestantes = dados.filter(p => p.gestante === "Sim" || p.gestanteSN === "Sim").length;
@@ -677,7 +685,7 @@ function removerPacienteDoTerritorio(cpf) {
 }
 
 /* ==========================================================================
-   📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA
+   📊 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA
    ========================================================================== */
 let linhaCuidadoAtualVisualizacao = "has";
 
@@ -726,7 +734,6 @@ function aplicarFiltrosRelatorio() {
     request.onsuccess = function() {
         let filtrados = request.result;
 
-        // Filtro por Linha de Cuidado Normalizado
         if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim" || p.hasSN === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim" || p.dmSN === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim" || p.gestanteSN === "Sim");
@@ -923,12 +930,134 @@ function processarArquivoEsus(input) {
 }
 
 /* ==========================================================================
+   📞 SISTEMA DE BUSCA ATIVA: DISCADOR AUTOMÁTICO VIA WHATSAPP (APS)
+   ========================================================================== */
+
+/**
+ * Avalia criticidade e dispara mensagem via WhatsApp
+ * @param {Object} paciente - Objeto contendo os dados do utente
+ */
+function discador(paciente) {
+    if (!paciente || !paciente.tel) {
+        mostrarToast("❌ Erro: Utente sem telefone cadastrado para monitoramento.");
+        return;
+    }
+
+    const diasPrazo = parseInt(paciente.reavaliacaoDias);
+    const ehCritico = (diasPrazo === 0);
+    const monitoramentoLongo = (diasPrazo > 90);
+
+    if (ehCritico || monitoramentoLongo) {
+        const sessao = localStorage.getItem("pep_sessao_ativa");
+        const enfermeiro = sessao ? JSON.parse(sessao).nome : "Enfermeiro da Família";
+
+        let linhasAtivas = [];
+        if (paciente.has === "Sim" || p.hasSN === "Sim") linhasAtivas.push("Hipertensão");
+        if (paciente.dm === "Sim" || p.dmSN === "Sim") linhasAtivas.push("Diabetes");
+        if (paciente.gestante === "Sim" || p.gestanteSN === "Sim") linhasAtivas.push("Pré-Natal");
+        if (paciente.tb === "Sim" || p.tbSN === "Sim") linhasAtivas.push("Tuberculose");
+        if (paciente.hansen === "Sim" || p.hansenSN === "Sim") linhasAtivas.push("Hanseníase");
+        
+        const contextoClinico = linhasAtivas.length > 0 ? `acompanhamento de ${linhasAtivas.join(" e ")}` : "monitoramento de saúde";
+
+        let mensagem = `Olá, *${paciente.nome}*! Aqui é o *${enfermeiro}* da sua equipe de Atenção Primária à Saúde (APS).\n\n`;
+
+        if (ehCritico) {
+            mensagem += `🚨 Constatamos no nosso sistema territorial que o prazo para a sua *reavaliação clínica urgente ou renovação de receita venceu*. Precisamos agendar sua visita à unidade ou uma visita domiciliar o quanto antes.\n\n`;
+        } else {
+            mensagem += `⏳ Faz mais de *90 dias* desde o seu último registro de monitoramento para o ${contextoClinico}. É muito importante mantermos o seu plano de cuidados atualizado.\n\n`;
+        }
+
+        mensagem += `Por favor, responda a esta mensagem confirmando se está tudo bem ou informe se prefere que a equipe ligue para agendarmos o seu atendimento na sua UBS de vínculo (*${paciente.ubs || 'Unidade Local'}*).\n\n`;
+        mensagem += `_Mensagem automática de monitoramento clínico - SintaxeHub APS_`;
+
+        let telefoneLimpo = paciente.tel.replace(/\D/g, "");
+        if (telefoneLimpo.length === 11 || telefoneLimpo.length === 10) {
+            telefoneLimpo = "55" + telefoneLimpo;
+        }
+
+        const urlWhatsapp = `https://api.whatsapp.com/send?phone=${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
+        mostrarToast("📲 Redirecionando para o canal de busca ativa no WhatsApp...");
+        window.open(urlWhatsapp, "_blank");
+    } else {
+        console.log(`ℹ️ Monitoramento em dia para ${paciente.nome}.`);
+    }
+}
+
+/**
+ * Renderiza dinamicamente a Aba/View dedicada do Discador de Busca Ativa
+ */
+function renderizarAbaDiscador() {
+    if (!db) return;
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function() {
+        const dados = request.result;
+        // Filtra estritamente os alvos de busca ativa (Críticos ou Desgarrados da APS > 90 dias)
+        const alvosBuscaAtiva = dados.filter(p => {
+            const dias = parseInt(p.reavaliacaoDias);
+            return (dias === 0 || dias > 90);
+        });
+
+        const container = document.getElementById("tabelaDiscadorContainer");
+        if (!container) return;
+
+        if (alvosBuscaAtiva.length === 0) {
+            container.innerHTML = `<p style="color:var(--success); font-weight:600; padding:15px;">🎉 Excelente! Nenhum utente do território encontra-se em estado crítico ou sem monitoramento.</p>`;
+            return;
+        }
+
+        let html = `<table>
+            <thead>
+                <tr>
+                    <th>Utente Vulnerável</th>
+                    <th>Telefone</th>
+                    <th>Vínculo UBS</th>
+                    <th>Status Territorial</th>
+                    <th>Ação Instantânea</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        alvosBuscaAtiva.forEach(p => {
+            const dias = parseInt(p.reavaliacaoDias);
+            const statusBadge = dias === 0 
+                ? `<span style="color:white; background:var(--danger); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700;">🚨 PRAZO EXPIRADO</span>`
+                : `<span style="color:white; background:#7c2d12; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700;">⏳ ABANDONO (+${dias}d)</span>`;
+
+            // Escapa o nome e monta a string JSON segura para passar diretamente no clique do botão
+            const stringObjetoSafe = encodeURIComponent(JSON.stringify(p));
+
+            html += `
+                <tr>
+                    <td><strong>${p.nome}</strong><br><small style="color:#64748b">CPF: ${p.cpf}</small></td>
+                    <td>${p.tel || "<i>Sem telefone</i>"}</td>
+                    <td>${p.ubs || "CF Não cadastrada"}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button style="background:#25D366; color:white; border-color:#25D366; padding:4px 10px; font-size:12px; font-weight:600;" 
+                                onclick="discador(JSON.parse(decodeURIComponent('${stringObjetoSafe}')))">
+                            💬 Chamar no WhatsApp
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    };
+}
+
+/* ==========================================================================
    🍞 UTILS: UI INTERFACE NOTIFICATIONS & MASCARAS
    ========================================================================== */
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
     if (!toast) return;
-    toast.innerText = message = mensagem; // Mantida a atribuição original para integridade
+    toast.innerText = message = mensagem;
     toast.style.display = "block";
     setTimeout(() => { 
         toast.style.display = "none"; 
