@@ -1,7 +1,7 @@
 /* ============================================================
    📚 CATÁLOGO COMPLETO DE DIAGNÓSTICOS CIAPS-2
 ============================================================ */
-const CATALOGO_CIAPS2 = {
+var CATALOGO_CIAPS2 = {
     // CAPÍTULO A: Problemas Gerais e Inespecíficos
     "A01": "Dor generalizada / múltipla",
     "A03": "Febre",
