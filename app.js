@@ -96,7 +96,7 @@ function efetuarLoginSucesso(usuario) {
     const campoNome = document.getElementById("nomeUsuarioLogado");
     if (campoNome) campoNome.innerText = usuario.nome;
 
-    // 🔥 FORÇA O APARECIMENTO DO SELETOR IMEDIATAMENTE NO LOGIN
+    // 🔥 Força a aparição do seletor imediatamente no login se for admin
     const seletorAcesso = document.getElementById("seletorNivelAcesso");
     if (usuario.tipo === "admin" && seletorAcesso) {
         seletorAcesso.style.display = "inline-block";
@@ -233,7 +233,7 @@ function calcIdade() {
 
     const ampiBloco = document.getElementById("ampiBloco");
     if (ampiBloco) {
-        ampiBloco.style.display = idade >= 60 ? "block" : "none";
+        ampiBloco.style.display = Math.max(0, idade) >= 60 ? "block" : "none";
     }
 }
 
@@ -343,7 +343,7 @@ function salvarProntuario() {
     const transaction = db.transaction(["prontuarios"], "readwrite");
     const store = transaction.objectStore("prontuarios");
     
-    store.put(paciente); // Salva ou Atualiza o objeto nativo
+    store.put(paciente);
 
     transaction.oncomplete = function() {
         alert("💾 Prontuário registrado com sucesso no IndexedDB Municipal!");
@@ -376,7 +376,7 @@ function limparFormularioProntuario() {
 }
 
 /* ============================================================
-   📊 MONITORAMENTO: DASHBOARD EM TEMPO REAL E BUSCAS (ASSÍNCRONAS)
+   📊 MONITORAMENTO: DASHBOARD EM TEMPO REAL E BUSCAS
 ============================================================ */
 function atualizarDashboardInicio() {
     if (!db) return;
@@ -482,4 +482,105 @@ function carregarPacienteParaEdicao(id) {
         }
 
         mostrarCard('cardDM', p.dm);
-        if
+        if (p.dm === "Sim") {
+            document.getElementById("dmHbA1c").value = p.dmHbA1c || "";
+            classificarDM();
+        }
+
+        mostrarCard('cardGestante', p.gestante);
+        if (p.gestante === "Sim") {
+            document.getElementById("gestDUM").value = p.gestDUM || "";
+            calcIG();
+        }
+        
+        calcIdade();
+        document.getElementById("evoTexto").value = p.evolucao || "";
+        document.getElementById("inputBuscaCIAPS").value = p.ciaps2 || "";
+    };
+}
+
+function listarBanco() {
+    const container = document.getElementById("tabelaBancoContainer");
+    if (!container) return;
+
+    const transaction = db.transaction(["prontuarios"], "readonly");
+    const store = transaction.objectStore("prontuarios");
+    const request = store.getAll();
+
+    request.onsuccess = function(event) {
+        const prontuarios = event.target.result;
+
+        if (prontuarios.length === 0) {
+            container.innerHTML = `<p style="color:#64748b; padding:15px;">Base de dados municipal vazia (IndexedDB).</p>`;
+            return;
+        }
+
+        let html = `<table style="width:100%; border-collapse:collapse;">
+            <tr style="background:#1e293b; color:white; text-align:left;">
+                <th style="padding:12px;">Nome</th><th>CPF</th><th>Linhas Ativas</th><th>Ações</th>
+            </tr>`;
+
+        prontuarios.forEach(p => {
+            let linhas = [];
+            if (p.has === "Sim") linhas.push("HAS");
+            if (p.dm === "Sim") linhas.push("DM");
+            if (p.gestante === "Sim") linhas.push("Gestante");
+
+            html += `<tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
+                <td style="color:#475569;">${p.cpf || 'Não cadastrado'}</td>
+                <td>${linhas.length > 0 ? linhas.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
+                <td><button class="btn-primary" style="padding:5px 12px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
+            </tr>`;
+        });
+
+        html += `</table>`;
+        container.innerHTML = html;
+    };
+}
+
+/* ============================================================
+   ⚙️ EXTRA E UTILS: MODAL DRAWER E MÁSCARAS
+============================================================ */
+function fecharDrawer() {
+    const dr = document.getElementById("drawer");
+    const ov = document.getElementById("drawerOverlay");
+    if (dr) dr.style.display = "none";
+    if (ov) ov.style.display = "none";
+}
+
+function mascaraCPF(i) {
+    let v = i.value;
+    if (isNaN(v.charAt(v.length - 1))) { i.value = v.substring(0, v.length - 1); return; }
+    i.setAttribute("maxlength", "14");
+    if (v.length == 3 || v.length == 7) i.value += ".";
+    if (v.length == 11) i.value += "-";
+}
+
+function escapeHTML(text) {
+    return String(text)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+/* ============================================================
+   🛡️ INITIALIZATION SYSTEM (INTEGRADO COM INDEXEDDB)
+============================================================ */
+function initSistema() {
+    iniciarBancoDados(function() {
+        atualizarDashboardInicio();
+        
+        const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
+        if (sessao) {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("app").style.display = "block";
+            const campoNome = document.getElementById("nomeUsuarioLogado");
+            if (campoNome) campoNome.innerText = sessao.nome;
+            
+            aplicarPermissoesPerfil(sessao.tipo);
+            navigate("inicio");
+        }
+    });
+}
+
+window.onload = initSistema;
