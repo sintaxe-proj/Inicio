@@ -5,24 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SintaxeHub - PEP Municipal</title>
     <style>
+        /* 🎨 Nova Identidade Visual: Verde Profissional / APS Saúde Digital */
         :root {
-            --primary: #0b6efd;
-            --primary-hover: #0a58ca;
-            --dark: #1e293b;
-            --light: #f8fafc;
-            --border: #cbd5e1;
-            --text: #334155;
+            --primary: #10b981;          /* Verde Esmeralda (Ações principais) */
+            --primary-hover: #059669;    /* Verde Escuro (Hover de botões) */
+            --dark: #064e3b;             /* Verde Floresta Profundo (Headers e Identidade) */
+            --light: #f0fdf4;            /* Fundo suave verde-claro para áreas de destaque */
+            --border: #cbd5e1;           /* Borda neutra estrutural */
+            --text: #1e293b;             /* Texto principal em grafite escuro */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f1f5f9; color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        body { background-color: #f8fafc; color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
 
-        /* 🔐 Tela de Login Estilizada */
-        #loginScreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        /* 🔐 Tela de Login Estilizada (Gradiente Verde Institucional) */
+        #loginScreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
         .login-card h2 { color: var(--dark); margin-bottom: 24px; text-align: center; font-size: 24px; font-weight: 700; }
         .form-control { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; font-size: 14px; outline: none; }
-        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(11, 110, 253, 0.15); }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
         .btn-login { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 16px; transition: background 0.2s; }
         .btn-login:hover { background-color: var(--primary-hover); }
         .error-msg { color: #ef4444; background: #fee2e2; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; text-align: center; }
@@ -39,7 +40,7 @@
         
         /* 🔥 Dropdown Estilizado com Seta */
         .select-perfil-dropdown { background: transparent; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; padding-right: 5px; appearance: none; -webkit-appearance: none; -moz-appearance: none; }
-        .profile-wrapper::after { content: " ▼"; font-size: 10px; color: #94a3b8; margin-left: -5px; pointer-events: none; }
+        .profile-wrapper::after { content: " ▼"; font-size: 10px; color: #a7f3d0; margin-left: -5px; pointer-events: none; }
         .select-perfil-dropdown option { background-color: var(--dark); color: white; padding: 10px; }
         
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
@@ -47,8 +48,8 @@
 
         /* 🧭 Navbar e Dashboard */
         nav { background: white; border-bottom: 1px solid var(--border); padding: 10px 30px; display: flex; gap: 15px; }
-        .nav-link { color: var(--text); text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; transition: all 0.2s; }
-        .nav-link:hover, .nav-link.active { background: #e2e8f0; color: var(--dark); }
+        .nav-link { color: #475569; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+        .nav-link:hover, .nav-link.active { background: #d1fae5; color: var(--dark); }
         
         main { padding: 30px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
         .view { display: none; }
@@ -98,7 +99,7 @@
 
     <div id="app">
         <header>
-            <div class="brand">🧬 SintaxeHub <span style="font-size:12px; background:#3b82f6; padding:3px 8px; border-radius:10px;">PEP v2.0 (IndexedDB)</span></div>
+            <div class="brand">🧬 SintaxeHub <span style="font-size:12px; background:#10b981; color: white; padding:3px 8px; border-radius:10px;">PEP v2.0 (IndexedDB)</span></div>
             
             <div class="user-profile-box">
                 <div class="profile-wrapper">
@@ -117,7 +118,7 @@
             <a href="#" class="nav-link active" onclick="navigate('inicio')">Painel Inicial</a>
             <a href="#" class="nav-link" onclick="limparFormularioProntuario(); navigate('prontuario')">Novo Atendimento (PEP)</a>
             <a href="#" class="nav-link" onclick="navigate('banco')">Base Municipal (SUS)</a>
-            <button id="btnAuditoria" class="btn-secondary" style="margin-left: auto; display: none; padding: 6px 12px; font-size: 13px;" onclick="alert('Funcionalidade de Relatório de Logs de Auditoria ICP-Brasil em desenvolvimento em conformidade com a LGPD.')">Trilha de Auditoria</button>
+            <button id="btnAuditoria" class="btn-secondary" style="margin-left: auto; display: none; padding: 6px 12px; font-size: 13px; background: #059669;" onclick="alert('Funcionalidade de Relatório de Logs de Auditoria ICP-Brasil em desenvolvimento em conformidade com a LGPD.')">Trilha de Auditoria</button>
         </nav>
 
         <main>
@@ -143,7 +144,7 @@
                 <div class="card">
                     <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
                         <span>🔍 Busca Ativa Coordenada de Utentes (Dados Locais)</span>
-                        <button type="button" class="btn-primary" style="background: #6d28d9; font-size: 12px; padding: 6px 12px;" onclick="gerarCargaMassaOitoMil()">⚡ Injetar 8.000 Prontuários (Estresse)</button>
+                        <button type="button" class="btn-primary" style="background: #047857; font-size: 12px; padding: 6px 12px;" onclick="gerarCargaMassaOitoMil()">⚡ Injetar 8.000 Prontuários (Estresse)</button>
                     </div>
                     <input type="text" id="buscaNomeInicio" class="form-control" placeholder="Digite o nome completo do paciente para buscar no IndexedDB..." oninput="buscarInicio()">
                     <div id="resultadoInicio" style="margin-top: 15px;">
@@ -153,8 +154,8 @@
             </div>
 
             <div id="view-prontuario" class="view">
-                <div id="cabecalhoProntuario" class="card" style="display:none; background: #eff6ff; border-color: #bfdbfe;">
-                    <h3 id="cabecalhoNome" style="color:#1d4ed8; font-size:16px;">Editando Paciente...</h3>
+                <div id="cabecalhoProntuario" class="card" style="display:none; background: #f0fdf4; border-color: #a7f3d0;">
+                    <h3 id="cabecalhoNome" style="color:#065f46; font-size:16px;">Editando Paciente...</h3>
                 </div>
 
                 <div class="card">
@@ -230,8 +231,8 @@
                             </div>
                         </div>
 
-                        <div id="ampiBloco" class="modulo-clinico col-12" style="border-left-color:#8b5cf6;">
-                            <div class="modulo-title" style="color:#6d28d9;">👵 Avaliação Multidimensional da Pessoa Idosa (AMPI)</div>
+                        <div id="ampiBloco" class="modulo-clinico col-12" style="border-left-color:#10b981;">
+                            <div class="modulo-title" style="color:var(--dark);">👵 Avaliação Multidimensional da Pessoa Idosa (AMPI)</div>
                             <div class="form-grid">
                                 <div class="form-group col-12">
                                     <label>Vulnerabilidade / Classificação Geral do Idoso na APS:</label>
