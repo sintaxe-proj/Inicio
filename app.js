@@ -109,6 +109,16 @@ function autenticarUsuario() {
     }
 }
 
+function exibirErroLogin(mensagem) {
+    const erroDiv = document.getElementById("loginErro");
+    if (erroDiv) {
+        erroDiv.innerText = mensagem;
+        erroDiv.style.display = "block";
+    } else {
+        alert(mensagem);
+    }
+}
+
 function efetuarLoginSucesso(usuario) {
     localStorage.setItem("usuarioLogado", JSON.stringify({
         nome: usuario.nome,
@@ -196,16 +206,6 @@ function desbloquearFormularios(permitirEscrita) {
     });
 }
 
-function exibirErroLogin(mensagem) {
-    const erroDiv = document.getElementById("loginErro");
-    if (erroDiv) {
-        erroDiv.innerText = mensagem;
-        erroDiv.style.display = "block";
-    } else {
-        alert(mensagem);
-    }
-}
-
 function efetuarLogout() {
     registrarLogAuditoria("LOGOUT", "Sessão encerrada voluntariamente pelo usuário.");
     localStorage.removeItem("usuarioLogado");
@@ -231,9 +231,7 @@ function navigate(screenId) {
     
     if (screenId.includes("inicio")) {
         atualizarDashboardInicio();
-        // Oculta o painel epidemiológico ao retornar para o início limpo
-        const containerEpidemio = document.getElementById("painelEpidemiologicoContainer");
-        if (containerEpidemio) containerEpidemio.style.display = "none";
+        fecharPainelEpidemiologico();
     }
     if (screenId.includes("banco")) listarBanco();
 }
@@ -401,7 +399,7 @@ function salvarProntuario() {
         transactionEscrita.oncomplete = function() {
             registrarLogAuditoria(
                 atualPacienteEdicaoId ? "PRONTUARIO_ALTERADO" : "PRONTUARIO_CRIADO", 
-                `Prontuário de ${nome} (ID: ${idPaciente}) gravado com ${historicoEvolucoes.length} evoluções em linha do tempo.`
+                `Prontuário de ${nome} (ID: ${idPaciente}) gravado.`
             );
             alert("💾 Registro clínico processado e assinado digitalmente no IndexedDB PEP!");
             limparFormularioProntuario();
@@ -433,7 +431,7 @@ function limparFormularioProntuario() {
 }
 
 /* ============================================================
-   📊 MONITORAMENTO: DASHBOARD EM TEMPO REAL E BUSCAS
+   📊 MONITORAMENTO: DASHBOARD HOME (CARD COUNT)
 ============================================================ */
 function atualizarDashboardInicio() {
     if (!db) return;
@@ -463,16 +461,24 @@ function atualizarDashboardInicio() {
 }
 
 /* ============================================================
-   📊 PAINEL EPIDEMIOLÓGICO DINÂMICO DE BUSCA ATIVA
+   📊 PAINEL DE BI: FILTRAGEM, TABULAÇÃO E GRÁFICOS (APS)
 ============================================================ */
+let cacheDadosAtuais = []; 
+let linhaCuidadoAtiva = ""; 
+
 function abrirPainelEpidemiologico(linhaCuidado) {
     if (!db) return;
 
+    linhaCuidadoAtiva = linhaCuidado;
     const container = document.getElementById("painelEpidemiologicoContainer");
     const titulo = document.getElementById("tituloPainelEpidemiologico");
-    const tabelaDiv = document.getElementById("tabelaPainelEpidemiologico");
 
-    if (!container || !titulo || !tabelaDiv) return;
+    if (!container || !titulo) return;
+
+    const cardEsus = document.querySelector("#view-inicio .card[style*='border-left: 4px solid #10b981']");
+    const cardBusca = document.querySelector("#view-inicio .card:last-child");
+    if (cardEsus) cardEsus.style.display = "none";
+    if (cardBusca) cardBusca.style.display = "none";
 
     const mapaTitulos = {
         has: "❤️ Linha de Cuidado: Hipertensão Arterial Sistêmica (HAS)",
@@ -490,53 +496,235 @@ function abrirPainelEpidemiologico(linhaCuidado) {
 
     request.onsuccess = function(event) {
         const prontuarios = event.target.result;
-        const filtrados = prontuarios.filter(p => p[linhaCuidado] === "Sim");
-
-        registrarLogAuditoria("PAINEL_EPIDEMIOLOGICO_VISUALIZADO", `Abriu painel da linha de cuidado: ${linhaCuidado}. Encontrados ${filtrados.length} utentes.`);
-
-        if (filtrados.length === 0) {
-            tabelaDiv.innerHTML = `<p style="color:#64748b; padding:10px 0;">Nenhum paciente com esta condição cadastrado ou injetado na base municipal até o momento.</p>`;
-            container.style.display = "block";
-            return;
-        }
-
-        let html = `
-            <table style="width:100%; border-collapse:collapse; margin-top:5px; font-size:14px;">
-                <tr style="background:#f1f5f9; color:var(--dark); text-align:left; border-bottom:2px solid #cbd5e1;">
-                    <th style="padding:10px;">Nome do Utente</th>
-                    <th style="padding:10px;">Idade</th>
-                    <th style="padding:10px;">Última Evolução Clínica Registrada</th>
-                    <th style="padding:10px; text-align:center;">Ações</th>
-                </tr>`;
-
-        filtrados.forEach(p => {
-            let ultimaEvolucao = "<em>Nenhum registro clínico em linha do tempo.</em>";
-            if (p.evolucoes && p.evolucoes.length > 0) {
-                const ultima = p.evolucoes[p.evolucoes.length - 1];
-                const textoCortado = ultima.texto.length > 110 ? ultima.texto.substring(0, 110) + "..." : ultima.texto;
-                ultimaEvolucao = `<span style="color:#475569; font-style:italic;">"${escapeHTML(textoCortado)}"</span><br>
-                                  <small style="color:#94a3b8; font-size:11px;">Por: ${escapeHTML(ultima.profissional)} em ${ultima.dataHora}</small>`;
-            }
-
-            html += `
-                <tr style="border-bottom:1px solid #e2e8f0; vertical-align: middle;">
-                    <td style="padding:10px; font-weight:600; color:#0f172a; min-width:200px;">${escapeHTML(p.nome)}</td>
-                    <td style="padding:10px; white-space:nowrap;">${p.idade || 'Não calculada'}</td>
-                    <td style="padding:10px; max-width:500px;">${ultimaEvolucao}</td>
-                    <td style="padding:10px; text-align:center; white-space:nowrap;">
-                        <button class="btn-primary" style="padding:5px 12px; font-size:12px; background:var(--primary);" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir Prontuário</button>
-                    </td>
-                </tr>`;
-        });
-
-        html += `</table>`;
-        tabelaDiv.innerHTML = html;
-        container.style.display = "block";
         
+        cacheDadosAtuais = prontuarios.filter(p => p[linhaCuidado] === "Sim");
+
+        registrarLogAuditoria("RELATORIO_EPIDEMIO_GERADO", `Gerou tabulação para a linha: ${linhaCuidado}.`);
+
+        popularFiltrosDinamicos(cacheDadosAtuais);
+        aplicarFiltrosRelatorio();
+        
+        container.style.display = "block";
         container.scrollIntoView({ behavior: 'smooth' });
     };
 }
 
+function popularFiltrosDinamicos(dados) {
+    const selectUBS = document.getElementById("filtroUBS");
+    const selectEquipe = document.getElementById("filtroEquipe");
+    const selectRisco = document.getElementById("filtroRisco");
+
+    if (!selectUBS || !selectEquipe || !selectRisco) return;
+
+    selectRisco.value = "TODOS";
+
+    const unidades = ["TODAS", ...new Set(dados.map(p => p.unidade).filter(Boolean))];
+    const equipes = ["TODAS", ...new Set(dados.map(p => p.equipe).filter(Boolean))];
+
+    selectUBS.innerHTML = unidades.map(u => `<option value="${u}">${u}</option>`).join('');
+    selectEquipe.innerHTML = equipes.map(e => `<option value="${e}">${e}</option>`).join('');
+}
+
+function aplicarFiltrosRelatorio() {
+    const ubsSelecionada = document.getElementById("filtroUBS").value;
+    const equipeSelecionada = document.getElementById("filtroEquipe").value;
+    const riscoSelecionado = document.getElementById("filtroRisco").value;
+    const tabelaDiv = document.getElementById("tabelaPainelEpidemiologico");
+    const metricasDiv = document.getElementById("metricasPainelEpidemiologico");
+
+    if (!tabelaDiv || !metricasDiv) return;
+
+    let dadosFiltrados = cacheDadosAtuais.filter(p => {
+        const atendeUBS = ubsSelecionada === "TODAS" || p.unidade === ubsSelecionada;
+        const atendeEquipe = equipeSelecionada === "TODAS" || p.equipe === equipeSelecionada;
+        
+        let atendeRisco = true;
+        if (riscoSelecionado !== "TODOS") {
+            let ehCritico = false;
+            let ehControlado = false;
+
+            if (linhaCuidadoAtiva === "has" && p.hasPAS) {
+                ehCritico = parseInt(p.hasPAS) >= 160 || parseInt(p.hasPAD) >= 100;
+                ehControlado = parseInt(p.hasPAS) < 130 && parseInt(p.hasPAD) < 85;
+            } else if (linhaCuidadoAtiva === "dm" && p.dmHbA1c) {
+                ehCritico = parseFloat(p.dmHbA1c) >= 8.5;
+                ehControlado = parseFloat(p.dmHbA1c) < 7.0;
+            }
+
+            if (riscoSelecionado === "CRITICO") atendeRisco = ehCritico;
+            if (riscoSelecionado === "CONTROLADO") atendeRisco = ehControlado;
+        }
+
+        return atendeUBS && atendeEquipe && atendeRisco;
+    });
+
+    let totalFiltrados = dadosFiltrados.length;
+
+    let contagemCriticos = 0;
+    let contagemControlados = 0;
+
+    if (linhaCuidadoAtiva === "has") {
+        contagemControlados = dadosFiltrados.filter(p => parseInt(p.hasPAS) < 130 && parseInt(p.hasPAD) < 85).length;
+        contagemCriticos = dadosFiltrados.filter(p => parseInt(p.hasPAS) >= 160 || parseInt(p.hasPAD) >= 100).length;
+    } else if (linhaCuidadoAtiva === "dm") {
+        contagemControlados = dadosFiltrados.filter(p => parseFloat(p.dmHbA1c) < 7.0).length;
+        contagemCriticos = dadosFiltrados.filter(p => parseFloat(p.dmHbA1c) >= 8.5).length;
+    } else if (linhaCuidadoAtiva === "gestante") {
+        contagemControlados = dadosFiltrados.filter(p => {
+            if(!p.gestDUM) return false;
+            let sem = Math.floor((Math.abs(new Date() - new Date(p.gestDUM)) / (1000 * 60 * 60 * 24)) / 7);
+            return sem <= 12;
+        }).length;
+        contagemCriticos = dadosFiltrados.filter(p => {
+            if(!p.gestDUM) return false;
+            let sem = Math.floor((Math.abs(new Date() - new Date(p.gestDUM)) / (1000 * 60 * 60 * 24)) / 7);
+            return sem > 28;
+        }).length;
+    }
+
+    let contagemOutros = totalFiltrados - (contagemCriticos + contagemControlados);
+
+    renderizarGraficoDonutNativo(contagemControlados, contagemCriticos, contagemOutros, totalFiltrados);
+    renderizarGraficoBarrasNativo(contagemControlados, contagemCriticos, contagemOutros, totalFiltrados);
+
+    if (linhaCuidadoAtiva === "has") {
+        let percHas = totalFiltrados > 0 ? ((contagemControlados / totalFiltrados) * 100).toFixed(1) : 0;
+        metricasDiv.innerHTML = `<div style="background:#f0fdf4; padding:12px; border-radius:6px; border-left:4px solid #16a34a; font-size:13px; color:#14532d;">📊 <strong>Análise Clinica de Metas:</strong> ${contagemControlados} de ${totalFiltrados} utentes filtrados estão com níveis tensionais controlados (${percHas}%).</div>`;
+    } else if (linhaCuidadoAtiva === "dm") {
+        metricasDiv.innerHTML = `<div style="background:#fff7ed; padding:12px; border-radius:6px; border-left:4px solid #ea580c; font-size:13px; color:#7c2d12;">🚨 <strong>Busca Ativa Obrigatória:</strong> Identificados ${contagemCriticos} utentes diabéticos severamente descompensados (&ge;8.5%) na área selecionada.</div>`;
+    } else {
+        metricasDiv.innerHTML = `<div style="font-size:13px; color:#475569;">Filtro aplicado com sucesso. Exibindo <strong>${totalFiltrados}</strong> utentes tabulados.</div>`;
+    }
+
+    if (totalFiltrados === 0) {
+        tabelaDiv.innerHTML = `<p style="color:#64748b; padding:20px; text-align:center;">Nenhum registro coincide com o cruzamento de dados efetuado.</p>`;
+        return;
+    }
+
+    let htmlTabela = `
+        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <tr style="background:#f1f5f9; color:var(--dark); text-align:left; border-bottom:2px solid #cbd5e1;">
+                <th style="padding:12px;">Identificação / Cadastro</th>
+                <th style="padding:12px;">Unidade / Equipe</th>
+                <th style="padding:12px; text-align:center;">Situação Clínica</th>
+                <th style="padding:12px; text-align:center;">Ações</th>
+            </tr>`;
+
+    dadosFiltrados.forEach(p => {
+        let badgeStatus = `<span style="background:#e2e8f0; color:#475569; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">Rotina / Linha ativa</span>`;
+        
+        if (linhaCuidadoAtiva === "has" && p.hasPAS) {
+            badgeStatus = parseInt(p.hasPAS) >= 160 ? 
+                `<span style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">🚨 CRÍTICO (${p.hasPAS}x${p.hasPAD})</span>` : 
+                `<span style="background:#d1fae5; color:#065f46; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">🟢 CONTROLADO</span>`;
+        } else if (linhaCuidadoAtiva === "dm" && p.dmHbA1c) {
+            badgeStatus = parseFloat(p.dmHbA1c) >= 8.5 ? 
+                `<span style="background:#ffedd5; color:#ea580c; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">⚠️ DESCOMPENSADO (${p.dmHbA1c}%)</span>` : 
+                `<span style="background:#d1fae5; color:#065f46; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">🟢 BOM CONTROLE</span>`;
+        } else if (linhaCuidadoAtiva === "gestante" && p.gestDUM) {
+            let sem = Math.floor((Math.abs(new Date() - new Date(p.gestDUM)) / (1000 * 60 * 60 * 24)) / 7);
+            badgeStatus = `<span style="background:#fce7f3; color:#db2777; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:600;">🤰 ${sem} Semanas</span>`;
+        }
+
+        htmlTabela += `
+            <tr style="border-bottom:1px solid #e2e8f0;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <td style="padding:12px;">
+                    <div style="font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</div>
+                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'} | Idade: ${p.idade || 'N/A'}</small>
+                </td>
+                <td style="padding:12px; font-size:13px; color:#475569;">
+                    <div>${escapeHTML(p.unidade || 'Não Especificada')}</div>
+                    <small style="color:#94a3b8; font-weight:500;">${escapeHTML(p.equipe || 'Sem Vínculo')}</small>
+                </td>
+                <td style="padding:12px; text-align:center; white-space:nowrap;">${badgeStatus}</td>
+                <td style="padding:12px; text-align:center;">
+                    <button class="btn-primary" style="padding:5px 12px; font-size:12px; background:var(--primary);" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button>
+                </td>
+            </tr>`;
+    });
+
+    htmlTabela += `</table>`;
+    tabelaDiv.innerHTML = htmlTabela;
+}
+
+/* ============================================================
+   🎨 MOTORES GRÁFICOS CRIATIVOS NATIVOS (BI VECTOR ENGINE)
+============================================================ */
+function renderizarGraficoDonutNativo(ok, bad, out, total) {
+    const div = document.getElementById("containerGraficoDonut");
+    if (!div) return;
+
+    if (total === 0) {
+        div.innerHTML = `<small style="color:#94a3b8;">Sem dados numéricos</small>`;
+        return;
+    }
+
+    let pOk = ((ok / total) * 100).toFixed(0);
+    let pBad = ((bad / total) * 100).toFixed(0);
+    let pOut = (100 - pOk - pBad);
+
+    let strokeDashArrayOk = `${pOk} ${100 - pOk}`;
+    let strokeDashArrayBad = `${pBad} ${100 - pBad}`;
+    let strokeDashArrayOut = `${pOut} ${100 - pOut}`;
+
+    let offsetOk = 100;
+    let offsetBad = 100 - pOk;
+    let offsetOut = 100 - pOk - pBad;
+
+    div.innerHTML = `
+        <svg width="140" height="140" viewBox="0 0 42 42" class="donut-svg">
+            <circle class="donut-bg" cx="21" cy="21" r="15.91549430918954"></circle>
+            <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" stroke="#10b981" stroke-dasharray="${strokeDashArrayOk}" stroke-dashoffset="${offsetOk}"></circle>
+            <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" stroke="#ef4444" stroke-dasharray="${strokeDashArrayBad}" stroke-dashoffset="${offsetBad}"></circle>
+            <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" stroke="#cbd5e1" stroke-dasharray="${strokeDashArrayOut}" stroke-dashoffset="${offsetOut}"></circle>
+        </svg>
+        <div class="donut-center-text">
+            <span class="donut-number">${total}</span>
+            <span class="donut-label">Casos</span>
+        </div>`;
+}
+
+function renderizarGraficoBarrasNativo(ok, bad, out, total) {
+    const div = document.getElementById("containerGraficoBarras");
+    if (!div) return;
+
+    if (total === 0) {
+        div.innerHTML = `<small style="color:#94a3b8;">Sem dados numéricos</small>`;
+        return;
+    }
+
+    let pOk = total > 0 ? ((ok / total) * 100).toFixed(1) : 0;
+    let pBad = total > 0 ? ((bad / total) * 100).toFixed(1) : 0;
+    let pOut = total > 0 ? ((out / total) * 100).toFixed(1) : 0;
+
+    div.innerHTML = `
+        <div class="bar-row">
+            <div class="bar-label"><span>🟢 Dentro das Metas Clínicas</span> <span>${ok} (${pOk}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="background:#10b981; width:${pOk}%;"></div></div>
+        </div>
+        <div class="bar-row" style="margin-top:8px;">
+            <div class="bar-label"><span>🚨 Descompensados / Críticos</span> <span>${bad} (${pBad}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="background:#ef4444; width:${pBad}%;"></div></div>
+        </div>
+        <div class="bar-row" style="margin-top:8px;">
+            <div class="bar-label"><span>⚪ Demais Casos Cadastrados</span> <span>${out} (${pOut}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="background:#cbd5e1; width:${pOut}%;"></div></div>
+        </div>`;
+}
+
+function fecharPainelEpidemiologico() {
+    const container = document.getElementById('painelEpidemiologicoContainer');
+    if (container) container.style.display = 'none';
+    
+    const cardEsus = document.querySelector("#view-inicio .card[style*='border-left: 4px solid #10b981']");
+    const cardBusca = document.querySelector("#view-inicio .card:last-child");
+    if (cardEsus) cardEsus.style.display = "block";
+    if (cardBusca) cardBusca.style.display = "block";
+}
+
+/* ============================================================
+   🔍 MOTOR DE PESQUISA TEXTUAL RÁPIDA DA HOME
+============================================================ */
 function buscarInicio() {
     const nomeBusca = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
     const container = document.getElementById("resultadoInicio");
@@ -554,10 +742,10 @@ function buscarInicio() {
         const prontuarios = event.target.result;
         const filtrados = prontuarios.filter(p => p.nome.toLowerCase().includes(nomeBusca));
 
-        registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa textual no Dashboard pelo termo: "${nomeBusca}". Retornou ${filtrados.length} resultados.`);
+        registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa textual por: "${nomeBusca}".`);
 
         if (filtrados.length === 0) {
-            container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado com este critério.</span>`;
+            container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado.</span>`;
             return;
         }
 
@@ -568,7 +756,7 @@ function buscarInicio() {
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:10px; font-weight:500;">${escapeHTML(p.nome)}</td>
                 <td>${p.idade || 'Não informada'}</td>
-                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir Prontuário</button></td>
+                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button></td>
             </tr>`;
         });
         html += `</table>`;
@@ -576,6 +764,9 @@ function buscarInicio() {
     };
 }
 
+/* ============================================================
+   📥 RETRIEVE & PRE-POPULATE: MONTAGEM DO PEP DO PACIENTE
+============================================================ */
 function carregarPacienteParaEdicao(id) {
     const transaction = db.transaction(["prontuarios"], "readonly");
     const store = transaction.objectStore("prontuarios");
@@ -585,13 +776,13 @@ function carregarPacienteParaEdicao(id) {
         const p = event.target.result;
         if (!p) return;
 
-        registrarLogAuditoria("PRONTUARIO_VISUALIZADO", `Acessou a ficha clínica completa do paciente: ${p.nome} (ID: ${p.id})`);
+        registrarLogAuditoria("PRONTUARIO_VISUALIZADO", `Ficha clínica acessada: ${p.nome} (ID: ${p.id})`);
 
         atualPacienteEdicaoId = p.id;
         navigate("prontuario");
 
         document.getElementById("cabecalhoProntuario").style.display = "block";
-        document.getElementById("cabecalhoNome").innerText = `Editando: ${p.nome}`;
+        document.getElementById("cabecalhoNome").innerText = `Editando Prontuário Eletrônico: ${p.nome}`;
 
         document.getElementById("nomePaciente").value = p.nome;
         document.getElementById("cpfPaciente").value = p.cpf || "";
@@ -607,7 +798,9 @@ function carregarPacienteParaEdicao(id) {
         document.getElementById("hasSN").value = p.has || "Não";
         document.getElementById("dmSN").value = p.dm || "Não";
         document.getElementById("gestanteSN").value = p.gestante || "Não";
+        document.getElementById("hansenSN").checked = p.hanseniase === "Sim";
         document.getElementById("hansenSN").value = p.hanseniase || "Não";
+        document.getElementById("tbSN").checked = p.tuberculose === "Sim";
         document.getElementById("tbSN").value = p.tuberculose || "Não";
 
         mostrarCard('cardHAS', p.has);
@@ -636,10 +829,10 @@ function carregarPacienteParaEdicao(id) {
         const timelineDiv = document.getElementById("linhaTempoEvolucoes");
         if (timelineDiv) {
             if (p.evolucoes && p.evolucoes.length > 0) {
-                let htmlTimeline = `<h4 style="margin-top:20px; color:#1e293b; border-bottom:2px solid #cbd5e1; padding-bottom:5px;">📋 Linha do Tempo de Evoluções (Trancada)</h4>`;
+                let htmlTimeline = `<h4 style="margin-top:20px; color:var(--dark); border-bottom:2px solid #cbd5e1; padding-bottom:5px;">📋 Histórico de Evoluções Clínicas Gravadas (Trancado)</h4>`;
                 p.evolucoes.slice().reverse().forEach(evo => {
                     htmlTimeline += `
-                    <div style="background:#f8fafc; border-left:4px solid #0284c7; padding:10px; margin-bottom:10px; border-radius:0 6px 6px 0; font-size:13px;">
+                    <div style="background:#f8fafc; border-left:4px solid var(--primary); padding:10px; margin-bottom:10px; border-radius:0 6px 6px 0; font-size:13px;">
                         <div style="color:#64748b; font-weight:600; margin-bottom:4px;">👁️ Em ${evo.dataHora} | Profissional: ${escapeHTML(evo.profissional)} (Matrícula: ${evo.matricula})</div>
                         <p style="margin:0; color:#334155; white-space:pre-wrap; font-style:italic;">"${escapeHTML(evo.texto)}"</p>
                     </div>`;
@@ -669,7 +862,7 @@ function listarBanco() {
         }
 
         let html = `<table style="width:100%; border-collapse:collapse;">
-            <tr style="background:#1e293b; color:white; text-align:left;">
+            <tr style="background:var(--dark); color:white; text-align:left;">
                 <th style="padding:12px;">Nome</th><th>CPF</th><th>Linhas Ativas</th><th>Ações</th>
             </tr>`;
 
@@ -682,8 +875,8 @@ function listarBanco() {
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
                 <td style="color:#475569;">${p.cpf || 'Não cadastrado'}</td>
-                <td>${linhas.length > 0 ? linhas.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
-                <td><button class="btn-primary" style="padding:5px 12px; background:#0b6efd;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
+                <td>${linhas.length > 0 ? lines.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
+                <td><button class="btn-primary" style="padding:5px 12px;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
             </tr>`;
         });
 
@@ -699,7 +892,7 @@ function processarArquivoEsus(inputElement) {
     const arquivo = inputElement.files[0];
     if (!arquivo) return;
 
-    registrarLogAuditoria("INTEGRACAO_ESUS_ATTEMPT", `Iniciado upload de documento externo: ${arquivo.name}`);
+    registrarLogAuditoria("INTEGRACAO_ESUS_ATTEMPT", `Leitura de arquivo: ${arquivo.name}`);
 
     const leitor = new FileReader();
 
@@ -726,20 +919,20 @@ function processarArquivoEsus(inputElement) {
                         dataHora: new Date().toLocaleString('pt-BR'),
                         professional: "Sistema Integrador e-SUS APS",
                         matricula: "INTEGRA_SUS",
-                        texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo original: ${arquivo.name}.`
+                        texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo: ${arquivo.name}.`
                     }]
                 };
             } else {
                 dadosMapeados = {
                     id: "pdf_" + Date.now().toString(),
                     nome: `Paciente Extraído do PDF (${arquivo.name.substring(0, 15)})`,
-                    obs: `Documento clínico arquivado temporariamente. Tamanho do arquivo: ${arquivo.size} bytes.`,
+                    obs: `Documento de texto processado localmente.`,
                     has: "Não", dm: "Não", gestante: "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        professional: "Conversor de PDF e-SUS",
+                        professional: "Conversor de Documentos",
                         matricula: "PDF_PARSER",
-                        texto: `Conteúdo de texto extraído processado pelo navegador com sucesso.`
+                        texto: `Texto bruto extraído com sucesso.`
                     }]
                 };
             }
@@ -749,15 +942,14 @@ function processarArquivoEsus(inputElement) {
             store.put(dadosMapeados);
 
             transaction.oncomplete = function() {
-                registrarLogAuditoria("INTEGRACAO_ESUS_SUCESSO", `Arquivo ${arquivo.name} integrado com sucesso para a ficha de ${dadosMapeados.nome}`);
-                alert(`✅ Sucesso! Dados do e-SUS integrados. O prontuário de "${dadosMapeados.nome}" foi gerado no banco municipal.`);
+                registrarLogAuditoria("INTEGRACAO_ESUS_SUCESSO", `Arquivo ${arquivo.name} integrated.`);
+                alert(`✅ Sucesso! Dados sincronizados. Ficha de "${dadosMapeados.nome}" injetada na base.`);
                 atualizarDashboardInicio();
                 inputElement.value = "";
             };
 
         } catch (erro) {
-            registrarLogAuditoria("INTEGRACAO_ESUS_ERRO", `Falha no processamento interno da string: ${erro.message}`);
-            alert("❌ Erro crítico: O arquivo não possui uma estrutura de dados de saúde legível pelo interpretador local.");
+            alert("❌ Erro crítico: Arquivo não estruturado no padrão SUS Digital legível.");
         }
     };
 
@@ -768,11 +960,11 @@ function processarArquivoEsus(inputElement) {
    📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS)
 ============================================================ */
 function gerarCargaMassaOitoMil() {
-    if (!db) return alert("❌ Banco de dados não inicializado.");
-    if (!confirm("⚠️ Deseja gerar 8.000 prontuários fictícios via script? Isso simulará um território real da APS.")) return;
+    if (!db) return alert("❌ Banco de dados offline.");
+    if (!confirm("⚠️ Deseja gerar os 8.000 prontuários fictícios para simular estresse populacional na APS?")) return;
 
-    console.time("⏱️ Tempo de inserção de 8.000 registros");
-    alert("Processando carga epidemiológica em lote... Por favor, aguarde alguns segundos.");
+    console.time("⏱️ Tempo de inserção");
+    alert("Iniciando carga de estresse demográfico... O navegador processará em segundo plano.");
 
     const nomesFemininos = ["Maria", "Ana", "Francisca", "Antônia", "Adriana", "Juliana", "Márcia", "Fernanda", "Patrícia", "Letícia", "Camila", "Luciana"];
     const nomesMasculinos = ["José", "João", "Antônio", "Francisco", "Carlos", "Paulo", "Pedro", "Lucas", "Luiz", "Marcos", "Fabio", "Rafael"];
@@ -803,14 +995,14 @@ function gerarCargaMassaOitoMil() {
         const dataNascimentoString = `${anoNasc}-${mesNasc}-${diaNasc}`;
 
         const temHAS = (idadeAnos > 30 && Math.random() < 0.32) ? "Sim" : "Não";
-        const pas = temHAS === "Sim" ? String(Math.floor(Math.random() * 61) + 120) : "";
-        const pad = temHAS === "Sim" ? String(Math.floor(Math.random() * 36) + 75) : "";
+        const pas = temHAS === "Sim" ? String(Math.floor(Math.random() * 61) + 115) : "";
+        const pad = temHAS === "Sim" ? String(Math.floor(Math.random() * 36) + 70) : "";
 
         const temDM = (idadeAnos > 35 && Math.random() < 0.14) ? "Sim" : "Não";
         const hba1c = temDM === "Sim" ? String((Math.random() * 5.5 + 5.5).toFixed(1)) : "";
 
         const ehGestante = (ehMulher && idadeAnos >= 14 && idadeAnos <= 45 && Math.random() < 0.06) ? "Sim" : "Não";
-        const dataDum = ehGestante === "Sim" ? "2026-02-15" : "";
+        const dataDum = ehGestante === "Sim" ? "2026-01-10" : "";
 
         let ampi = "";
         if (idadeAnos >= 60) {
@@ -829,23 +1021,23 @@ function gerarCargaMassaOitoMil() {
             idade: `${idadeAnos} anos`,
             telefone: `(21) 9${Math.floor(Math.random()*9000+1000)}-${Math.floor(Math.random()*9000+1000)}`,
             endereco: `${ruas[Math.floor(Math.random() * ruas.length)]}, Nº ${Math.floor(Math.random()*1000)}`,
-            cep: `24${Math.floor(Math.random()*900+100)}-000`,
-            unidade: "Complexo de Saúde Municipal",
+            cep: `24000-000`,
+            unidade: i % 2 === 0 ? "UBS Centro Territorial" : "UBS Laranjais da APS",
             equipe: equipes[Math.floor(Math.random() * equipes.length)],
-            obs: Math.random() > 0.90 ? "Alergia a múltiplos fármacos registrada em triagem." : "",
+            obs: "",
             has: temHAS, hasPAS: pas, hasPAD: pad,
             dm: temDM, dmHbA1c: hba1c,
             gestante: ehGestante, gestDUM: dataDum,
             hanseniase: temHansen, tuberculose: temTB,
             ampiClassif: ampi,
-            ciaps2: temHAS === "Sim" && temDM === "Sim" ? "K86; T90" : (temHAS === "Sim" ? "K86" : (temDM === "Sim" ? "T90" : "")),
+            ciaps2: temHAS === "Sim" ? "K86" : "",
             dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
             evolucoes: [
                 {
                     dataHora: new Date().toLocaleString('pt-BR'),
-                    profissional: "Algoritmo de Carga Populacional",
+                    professional: "Algoritmo Seed Territorial",
                     matricula: "SIS_SEED",
-                    texto: "Carga automatizada realizada para validação de estresse de banco e painéis de inteligência de saúde pública digital."
+                    texto: "Prontuário estruturado para testes de performance e cruzamento de relatórios."
                 }
             ]
         };
@@ -854,19 +1046,15 @@ function gerarCargaMassaOitoMil() {
     }
 
     transaction.oncomplete = function() {
-        console.timeEnd("⏱️ Tempo de inserção de 8.000 registros");
-        registrarLogAuditoria("CARGA_ESTRESSE_8K", "Injetado com sucesso lote em massa de 8.000 prontuários populacionais no banco local.");
-        alert("📊 Sucesso absoluto! O banco local agora conta com 8.000 usuários activos.");
+        console.timeEnd("⏱️ Tempo de inserção");
+        registrarLogAuditoria("CARGA_ESTRESSE_8K", "Gerados 8.000 prontuários na base local.");
+        alert("📊 Sucesso! Base territorial populada com 8.000 registros ativos.");
         atualizarDashboardInicio();
-    };
-
-    transaction.onerror = function(event) {
-        console.error("❌ Falha crítica na inserção em lote:", event.target.error);
     };
 }
 
 /* ============================================================
-   💾 CARGA DE DADOS DE EXEMPLO (SEED INFRASTRUCTURE)
+   💾 CARGA DE DADOS DE EXEMPLO (SEED DATA)
 ============================================================ */
 function carregarMassaDadosExemplo() {
     if (!db) return;
@@ -886,23 +1074,23 @@ function carregarMassaDadosExemplo() {
                 nascimento: "1954-08-15",
                 idade: "71 anos",
                 telefone: "(21) 98888-7777",
-                endereco: "Rua das Camélias, 102 - Bloco B",
+                endereco: "Rua das Camélias, 102",
                 cep: "20000-000",
-                unidade: "UBS Centro",
-                equipe: "eSF Harmonia - 01",
+                unidade: "UBS Centro Territorial",
+                equipe: "eSF Aliança - 01",
                 obs: "Alergia grave a Penicilina.",
-                has: "Sim", hasPAS: "150", hasPAD: "95",
-                dm: "Sim", dmHbA1c: "8.2", gestante: "Não",
+                has: "Sim", hasPAS: "165", hasPAD: "105",
+                dm: "Sim", dmHbA1c: "8.9", gestante: "Não",
                 hanseniase: "Não", tuberculose: "Não",
                 ampiClassif: "Em Risco de Fragilização",
                 ciaps2: "K86; T90",
                 dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
                 evolucoes: [
                     {
-                        dataHora: "10/03/2026 14:22:10",
-                        profissional: "Dr. Josimar Kapps (Gestor)",
+                        dataHora: "14/05/2026 14:22",
+                        professional: "Dr. Josimar Kapps (Gestor)",
                         matricula: "440129",
-                        texto: "S: Utente refere episódios recorrentes de cefaleia holocraniana.\nO: PA: 150x95 mmHg. Exames trazem HbA1c de 8.2%.\nA: Idosa com HAS estágio 1 descontrolada e DM tipo 2 descompensada.\nP: Ajustado dose de Losartana para 50mg 12/12h. Solicitado nova rotina de exames."
+                        texto: "S: Paciente refere picos hipertensivos. O: PA: 165x105 mmHg. HbA1c recente de 8.9%.\nA: Hipertensa e diabética descompensada de alto risco.\nP: Ajuste farmacológico imediato e inclusão no monitoramento de busca ativa."
                     }
                 ]
             }
@@ -914,7 +1102,6 @@ function carregarMassaDadosExemplo() {
 
         transactionEscrita.oncomplete = function() {
             atualizarDashboardInicio();
-            registrarLogAuditoria("CARGA_DADOS_SEED", "Injetado prontuários de teste epidemiológicos no banco local.");
         };
     };
 }
@@ -936,9 +1123,6 @@ function escapeHTML(text) {
         .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-/* ============================================================
-   🛡️ INITIALIZATION SYSTEM (INTEGRADO COM INDEXEDDB PEP)
-============================================================ */
 function initSistema() {
     iniciarBancoDados(function() {
         atualizarDashboardInicio();
