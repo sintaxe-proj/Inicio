@@ -1,0 +1,5634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+    <title>Sintaxe Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS principal-->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Chart.js-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PDF (Cartilha de Orientações) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+/* ============================================================
+   VARIÁVEIS DE TEMA
+============================================================ */
+:root {
+    --azul: #0b6efd;
+    --azul-escuro: #084bb8;
+    --cinza-claro: #f4f6f9;
+    --cinza-medio: #d7dce2;
+    --cinza-escuro: #2a2f35;
+    --branco: #ffffff;
+    --radius: 12px;
+    --shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
+
+/* ============================================================
+   RESET
+============================================================ */
+body {
+    margin: 0;
+    background: var(--cinza-claro);
+    font-family: Arial, sans-serif;
+    color: var(--cinza-escuro);
+}
+
+h2, h3, h4 {
+    margin-top: 0;
+    color: var(--azul-escuro);
+}
+
+/* ============================================================
+   CABEÇALHO — corrigido e responsivo
+============================================================ */
+header {
+    width: 100%;
+    background: var(--azul);
+    padding: 14px 20px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 999;
+}
+
+.logo-titulo {
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+nav {
+    display: flex;
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+nav span {
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: .25s;
+}
+
+nav span:hover {
+    opacity: 0.7;
+}
+
+/* ===============================
+   TELA DE LOGIN — CENTRALIZAÇÃO FIXA
+=============================== */
+#loginScreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0b6efd, #084bb8);
+    z-index: 2000;
+}
+
+.erro {
+    display: none;
+}
+
+/* ============================================================
+   PAINEL DE ALERTAS DE REAVALIAÇÃO
+============================================================ */
+.alertas-painel {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 12px;
+    width: 300px;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+.alertas-painel h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.alerta-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid #dc2626;
+    background: #fff5f5;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.alerta-item .atraso {
+    color: #dc2626;
+    font-weight: bold;
+}
+
+/* =========================================================
+   PAINEL DE ALERTAS — SCROLL
+========================================================= */
+#alertasPainel {
+    position: absolute;
+    top: 60px;              /* ajuste conforme header */
+    right: 20px;
+    width: 320px;
+
+    max-height: 400px;      /* 👈 altura máxima visível */
+    overflow-y: auto;       /* 👈 ativa scroll vertical */
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    z-index: 999;
+}
+
+/* Cada alerta */
+.alerta-item {
+    padding: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.alerta-item:last-child {
+    border-bottom: none;
+}
+
+.alerta-item strong {
+    color: #1e293b;
+}
+
+.alerta-item small {
+    color: #64748b;
+}
+
+.alerta-item:hover {
+    background: #f1f5f9;
+}
+
+/* ===== FORÇA TEXTO VISÍVEL NO PAINEL DE ALERTAS ===== */
+
+#alertasPainel,
+#alertasPainel * {
+    color: #111111 !important;
+}
+
+#alertasPainel {
+    background: #ffffff !important;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 9999;
+}
+
+#alertasPainel .alerta-item {
+    background: #f9fafb;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-left: 4px solid #dc2626;
+    border-radius: 6px;
+}
+
+#alertasPainel .alerta-item strong {
+    font-weight: 600;
+}
+
+#alertasPainel .alerta-item small {
+    color: #374151 !important;
+}
+
+/* ============================================================
+   AÇÕES DO HEADER (SINO + SAIR)
+============================================================ */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Botão sair */
+.logout {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.logout:hover {
+    background: white;
+    color: var(--azul);
+}
+
+.bell {
+    font-size: 24px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: transform 0.2s;
+}
+
+.bell:hover {
+    transform: scale(1.15);
+}
+
+
+/* ============================================================
+   CONTAINER
+============================================================ */
+.container {
+    margin-top: 100px;
+    padding: 20px;
+}
+
+/* ============================================================
+   CARTÕES / CARD
+============================================================ */
+.card {
+    background: var(--branco);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+/* ============================================================
+   FORMULÁRIOS
+============================================================ */
+label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--cinza-medio);
+    border-radius: var(--radius);
+    font-size: 14px;
+}
+
+textarea {
+    min-height: 80px;
+}
+
+/* ============================================================
+   BOTÃO SALVAR
+============================================================ */
+.salvar-btn {
+    background: var(--azul);
+    color: white;
+    padding: 14px 20px;
+    border: none;
+    font-size: 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin: 20px 0;
+    width: 100%;
+    font-weight: bold;
+}
+
+.salvar-btn:hover {
+    background: var(--azul-escuro);
+}
+
+/* ============================================================
+   BOTÕES PADRÃO (ADMIN / AÇÕES)
+============================================================ */
+.btn-primary {
+    background: var(--azul);
+    color: white;
+    padding: 12px 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--azul-escuro);
+}
+
+.filtros-auditoria .filtro-linha {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+}
+
+.filtros-auditoria label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+}
+
+.paginacao-auditoria {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.paginacao-auditoria button {
+    margin: 0 6px;
+}
+
+/* ============================================================
+   ACCORDIONS
+============================================================ */
+.accordion {
+    background: var(--branco);
+    box-shadow: var(--shadow);
+    margin-bottom: 15px;
+    border-radius: var(--radius);
+}
+
+.acc-header {
+    background: #e8edf5;
+    padding: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.acc-body {
+    padding: 20px;
+    display: none;
+}
+
+/* ============================================================
+   CLINICAL CARDS (HAS, DM, Gestante etc.)
+============================================================ */
+.clinical-card .acc-header {
+    background: #d7e6ff;
+}
+
+/* =========================================================
+   REUNIÃO — DASHBOARD COM COR MAIS PROFISSIONAL
+========================================================= */
+
+.cards-profissional .dashboard {
+  gap: 12px;
+}
+
+.cards-profissional .dash-card {
+  background: #0f2a43 !important;     /* azul petróleo */
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  transform: none;
+}
+
+.cards-profissional .dash-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.cards-profissional .dash-card span {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.cards-profissional .dash-card:hover {
+  background: #123556 !important;     /* hover discreto */
+  box-shadow: 0 8px 18px rgba(0,0,0,0.16);
+}
+
+/* Remove as cores “fortes” (has/dm/gest/tb/hansen) só nessa área */
+.cards-profissional .dash-card.has,
+.cards-profissional .dash-card.dm,
+.cards-profissional .dash-card.gest,
+.cards-profissional .dash-card.tb,
+.cards-profissional .dash-card.hansen {
+  background: #0f2a43 !important;
+}
+
+/* ============================================================
+   ALERTAS VERMELHOS
+============================================================ */
+.alerta {
+    background: #ffdddd;
+    border-left: 4px solid red;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: var(--radius);
+    color: #a60000;
+    font-weight: bold;
+}
+
+/* ============================================================
+   TABELAS BANCO DE DADOS
+============================================================ */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th {
+    background: var(--azul);
+    color: white;
+    padding: 10px;
+}
+
+td {
+    background: white;
+    padding: 10px;
+    border-bottom: 1px solid var(--cinza-medio);
+}
+
+td button {
+    padding: 6px 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius);
+    color: white;
+    background: var(--azul);
+}
+
+td button:hover {
+    background: var(--azul-escuro);
+}
+
+/* ============================================================
+   DRAWER LATERAL (Visualizar Evolução)
+============================================================ */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.45);
+    z-index: 998;
+}
+
+.drawer {
+    width: 420px;
+    background: white;
+    height: 100%;
+    position: fixed;
+    right: -420px;
+    top: 0;
+    z-index: 999;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+    transition: right 0.35s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px 0 0 20px;
+}
+
+.drawer.open {
+    right: 0;
+}
+
+.drawer-header {
+    padding: 20px;
+    background: var(--azul);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-content {
+    padding: 20px;
+    overflow-y: auto;
+    height: calc(100% - 160px);
+}
+
+.drawer-actions {
+    padding: 20px;
+    border-top: 1px solid var(--cinza-medio);
+    display: flex;
+    gap: 10px;
+}
+
+.drawer-actions button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: var(--azul);
+    color: white;
+    border-radius: var(--radius);
+}
+
+.drawer-actions button:hover {
+    background: var(--azul-escuro);
+}
+
+.badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin: 6px 6px 6px 0;
+}
+
+.badge-cid {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge-cipesc {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+/* ============================================================
+   GRAFIOS (placeholder estilizado)
+============================================================ */
+canvas {
+    width: 100%;
+    height: 100px;
+    margin-top: 20px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+/* ============================================================
+   DASHBOARD INÍCIO — VISÃO GERAL DO TERRITÓRIO
+============================================================ */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.dash-card {
+    padding: 22px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+    color: white;
+}
+
+.dash-card h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.dash-card span {
+    font-size: 36px;
+    font-weight: bold;
+}
+
+/* 🎨 CORES DAS CAIXAS */
+.dash-card.has {
+    background: linear-gradient(135deg, #2563eb, #1e40af); /* azul */
+}
+
+.dash-card.dm {
+    background: linear-gradient(135deg, #16a34a, #166534); /* verde */
+}
+
+.dash-card.gest {
+    background: linear-gradient(135deg, #ec4899, #be185d); /* rosa */
+}
+
+.dash-card.tb {
+    background: linear-gradient(135deg, #facc15, #ca8a04); /* amarelo */
+}
+
+.dash-card.hansen {
+    background: linear-gradient(135deg, #f97316, #c2410c); /* laranja */
+}
+
+/* ===== TEXTO BRANCO NOS CARDS DO DASHBOARD ===== */
+
+.dash-card,
+.dash-card h3,
+.dash-card span {
+    color: #ffffff !important;
+}
+
+.linha-campos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+/* ============================================================
+   BOTÕES DE AÇÃO – PRONTUÁRIO
+============================================================ */
+
+.btn-acao {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+/* 🔵 VISUALIZAR */
+.btn-visualizar {
+    background-color: #2563eb; /* azul */
+    color: #fff;
+}
+
+.btn-visualizar:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+/* 🔴 EXCLUIR */
+.btn-excluir {
+    background-color: #b91c1c; /* vermelho */
+    color: #fff;
+}
+
+.btn-excluir:hover {
+    background-color: #991b1b;
+    transform: translateY(-1px);
+}
+
+/* Estado desabilitado */
+.btn-acao:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================================================
+   RESPONSIVIDADE
+============================================================ */
+@media (max-width: 900px) {
+
+    nav {
+        gap: 10px;
+        font-size: 14px;
+    }
+
+    .drawer {
+        width: 85%;
+    }
+}
+
+@media (max-width: 600px) {
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    nav {
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .drawer {
+        width: 100%;
+        border-radius: 0;
+    }
+}
+
+/* ===============================
+   GRÁFICOS – LINHAS DE CUIDADO
+=============================== */
+.graficos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.grafico-box {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    text-align: center;
+}
+
+.grafico-box h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
+/* tamanho real do gráfico */
+.grafico-box canvas {
+    height: 140px !important;
+}
+
+.linha-bloco {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f8fafc;
+    border-left: 5px solid #2563eb;
+    border-radius: 8px;
+}
+
+.linha-bloco h4 {
+    margin-bottom: 10px;
+}
+
+/* ===============================
+   REUNIÃO / ATA
+=============================== */
+#ataEmConstrucao {
+    border-left: 4px solid #2563eb;
+    padding-left: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ata-topico {
+    margin-bottom: 12px;
+}
+
+.ata-topico h4 {
+    margin: 0 0 4px;
+    color: #1e3a8a;
+}
+
+.ata-topico p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+
+</style>
+
+</head>
+
+<body>
+
+<!-- ============================================================
+     🔐 TELA DE LOGIN
+============================================================ -->
+<div id="loginScreen" class="login-container">
+    <div class="login-box">
+        <h1>Sintaxe Hub</h1>
+
+        <label>Usuário:</label>
+        <input type="text" id="loginUser">
+
+        <label>Senha:</label>
+        <input type="password" id="loginPass">
+
+        <button onclick="login()">Entrar</button>
+
+        <p id="loginErro" class="erro">Usuário ou senha incorretos</p>
+    </div>
+</div>
+
+<!-- ============================================================
+     🔵 APLICAÇÃO (OCULTA ATÉ LOGIN)
+============================================================ -->
+<div id="app" style="display:none;">
+
+<!-- ============================================================
+     CABEÇALHO PRINCIPAL
+============================================================ -->
+<header id="header">
+
+    <!-- Título do sistema -->
+    <div class="logo-titulo" onclick="navigate('inicio')">
+        <strong>Sintaxe Hub Pro 4.0</strong>
+    </div>
+
+    <!-- Menu -->
+<nav id="menu">
+    <span onclick="navigate('inicio')">Início</span>
+
+    <span id="btnAdmin" onclick="navigate('admin')" style="display:none;">
+        Administrar
+    </span>
+
+    <span id="btnAuditoria"
+          onclick="navigate('auditoria')"
+          style="display:none;">
+        Auditoria
+    </span>
+
+    <span onclick="navigate('prontuario')">Cadastrar Prontuário</span>
+    <span onclick="navigate('linhas')">Linhas de Cuidado</span>
+    <span onclick="navigate('reunioes')">Reuniões</span>
+    <span onclick="navigate('banco')">Banco de Dados</span>
+
+</nav>
+
+
+<div class="header-actions">
+
+    <div id="alertBell"
+     class="bell"
+     title="Reavaliações pendentes"
+     onclick="toggleAlertas()"
+     style="display:none;">
+    🔔
+</div>
+
+    <button class="logout" onclick="logout()">
+        Sair
+    </button>
+
+</div>
+
+<div id="alertasPainel" class="alertas-painel" style="display:none;"></div>
+
+
+</header>
+
+
+
+<!-- ============================================================
+     CONTAINER GERAL
+============================================================ -->
+<div class="container">
+
+
+<!-- ============================================================
+     ABA INÍCIO
+============================================================ -->
+<section id="view-inicio" class="view">
+
+    <h2>Consulta de Prontuários</h2>
+
+    <div class="card">
+
+        <label>Buscar por Nome:
+            <input id="buscaNomeInicio" type="text" placeholder="Digite o nome" oninput="buscarInicio()">
+        </label>
+
+        <label>Buscar por CPF:
+            <input id="buscaCPFInicio" type="text" placeholder="Digite o CPF" oninput="buscarInicio()">
+        </label>
+
+    </div>
+
+    <div id="resultadoInicio" class="card">
+        <em>Digite um nome ou CPF para iniciar a busca. Clique nos Cards abaixo para puxar os relatórios da linha de cuidados.</em>
+    </div>
+
+<h2>Visão Geral do Território</h2>
+
+<div class="dashboard">
+
+    <div class="dash-card has"
+         style="cursor:pointer"
+         onclick="filtrarPorCondicao('HAS')">
+        <h3>Hipertensão</h3>
+        <span id="dashHAS">0</span>
+    </div>
+
+    <div class="dash-card dm"
+         style="cursor:pointer"
+         onclick="filtrarPorCondicao('DM')">
+        <h3>Diabetes</h3>
+        <span id="dashDM">0</span>
+    </div>
+
+    <div class="dash-card gest"
+         style="cursor:pointer"
+         onclick="filtrarPorCondicao('GEST')">
+        <h3>Gestantes</h3>
+        <span id="dashGest">0</span>
+    </div>
+
+    <div class="dash-card tb"
+         style="cursor:pointer"
+         onclick="filtrarPorCondicao('TB')">
+        <h3>Tuberculose</h3>
+        <span id="dashTB">0</span>
+    </div>
+
+    <div class="dash-card hansen"
+         style="cursor:pointer"
+         onclick="filtrarPorCondicao('HANS')">
+        <h3>Hanseníase</h3>
+        <span id="dashHansen">0</span>
+    </div>
+
+</div>
+
+
+</section>
+
+
+<!-- ============================================================
+     ABA CADASTRAR PRONTUÁRIO
+============================================================ -->
+<section id="view-prontuario" class="view" style="display:none;">
+
+    <div id="cabecalhoProntuario"
+         style="display:none; margin-bottom:12px; padding:12px;
+                background:#f1f5f9; border-left:5px solid #2563eb;">
+        <strong id="cabecalhoNome"></strong>
+        <small id="cabecalhoNascimento"></small>
+    </div>
+
+    <h2>Cadastrar / Editar Prontuário</h2>
+
+    <!-- ======================================================
+         IDENTIFICAÇÃO
+    ====================================================== -->
+    <div class="accordion">
+        <div class="acc-header" onclick="toggleAcc(this)">▸ Identificação do Paciente</div>
+        <div class="acc-body">
+
+            <label>Nome completo:
+                <input id="nomePaciente" type="text">
+            </label>
+
+            <label>CPF:
+                <input id="cpfPaciente" type="text" oninput="mascaraCPF(this)">
+            </label>
+
+            <label>Data de nascimento:
+                <input id="nascPaciente" type="date" oninput="calcIdade()">
+            </label>
+
+            <label>Idade:
+                <input id="idadePaciente" type="text" disabled>
+            </label>
+
+            <label>Endereço:
+                <input id="endPaciente" type="text">
+            </label>
+
+ 	    <label>CEP:
+                <input id="CEP" type="text">
+            </label>
+
+            <label>Telefone:
+                <input id="telPaciente" type="text" oninput="mascaraTelefone(this)">
+            </label>
+
+            <label>Unidade:
+                <input id="unidadePaciente" type="text">
+            </label>
+
+            <label>Equipe:
+                <input id="equipePaciente" type="text">
+            </label>
+
+            <label>Outros Comentários:
+                <textarea id="obsPaciente"></textarea>
+            </label>
+
+
+
+            <!-- ======================================================
+                 AMPI (somente ≥ 60 anos)
+            ====================================================== -->
+            <div id="ampiBloco" style="display:none;">
+
+                <h4>Avaliação AMPI (somente idosos)</h4>
+
+                <label>Data do AMPI:
+                    <input id="ampiData" type="date">
+                </label>
+
+                <label>Classificação:
+                    <select id="ampiPaciente">
+                        <option value="">Selecione</option>
+                        <option>Normal</option>
+                        <option>Pré-frágil</option>
+                        <option>Frágil</option>
+                    </select>
+                </label>
+
+                <label>Observações:
+                    <textarea id="ampiObs"></textarea>
+                </label>
+
+                <label>
+                    <input id="ampiViolencia" type="checkbox">
+                    Sinalização de violência
+                </label>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ======================================================
+         CONDIÇÕES CLÍNICAS
+    ====================================================== -->
+    <div class="accordion">
+        <div class="acc-header" onclick="toggleAcc(this)">▸ Condições Clínicas</div>
+        <div class="acc-body">
+
+            <label>Hipertensão:
+                <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
+                    <option>Não</option>
+                    <option>Sim</option>
+                </select>
+            </label>
+
+            <label>Diabetes:
+                <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
+                    <option>Não</option>
+                    <option>Sim</option>
+                </select>
+            </label>
+
+            <label>Gestante:
+                <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
+                    <option>Não</option>
+                    <option>Sim</option>
+                </select>
+            </label>
+
+            <label>Hanseníase:
+		<select id="hansenSN"  onchange="mostrarCard('cardHanseniase', this.value)">
+                    <option>Não</option>
+                    <option>Sim</option>
+                </select>
+            </label>
+
+            <label>Tuberculose:
+		<select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
+                    <option>Não</option>
+                    <option>Sim</option>
+                </select>
+            </label>
+
+        </div>
+    </div>
+
+    <!-- ======================================================
+         HIPERTENSÃO
+    ====================================================== -->
+    <div id="cardHAS" class="accordion clinical-card" style="display:none;">
+        <div class="acc-header" onclick="toggleAcc(this)">▸ Hipertensão Arterial Sistêmica</div>
+        <div class="acc-body">
+
+            <label>PAS:
+                <input id="hasPAS" type="number" oninput="classificarHAS()">
+            </label>
+
+            <label>PAD:
+                <input id="hasPAD" type="number" oninput="classificarHAS()">
+            </label>
+
+            <label>Classificação:
+                <input id="hasClassif" disabled>
+            </label>
+
+            <label>Última consulta:
+    <input id="hasUltimaConsulta" type="date" onchange="atualizarAvisoHAS()">
+</label>
+
+<div id="hasInfoUltimaConsulta" class="info-consulta"></div>
+<div id="hasAviso6m"></div>
+
+            <h4>Retinografia</h4>
+
+            <label>Olho Direito (OD):
+                <select id="hasFundoOD">
+                    <option></option>
+                    <option>Leve</option>
+                    <option>Moderada</option>
+                    <option>Grave</option>
+                </select>
+            </label>
+
+            <label>Olho Esquerdo (OE):
+                <select id="hasFundoOE">
+                    <option></option>
+                    <option>Leve</option>
+                    <option>Moderada</option>
+                    <option>Grave</option>
+                </select>
+            </label>
+
+        </div>
+    </div>
+
+    <!-- ======================================================
+         DIABETES
+    ====================================================== -->
+    <div id="cardDM" class="accordion clinical-card" style="display:none;">
+        <div class="acc-header" onclick="toggleAcc(this)">▸ Diabetes Mellitus</div>
+        <div class="acc-body">
+
+            <label>HbA1c:
+                <input id="dmHbA1c" type="number" step="0.1" oninput="classificarDM()">
+            </label>
+
+            <label>Classificação da HbA1c:
+                <input id="dmClassif" disabled>
+            </label>
+
+            <label>Microalbuminúria (mg/g):
+                <input id="dmMicro" type="number" oninput="classificarDM()">
+            </label>
+
+            <label>Categoria:
+                <input id="dmMicroCat" disabled>
+            </label>
+
+            <h4>Pé diabético</h4>
+
+            <label>Grau (Direito):
+                <select id="dmPeDir" onchange="classificarDM()">
+                    <option value=""></option>
+                    <option>0</option>
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                </select>
+            </label>
+
+            <label>Grau (Esquerdo):
+                <select id="dmPeEsq" onchange="classificarDM()">
+                    <option value=""></option>
+                    <option>0</option>
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                </select>
+            </label>
+
+            <label>Observações do pé:
+                <input id="dmPeObs" type="text">
+            </label>
+
+            <label>
+                <input id="dmAmpMID" type="checkbox"> Amputação MID
+            </label>
+
+            <label>
+                <input id="dmAmpMIE" type="checkbox"> Amputação MIE
+            </label>
+
+            <h4>Fundoscopia</h4>
+
+            <label>OD:
+                <select id="dmFundoOD">
+                    <option></option>
+                    <option>Leve</option>
+                    <option>Moderada</option>
+                    <option>Grave</option>
+                </select>
+            </label>
+
+            <label>OE:
+                <select id="dmFundoOE">
+                    <option></option>
+                    <option>Leve</option>
+                    <option>Moderada</option>
+                    <option>Grave</option>
+                </select>
+            </label>
+
+		<label>Data da última fundoscopia:
+    <input id="dmFundoData" type="date">
+</label>
+
+
+            <label>Última consulta:
+    <input id="dmUltimaConsulta" type="date" onchange="atualizarAvisoDM()">
+</label>
+
+<div id="dmInfoUltimaConsulta" class="info-consulta"></div>
+<div id="dmAviso6m"></div>
+
+
+        </div>
+    </div>
+
+    <!-- ======================================================
+         GESTANTE
+    ====================================================== -->
+    <div id="cardGestante" class="accordion clinical-card" style="display:none;">
+    <div class="acc-header" onclick="toggleAcc(this)">▸ Gestante</div>
+    <div class="acc-body">
+
+<label>G:
+    <input id="gestG" type="number">
+</label>
+
+<label>P:
+    <input id="gestP" type="number">
+</label>
+
+<label>A:
+    <input id="gestA" type="number">
+</label>
+        <label>DUM:
+            <input id="gestDUM" type="date" oninput="calcIG()">
+        </label>
+
+        <label>Idade gestacional:
+            <input id="gestIG" disabled>
+        </label>
+
+        <label>Data provável do parto (DPP):
+            <input id="gestDPP" disabled>
+        </label>
+
+        <label>Primeira consulta pré-natal:
+            <input id="gestPrimeiraConsulta" type="date">
+        </label>
+
+        <h4>Testes rápidos</h4>
+
+        <label>1º trimestre:
+            <input id="gestTR1" type="text">
+        </label>
+
+        <label>2º trimestre:
+            <input id="gestTR2" type="text">
+        </label>
+
+        <label>3º trimestre:
+            <input id="gestTR3" type="text">
+        </label>
+
+        <h4>Exames laboratoriais</h4>
+
+        <label>1º trimestre:
+            <input id="gestEX1" type="text">
+        </label>
+
+        <label>2º trimestre:
+            <input id="gestEX2" type="text">
+        </label>
+
+        <label>3º trimestre:
+            <input id="gestEX3" type="text">
+        </label>
+
+        <h4>Ultrassom</h4>
+        <label>USG Transvaginal:
+            <input id="gestUSG1" type="text">
+        </label>
+
+        <label>USG Morfológica:
+            <input id="gestUSGMorf" type="text">
+        </label>
+
+        <label>Doppler Fetal:
+            <input id="gestUSG3" type="text">
+        </label>
+
+        <label>Última consulta:
+            <input id="gestUltimaConsulta" type="date">
+        </label>
+
+    </div>
+</div>
+
+	<!-- ======================================================
+   	  HANSENÍASE
+	====================================================== -->
+<div id="cardHanseniase"
+     class="accordion clinical-card"
+     style="display:none;">
+
+    <div class="acc-header" onclick="toggleAcc(this)">
+        ▸ Hanseníase – Avaliação Neurológica (1º ao 12º mês)
+    </div>
+
+    <div class="acc-body">
+
+        <!-- ===================== MÊS 1 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 1º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora1"></label>
+                <label>Vibratória <input id="hanVibratoria1"></label>
+                <label>Térmica <input id="hanTermo1"></label>
+                <label>Outras <input id="hanOutras1"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao1" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 2 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 2º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora2"></label>
+                <label>Vibratória <input id="hanVibratoria2"></label>
+                <label>Térmica <input id="hanTermo2"></label>
+                <label>Outras <input id="hanOutras2"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao2" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 3 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 3º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora3"></label>
+                <label>Vibratória <input id="hanVibratoria3"></label>
+                <label>Térmica <input id="hanTermo3"></label>
+                <label>Outras <input id="hanOutras3"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao3" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 4 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 4º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora4"></label>
+                <label>Vibratória <input id="hanVibratoria4"></label>
+                <label>Térmica <input id="hanTermo4"></label>
+                <label>Outras <input id="hanOutras4"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao4" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 5 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 5º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora5"></label>
+                <label>Vibratória <input id="hanVibratoria5"></label>
+                <label>Térmica <input id="hanTermo5"></label>
+                <label>Outras <input id="hanOutras5"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao5" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 6 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 6º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora6"></label>
+                <label>Vibratória <input id="hanVibratoria6"></label>
+                <label>Térmica <input id="hanTermo6"></label>
+                <label>Outras <input id="hanOutras6"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao6" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 7 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 7º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora7"></label>
+                <label>Vibratória <input id="hanVibratoria7"></label>
+                <label>Térmica <input id="hanTermo7"></label>
+                <label>Outras <input id="hanOutras7"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao7" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 8 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 8º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora8"></label>
+                <label>Vibratória <input id="hanVibratoria8"></label>
+                <label>Térmica <input id="hanTermo8"></label>
+                <label>Outras <input id="hanOutras8"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao8" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 9 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 9º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora9"></label>
+                <label>Vibratória <input id="hanVibratoria9"></label>
+                <label>Térmica <input id="hanTermo9"></label>
+                <label>Outras <input id="hanOutras9"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao9" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 10 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 10º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora10"></label>
+                <label>Vibratória <input id="hanVibratoria10"></label>
+                <label>Térmica <input id="hanTermo10"></label>
+                <label>Outras <input id="hanOutras10"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao10" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 11 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 11º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora11"></label>
+                <label>Vibratória <input id="hanVibratoria11"></label>
+                <label>Térmica <input id="hanTermo11"></label>
+                <label>Outras <input id="hanOutras11"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao11" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 12 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – 12º mês</div>
+            <div class="acc-body">
+                <label>Motora <input id="hanMotora12"></label>
+                <label>Vibratória <input id="hanVibratoria12"></label>
+                <label>Térmica <input id="hanTermo12"></label>
+                <label>Outras <input id="hanOutras12"></label>
+                <label>Data da avaliação
+                    <input id="hanDataAvaliacao12" type="date">
+                </label>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ======================================================
+     TUBERCULOSE
+====================================================== -->
+<div id="cardTB"
+     class="accordion clinical-card"
+     style="display:none;">
+
+    <div class="acc-header" onclick="toggleAcc(this)">
+        ▸ Tuberculose – Acompanhamento (1º ao 6º mês)
+    </div>
+
+    <div class="acc-body">
+
+        <!-- ===================== MÊS 1 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 1º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas1">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac1">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx1">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle1" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 2 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 2º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas2">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac2">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx2">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle2" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 3 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 3º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas3">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac3">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx3">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle3" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 4 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 4º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas4">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac4">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx4">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle4" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 5 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 5º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas5">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac5">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx5">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle5" type="date">
+                </label>
+            </div>
+        </div>
+
+        <!-- ===================== MÊS 6 ===================== -->
+        <div class="accordion sub-accordion">
+            <div class="acc-header" onclick="toggleAcc(this)">
+                ▸ Acompanhamento – 6º mês
+            </div>
+            <div class="acc-body">
+                <label>Sintomas respiratórios
+                    <input id="tbSintomas6">
+                </label>
+                <label>Baciloscopia
+                    <input id="tbBac6">
+                </label>
+                <label>RX de tórax
+                    <input id="tbRx6">
+                </label>
+                <label>Data da avaliação
+                    <input id="tbDataControle6" type="date">
+                </label>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ======================================================
+     EVOLUÇÕES
+====================================================== -->
+<div class="accordion">
+    <div class="acc-header" onclick="toggleAcc(this)">▸ Evoluções</div>
+    <div class="acc-body">
+
+        <label>Data da evolução:
+            <input id="evoData" type="date">
+        </label>
+
+        <label>Evolução clínica:
+            <textarea id="evoTexto" class="editor"></textarea>
+        </label>
+
+
+        <!-- Diagnósticos -->
+        <label>Diagnóstico (CID):
+            <input id="evoCID" type="text" placeholder="Buscar CID...">
+        </label>
+
+        <label>Classificação CIPESC:
+            <input id="evoCIPESC" type="text" placeholder="Buscar CIPESC...">
+        </label>
+
+        <label>Intervenções realizadas:
+            <textarea id="evoInterv"></textarea>
+        </label>
+
+        <label>Reavaliar em (dias):
+            <input id="evoReavaliar" type="number">
+        </label>
+
+
+        <button class="btn-primary" onclick="adicionarEvolucao()">
+    Adicionar Evolução
+</button>
+
+        <h4>Histórico de Evoluções</h4>
+        <div id="listaEvolucoes"></div>
+
+    </div>
+</div>
+
+<!-- ======================================================
+     BOTÃO FINAL DE SALVAMENTO
+====================================================== -->
+<button class="salvar-btn" onclick="salvarProntuarioCompleto()">
+    Salvar Prontuário Completo
+</button>
+
+</section>
+
+
+<!-- ============================================================
+     ABA LINHAS DE CUIDADO
+============================================================ -->
+<section id="view-linhas" class="view" style="display:none;">
+
+    <h2>Linhas de Cuidado</h2>
+
+    <div class="card">
+        <label>Buscar paciente:
+            <input id="buscaLinhas" type="text" oninput="buscarLinhasCuidado()">
+        </label>
+    </div>
+
+    <div id="linhasResultado" class="card"></div>
+
+<div id="mlCard" class="card" style="display:none;">
+    <h3>Avaliação de Risco — Machine Learning</h3>
+
+    <div id="mlRisco"></div>
+    <div id="mlFatores"></div>
+    <div id="mlRecomendacoes"></div>
+
+    <button class="btn-primary"
+        id="btnGerarCartilha"
+        style="margin-top:12px; display:none;">
+        📘 Gerar Cartilha de Orientações
+    </button>
+</div>
+
+<div id="graficosGerais" class="card">
+
+<div id="relatoriosLinhas" class="card"></div>
+
+    <h3>Indicadores Populacionais</h3>
+
+    <div class="graficos-grid">
+
+        <!-- 🔹 RISCO POPULACIONAL -->
+        <div class="grafico-box">
+            <h4>Distribuição de Risco</h4>
+            <canvas id="graficoRisco"></canvas>
+        </div>
+
+        <!-- 🔹 CONDIÇÕES CLÍNICAS -->
+        <div class="grafico-box">
+            <h4>Condições Clínicas</h4>
+            <canvas id="graficoCondicoes"></canvas>
+        </div>
+
+        <!-- 🔹 CONSULTAS EM ATRASO -->
+        <div class="grafico-box">
+            <h4>Consultas em Atraso</h4>
+            <canvas id="graficoAtrasos"></canvas>
+        </div>
+
+        <!-- 🔹 FAIXA ETÁRIA -->
+        <div class="grafico-box">
+            <h4>Faixa Etária</h4>
+            <canvas id="graficoIdade"></canvas>
+        </div>
+
+        <!-- 🔹 MULTIMORBIDADE -->
+        <div class="grafico-box">
+            <h4>Multimorbidade</h4>
+            <canvas id="graficoMultimorbidade"></canvas>
+        </div>
+
+    </div>
+</div>
+
+
+</section>
+
+<!-- ============================================================
+     ABA REUNIÕES
+============================================================ -->
+<section id="view-reunioes" class="view" style="display:none;">
+
+    <h2>Reunião de Equipe</h2>
+
+    <!-- PAUTA -->
+    <div class="card">
+        <h3>Pauta / Tópico</h3>
+
+<div class="card">
+  <h3>Reunião de Equipe APS — Ata estruturada por momentos</h3>
+
+  <label><strong>Selecione o momento da reunião</strong></label>
+  <select id="momentoReuniao" style="margin-top:6px;">
+    <option value="">Selecione...</option>
+
+    <option value="1">1) Acolhimento rápido e objetivo do encontro</option>
+    <option value="2">2) Informes gerais e alinhamentos</option>
+    <option value="3">3) Indicadores do território e “visão de painel”</option>
+
+    <option value="4">4) Discussão de casos complexos</option>
+    <option value="4.1">4.1 Apresentação rápida do caso</option>
+    <option value="4.2">4.2 O que está difícil?</option>
+    <option value="4.3">4.3 Plano compartilhado</option>
+    <option value="4.4">4.4 Responsáveis + prazo</option>
+
+    <option value="5">5) Matriciamento e apoio multiprofissional</option>
+    <option value="6">6) Segurança do paciente e riscos</option>
+    <option value="7">7) Planejamento da semana</option>
+    <option value="8">8) Pendências e devolutivas</option>
+    <option value="9">9) Encaminhamentos finais e ata</option>
+  </select>
+
+  <label style="margin-top:12px;"><strong>Registro do momento</strong></label>
+  <textarea id="textoMomento" rows="5"
+    placeholder="Digite aqui as decisões, encaminhamentos, responsáveis e prazos..."
+    style="margin-top:6px;"></textarea>
+
+  <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+    <button class="btn-primary" onclick="adicionarMomentoNaAta()">Adicionar tópico</button>
+    <button class="btn-secondary" onclick="limparCampoMomento()">Limpar</button>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3>Texto final da Ata (para salvar/baixar)</h3>
+  <textarea id="ataTexto" rows="12" placeholder="A ata final aparecerá aqui..."></textarea>
+</div>
+
+<!-- ✅ ATA ORGANIZADA (em construção) -->
+<div class="card" style="margin-top:16px;">
+  <h3>Ata da Reunião (em construção)</h3>
+  <div id="ataConstruida"></div>
+
+  <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+    <button class="btn-primary" onclick="copiarAtaParaCampo()">Copiar para o texto final</button>
+    <button class="btn-secondary" onclick="resetarAtaReuniao()">Reiniciar ata</button>
+  </div>
+</div>
+
+
+<div id="previewPautaReuniao" style="margin-top:16px;"></div>
+
+    <h3 style="margin-top:20px;">Indicadores do Território</h3>
+    <div id="cardsReuniao" class="cards-territorio cards-profissional"></div>
+
+    <div id="relatorioReuniao" style="margin-top:20px;"></div>
+    <div id="listaPacientesReuniao" style="margin-top:20px;"></div>
+
+
+
+    <!-- ATA EM CONSTRUÇÃO -->
+    <div class="card">
+        <h3>Ata da reunião (em construção)</h3>
+        <div id="ataEmConstrucao">
+            <em>Nenhum tópico adicionado ainda.</em>
+        </div>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="card">
+        <button class="btn-primary" onclick="salvarReuniao()">
+            📋 Salvar reunião do dia
+        </button>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="card">
+        <h3>Reuniões anteriores</h3>
+        <div id="listaReunioes"></div>
+    </div>
+
+</section>
+
+<!-- ============================================================
+     ABA BANCO DE DADOS
+============================================================ -->
+<section id="view-banco" class="view" style="display:none;">
+
+    <h2>Banco de Dados</h2>
+
+    <div class="card">
+        <label>Buscar:
+            <input id="buscaBanco" type="text" oninput="buscarBanco()">
+        </label>
+    </div>
+
+    <div id="listaBanco" class="card"></div>
+
+</section>
+
+<!-- ============================================================
+     ADMINISTRAÇÃO
+============================================================ -->
+<section id="view-admin" class="view hidden" style="display:none;">
+
+        <h2>Painel Administrativo</h2>
+
+        <div class="card">
+            <h3>Criar novo usuário</h3>
+
+            <label>Usuário:</label>
+            <input id="adminNovoUser" type="text">
+
+            <label>Senha:</label>
+            <input id="adminNovoPass" type="password">
+
+            <label>Tipo:</label>
+<select id="adminNovoTipo">
+    <option value="admin">Administrador</option>
+    <option value="clinico">Clínico</option>
+    <option value="observador">Observador</option>
+</select>
+
+            <button class="btn-primary" onclick="adminCriarUsuario()">
+    Criar Usuário
+</button>
+
+        </div>
+
+        <div class="card">
+            <h3>Usuários cadastrados</h3>
+            <div id="adminListaUsuarios"></div>
+        </div>
+
+</section>
+
+<!-- ============================================================
+     ABA AUDITORIA — APENAS ADMIN
+============================================================ -->
+<section id="view-auditoria" class="view" style="display:none;">
+
+    <h2>Auditoria do Sistema</h2>
+
+    <!-- ===============================
+         FILTROS DE AUDITORIA
+    ================================ -->
+    <div class="card filtros-auditoria">
+
+        <div class="filtro-linha">
+            <label>
+                Usuário
+                <input
+                    type="text"
+                    id="filtroUsuario"
+                    placeholder="Filtrar por usuário">
+            </label>
+
+            <label>
+                Ação
+                <input
+                    type="text"
+                    id="filtroAcao"
+                    placeholder="Filtrar por ação">
+            </label>
+        </div>
+
+        <div class="filtro-linha">
+            <label>
+                Data inicial
+                <input type="date" id="filtroDataInicio">
+            </label>
+
+            <label>
+                Data final
+                <input type="date" id="filtroDataFim">
+            </label>
+
+            <button class="btn-primary" onclick="listarAuditoria()">
+   		 Aplicar filtros
+		</button>
+
+        </div>
+
+    </div>
+
+    <!-- ===============================
+         LISTAGEM DE AUDITORIA
+    ================================ -->
+    <div class="card">
+        <div id="listaAuditoria"></div>
+        <div id="paginacaoAuditoria" class="paginacao-auditoria"></div>
+    </div>
+
+</section>
+
+</div><!-- FIM CONTAINER -->
+
+<!-- ============================================================
+     DRAWER LATERAL — VISUALIZAR EVOLUÇÃO
+============================================================ -->
+<div id="drawerOverlay" class="drawer-overlay" style="display:none;"></div>
+
+<div id="drawer" class="drawer" style="display:none;">
+
+    <div class="drawer-header">
+        <span id="drawerTitulo"></span>
+        <button onclick="fecharDrawer()">✖</button>
+    </div>
+
+    <div id="drawerConteudo" class="drawer-content"></div>
+
+    <div class="drawer-actions">
+        <button onclick="imprimirEvolucao()">Imprimir</button>
+        <button onclick="pdfEvolucao()">Exportar PDF</button>
+    </div>
+
+</div>
+
+<script>
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE ABAS
+============================================================ */
+function navigate(view) {
+
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+    if (!usuario) return;
+
+    if (view === "admin" && usuario.tipo !== "admin") return;
+    if (view === "auditoria" && usuario.tipo !== "admin") return;
+
+    document.querySelectorAll(".view").forEach(v =>
+        v.style.display = "none"
+    );
+
+    const target = document.getElementById(`view-${view}`);
+    if (!target) return;
+
+    target.style.display = "block";
+
+    if (view === "admin") {
+        listarUsuariosAdmin();
+    }
+
+    if (view === "auditoria") {
+        listarAuditoria();
+    }
+
+    /* ================= LINHAS DE CUIDADO ================= */
+
+    if (view === "linhas") {
+        inicializarLinhasCuidado();
+    }
+
+    /* ================= REUNIÕES ================= */
+
+    if (view === "reunioes") {
+
+    // 1) cards do território dentro da reunião
+    renderizarCardsTerritorio("cardsReuniao");
+
+    // 2) histórico de reuniões
+    listarReunioes();
+
+    // 3) preview automático do modelo APS (sem precisar clicar)
+    const sel = document.getElementById("modeloPauta");
+    if (sel) {
+        sel.value = "aps_padrao";
+        aplicarModeloPauta(false);
+    }
+
+    // 4) renderizar ata (só se existir no seu código)
+    if (typeof renderizarAta === "function") {
+        renderizarAtaAPS();
+    }
+
+}
+
+
+}
+
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE ABAS
+============================================================ */
+function login() {
+
+    const userInput = document.getElementById("loginUser");
+    const passInput = document.getElementById("loginPass");
+    const erro = document.getElementById("loginErro");
+
+    const user = userInput.value.trim();
+    const pass = passInput.value.trim();
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    // Admin padrão (primeiro acesso)
+    if (user === "admin" && pass === "123") {
+        salvarSessao({ user: "admin", tipo: "admin" });
+        return;
+    }
+
+    const encontrado = usuarios.find(
+        u => u.user === user && u.pass === pass
+    );
+
+    if (!encontrado) {
+        erro.style.display = "block";
+        return;
+    }
+
+    salvarSessao(encontrado);
+}
+
+
+function salvarSessao(usuario) {
+
+    const erro = document.getElementById("loginErro");
+    if (erro) erro.style.display = "none";
+
+    localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    configurarPermissoes(usuario);
+
+    listarBanco();
+    listarReunioes();
+    verificarAlertas();
+    atualizarDashboardInicio();
+
+    registrarAuditoria("Login", usuario.user);
+
+    navigate("inicio");
+}
+
+
+/* ===============================
+   Permissões de Acesso
+=============================== */
+function configurarPermissoes(usuario) {
+
+    document.getElementById("btnAdmin").style.display =
+        usuario.tipo === "admin" ? "inline-block" : "none";
+
+    document.getElementById("btnAuditoria").style.display =
+        usuario.tipo === "admin" ? "inline-block" : "none";
+
+    document.querySelector(`nav span[onclick="navigate('prontuario')"]`)
+        .style.display =
+            (usuario.tipo === "admin" || usuario.tipo === "clinico")
+                ? "inline-block"
+                : "none";
+}
+
+
+/* ============================================================
+   ACORDEÕES
+============================================================ */
+function toggleAcc(header) {
+    const body = header.nextElementSibling;
+    body.style.display = (body.style.display === "block") ? "none" : "block";
+
+    header.innerHTML = header.innerHTML.startsWith("▸")
+        ? header.innerHTML.replace("▸", "▾")
+        : header.innerHTML.replace("▾", "▸");
+}
+
+
+/* ============================================================
+   MÁSCARA CPF
+============================================================ */
+function mascaraCPF(input) {
+    let v = input.value.replace(/\D/g, "");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    input.value = v;
+}
+
+
+/* ============================================================
+   MÁSCARA TELEFONE
+============================================================ */
+function mascaraTelefone(input) {
+    let v = input.value.replace(/\D/g, "");
+    if (v.length > 10)
+        v = v.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+    else
+        v = v.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+
+    input.value = v;
+}
+
+
+/* ============================================================
+   CÁLCULO DA IDADE + AMPI AUTOMÁTICO
+============================================================ */
+function calcIdade() {
+    const nasc = nascPaciente.value;
+    if (!nasc) return;
+
+    const n = new Date(nasc);
+    const hoje = new Date();
+
+    let anos = hoje.getFullYear() - n.getFullYear();
+    let meses = hoje.getMonth() - n.getMonth();
+
+    // Ajuste caso o mês/dia ainda não tenha sido completado
+    if (hoje.getDate() < n.getDate()) {
+        meses--;
+    }
+
+    // Se meses ficou negativo, ajusta para o ano anterior
+    if (meses < 0) {
+        anos--;
+        meses += 12;
+    }
+
+    idadePaciente.value = `${anos} anos e ${meses} meses`;
+
+    // AMPI aparece somente para ≥ 60 anos
+    const bloco = document.getElementById("ampiBloco");
+    if (anos >= 60) bloco.style.display = "block";
+    else bloco.style.display = "none";
+}
+
+/* ============================================================
+   MOSTRAR / ESCONDER CARTÕES CLÍNICOS
+============================================================ */
+function mostrarCard(id, valor) {
+    document.getElementById(id).style.display = (valor === "Sim") ?
+        "block" : "none";
+}
+
+/* ============================================================
+   GESTANTE — CÁLCULO IG (IDADE GESTACIONAL)
+============================================================ */
+function calcIG() {
+    const dum = gestDUM.value;
+    if (!dum) {
+        gestIG.value = "";
+        gestDPP.value = "";
+        return;
+    }
+
+    const hoje = new Date();
+    const d = new Date(dum);
+
+    const dias = Math.floor((hoje - d) / (1000 * 60 * 60 * 24));
+    const semanas = Math.floor(dias / 7);
+    const resto = dias % 7;
+
+    gestIG.value = `${semanas} semanas e ${resto} dias`;
+
+    /* DPP = DUM + 280 dias */
+    const dpp = new Date(d);
+    dpp.setDate(dpp.getDate() + 280);
+
+    gestDPP.value = dpp.toISOString().substring(0, 10);
+}
+
+/* ============================================================
+   DRAWER LATERAL DE VISUALIZAÇÃO DE EVOLUÇÃO
+============================================================ */
+function abrirDrawer(titulo, conteudoHTML) {
+    drawerTitulo.innerHTML = titulo;
+    drawerConteudo.innerHTML = conteudoHTML;
+
+    drawerOverlay.style.display = "block";
+    drawer.style.display = "flex";
+
+    setTimeout(() => drawer.classList.add("open"), 10);
+}
+
+function fecharDrawer() {
+    drawer.classList.remove("open");
+    setTimeout(() => {
+        drawer.style.display = "none";
+        drawerOverlay.style.display = "none";
+    }, 300);
+}
+
+/* ============================================================
+   FUNÇÃO AUXILIAR — MESES DESDE UMA DATA
+============================================================ */
+function mesesDesde(data) {
+    if (!data) return 0;
+    const d = new Date(data);
+    const hoje = new Date();
+
+    return (
+        (hoje.getFullYear() - d.getFullYear()) * 12 +
+        (hoje.getMonth() - d.getMonth())
+    );
+}
+
+/* ============================================================
+   HAS — CLASSIFICAÇÃO + EXIBIÇÃO DE ÚLTIMA CONSULTA
+============================================================ */
+function classificarHAS() {
+
+    const pas = Number(hasPAS.value);
+    const pad = Number(hasPAD.value);
+
+    hasClassif.value = "";
+    hasClassif.style.color = "";
+
+    if (!pas || !pad) return;
+
+    let texto = "";
+    let cor = "";
+
+    if (pas >= 180 || pad >= 110) {
+        texto = "HAS Estágio 3"; cor = "#7f1d1d";
+    } else if (pas >= 160 || pad >= 100) {
+        texto = "HAS Estágio 2"; cor = "#dc2626";
+    } else if (pas >= 140 || pad >= 90) {
+        texto = "HAS Estágio 1"; cor = "#f97316";
+    } else if (pas >= 130 || pad >= 85) {
+        texto = "Normal-Alta"; cor = "#facc15";
+    } else if (pas >= 120 || pad >= 80) {
+        texto = "Normal"; cor = "#22c55e";
+    } else {
+        texto = "Ótima"; cor = "#15803d";
+    }
+
+    hasClassif.value = texto;
+    hasClassif.style.color = cor;
+    hasClassif.style.fontWeight = "bold";
+}
+
+function atualizarAvisoHAS() {
+
+    const data = hasUltimaConsulta.value;
+
+    if (data) {
+        hasInfoUltimaConsulta.innerHTML =
+            `<small>Última consulta em: <strong>${data.split("-").reverse().join("/")}</strong></small>`;
+    } else {
+        hasInfoUltimaConsulta.innerHTML = "";
+    }
+
+    if (data && mesesDesde(data) > 6) {
+        hasAviso6m.innerHTML =
+            `<div class="alerta">HAS sem consulta há mais de 6 meses</div>`;
+    } else {
+        hasAviso6m.innerHTML = "";
+    }
+}
+
+/* ============================================================
+   DM — CLASSIFICAÇÃO + EXIBIÇÃO DE ÚLTIMA CONSULTA
+============================================================ */
+function classificarDM() {
+
+    const hba1c = Number(dmHbA1c.value);
+    const micro = Number(dmMicro.value);
+
+    dmClassif.value = "";
+    dmMicroCat.value = "";
+
+if (hba1c) {
+
+    if (hba1c < 5.7) {
+        dmClassif.value = "Normal";
+        dmClassif.style.color = "#15803d"; // verde
+    } 
+    else if (hba1c < 6.5) {
+        dmClassif.value = "Pré-diabetes";
+        dmClassif.style.color = "#facc15"; // amarelo
+    } 
+    else if (hba1c < 7) {
+        dmClassif.value = "DM – Bom controle";
+        dmClassif.style.color = "#15803d"; // verde
+    } 
+    else if (hba1c < 9) {
+        dmClassif.value = "DM – Controle inadequado";
+        dmClassif.style.color = "#f97316"; // laranja
+    } 
+    else {
+        dmClassif.value = "DM – Mau controle";
+        dmClassif.style.color = "#7f1d1d"; // vermelho escuro
+    }
+    dmClassif.style.fontWeight = "bold";
+}
+
+
+    if (micro) {
+        if (micro < 30) {
+            dmMicroCat.value = "Normal";
+            dmMicroCat.style.color = "#15803d";
+        } else if (micro < 300) {
+            dmMicroCat.value = "Microalbuminúria";
+            dmMicroCat.style.color = "#f97316";
+        } else {
+            dmMicroCat.value = "Proteinúria";
+            dmMicroCat.style.color = "#7f1d1d";
+        }
+        dmMicroCat.style.fontWeight = "bold";
+    }
+}
+
+function atualizarAvisoDM() {
+
+    const inputData = document.getElementById("dmUltimaConsulta");
+    const inputHbA1c = document.getElementById("dmHbA1c");
+    const aviso = document.getElementById("dmAviso6m");
+    const info = document.getElementById("dmInfoUltimaConsulta");
+
+    if (!inputData || !inputHbA1c || !aviso || !info) {
+        console.warn("Campos de DM não encontrados no DOM");
+        return;
+    }
+
+    const data = inputData.value;
+    const hba1c = Number(inputHbA1c.value);
+
+    // Info da última consulta
+    if (data) {
+        info.innerHTML =
+            `<small>Última consulta em: <strong>${data.split("-").reverse().join("/")}</strong></small>`;
+    } else {
+        info.innerHTML = "";
+    }
+
+    aviso.innerHTML = "";
+
+    // 🔹 PRÉ-DIABETES → anual
+    if (hba1c >= 5.7 && hba1c < 6.5) {
+        if (data && mesesDesde(data) > 12) {
+            aviso.innerHTML =
+                `<div class="alerta">Pré-diabetes sem reavaliação há mais de 12 meses</div>`;
+        }
+        return;
+    }
+
+    // 🔹 DIABETES → semestral
+    if (hba1c >= 6.5) {
+        if (data && mesesDesde(data) > 6) {
+            aviso.innerHTML =
+                `<div class="alerta">Diabetes sem consulta há mais de 6 meses</div>`;
+        }
+    }
+}
+
+/* ============================================================
+   Filtro por Condição
+============================================================ */
+const ROTULOS_CONDICAO = {
+    HAS: "Hipertensão (HAS)",
+    DM: "Diabetes Mellitus (DM)",
+    GEST: "Gestantes",
+    TB: "Tuberculose",
+    HANS: "Hanseníase"
+};
+
+function filtrarPorCondicao(condicao) {
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const container = document.getElementById("resultadoInicio");
+    if (!container) return;
+
+    const ROTULOS = {
+        HAS: "Hipertensão Arterial Sistêmica (HAS)",
+        DM: "Diabetes Mellitus (DM)",
+        GEST: "Gestantes",
+        TB: "Tuberculose",
+        HANS: "Hanseníase"
+    };
+
+    const titulo = ROTULOS[condicao] || "Relatório Clínico";
+
+    /* =========================================================
+       GRUPO DA LINHA (UNIDIMENSIONAL)
+    ========================================================= */
+    let grupoLinha = [];
+
+    switch (condicao) {
+        case "HAS":
+            grupoLinha = banco.filter(p => p.hasSN === "Sim");
+            break;
+        case "DM":
+            grupoLinha = banco.filter(p => p.dmSN === "Sim");
+            break;
+        case "GEST":
+            grupoLinha = banco.filter(p => p.gestanteSN === "Sim");
+            break;
+        case "TB":
+            grupoLinha = banco.filter(p => p.tbSN === "Sim");
+            break;
+        case "HANS":
+            grupoLinha = banco.filter(p => p.hansenSN === "Sim");
+            break;
+    }
+
+    /* =========================================================
+       CABEÇALHO
+    ========================================================= */
+    let html = `
+        <div style="
+            margin-bottom:16px;
+            padding:14px;
+            background:#f8fafc;
+            border-left:5px solid #2563eb;
+            border-radius:6px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            flex-wrap:wrap;
+        ">
+            <div>
+                <strong>${titulo}</strong><br>
+                Total de pacientes: <strong>${grupoLinha.length}</strong>
+            </div>
+
+            <button class="btn-primary"
+                    onclick="exportarRelatorioPDF('${titulo}')">
+                📄 Exportar PDF
+            </button>
+        </div>
+    `;
+
+    if (!grupoLinha.length) {
+        html += `<em>Nenhum paciente encontrado.</em>`;
+        container.innerHTML = html;
+        return;
+    }
+
+/* =========================================================
+   RESUMO UNIDIMENSIONAL + CRUZADO (LINHA)
+========================================================= */
+
+if (condicao === "HAS") {
+    html += resumoHAS_Unidimensional(grupoLinha);
+    html += resumoHAS_Cruzado(grupoLinha, banco);
+}
+
+if (condicao === "DM") {
+    html += resumoDM_Unidimensional(grupoLinha);
+    html += resumoDM_Cruzado(grupoLinha, banco);
+}
+
+if (condicao === "GEST") {
+    html += resumoGestante_Unidimensional(grupoLinha);
+    html += resumoGestante_Cruzado(grupoLinha, banco);
+}
+
+if (condicao === "TB") {
+    html += resumoTB_Unidimensional(grupoLinha);
+    html += resumoTB_Cruzado(grupoLinha, banco);
+}
+
+if (condicao === "HANS") {
+    html += resumoHans_Unidimensional(grupoLinha);
+    html += resumoHans_Cruzado(grupoLinha, banco);
+}
+
+    /* =========================================================
+       TABELA NOMINAL
+    ========================================================= */
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Última evolução</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    grupoLinha.forEach(p => {
+
+        const ultima =
+            p.evolucoes?.length
+                ? p.evolucoes[p.evolucoes.length - 1].data
+                : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome || "—"}</td>
+                <td>${p.cpf || "—"}</td>
+                <td>${ultima}</td>
+                <td>
+                    <button class="btn-primary"
+                            onclick="editarProntuario('${p.id}')">
+                        Abrir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+
+function gerarMiniRelatorio(lista) {
+
+    const total = lista.length;
+
+    let idades = [];
+    let has = 0, dm = 0, gest = 0, tb = 0, hans = 0;
+
+    lista.forEach(p => {
+        if (p.nasc) {
+            const idade = new Date().getFullYear() - new Date(p.nasc).getFullYear();
+            idades.push(idade);
+        }
+        if (p.hasSN === "Sim") has++;
+        if (p.dmSN === "Sim") dm++;
+        if (p.gestanteSN === "Sim") gest++;
+        if (p.tbSN === "Sim") tb++;
+        if (p.hansenSN === "Sim") hans++;
+    });
+
+    const mediaIdade = idades.length
+        ? Math.round(idades.reduce((a,b)=>a+b,0) / idades.length)
+        : "—";
+
+    return `
+        <div class="card" style="margin-bottom:16px;">
+            <strong>Resumo do grupo</strong><br><br>
+
+            👥 Total de pacientes: <strong>${total}</strong><br>
+            🎂 Idade média: <strong>${mediaIdade} anos</strong><br><br>
+
+            🩺 HAS: ${has}<br>
+            🍬 DM: ${dm}<br>
+            🤰 Gestantes: ${gest}<br>
+            🫁 TB: ${tb}<br>
+            🦠 Hanseníase: ${hans}
+        </div>
+    `;
+}
+
+function classificarHAS_Populacional(p) {
+
+    const pas = Number(p.hasPAS);
+    const pad = Number(p.hasPAD);
+
+    if (!pas || !pad) return null;
+
+    if (pas >= 180 || pad >= 120) return "Crise";
+    if (pas >= 160 || pad >= 100) return "Estágio 3";
+    if (pas >= 140 || pad >= 90)  return "Estágio 2";
+    if (pas >= 130 || pad >= 85)  return "Estágio 1";
+
+    return "Controlado";
+}
+
+function resumoHAS_Unidimensional(grupoLinha) {
+
+    let estagio1 = 0;
+    let estagio2 = 0;
+    let estagio3 = 0;
+    let crise = 0;
+    let controlado = 0;
+    let fundoAlterado = 0;
+    let atrasados = 0;
+
+    grupoLinha.forEach(p => {
+
+        const classif = classificarHAS_Populacional(p);
+
+        if (classif === "Estágio 1") estagio1++;
+        if (classif === "Estágio 2") estagio2++;
+        if (classif === "Estágio 3") estagio3++;
+        if (classif === "Crise") crise++;
+        if (classif === "Controlado") controlado++;
+
+        if (p.hasFundoOD === "Alterado" || p.hasFundoOE === "Alterado") {
+            fundoAlterado++;
+        }
+
+        if (p.hasUltimaConsulta && mesesDesde(p.hasUltimaConsulta) > 6) {
+            atrasados++;
+        }
+    });
+
+    return `
+        <div class="card mini-relatorio">
+            <h4>📊 HAS — Perfil Clínico</h4>
+            <ul>
+                <li>👥 Total: <strong>${grupoLinha.length}</strong></li>
+                <li>🟢 Estágio 1: ${estagio1}</li>
+                <li>🟠 Estágio 2: ${estagio2}</li>
+                <li>🔴 Estágio 3: ${estagio3}</li>
+                <li>🚨 Crise hipertensiva: ${crise}</li>
+                <li>✅ Controlados: ${controlado}</li>
+                <li>👁 Retinopatia hipertensiva: ${fundoAlterado}</li>
+                <li>⏱ Consultas &gt; 6 meses: ${atrasados}</li>
+            </ul>
+        </div>
+    `;
+}
+
+function resumoHAS_Cruzado(lista) {
+
+    let hasDM = 0;
+    let hasGest = 0;
+    let hasTB = 0;
+    let hasHans = 0;
+
+    lista.forEach(p => {
+        if (p.dmSN === "Sim") hasDM++;
+        if (p.gestanteSN === "Sim") hasGest++;
+        if (p.tbSN === "Sim") hasTB++;
+        if (p.hansenSN === "Sim") hasHans++;
+    });
+
+    return `
+        <div class="card">
+            <strong>🔀 HAS — Análise cruzada</strong><br><br>
+            HAS + Diabetes: <strong>${hasDM}</strong><br>
+            HAS + Gestante: <strong>${hasGest}</strong><br>
+            HAS + Tuberculose: <strong>${hasTB}</strong><br>
+            HAS + Hanseníase: <strong>${hasHans}</strong>
+        </div>
+    `;
+}
+
+function resumoDM_Unidimensional(lista) {
+
+    let bom = 0, regular = 0, mau = 0, pre = 0;
+    let peAlterado = 0;
+    let amputacoes = 0;
+    let fundoAlterado = 0;
+    let atraso = 0;
+
+    lista.forEach(p => {
+
+        const hba1c = Number(p.dmHbA1c || 0);
+
+        if (hba1c >= 5.7 && hba1c < 6.5) pre++;
+        else if (hba1c < 7) bom++;
+        else if (hba1c < 8) regular++;
+        else mau++;
+
+        if (p.dmPeDir === "Alterado" || p.dmPeEsq === "Alterado")
+            peAlterado++;
+
+        if (p.dmAmpMID || p.dmAmpMIE)
+            amputacoes++;
+
+        if (p.dmFundoOD === "Alterado" || p.dmFundoOE === "Alterado")
+            fundoAlterado++;
+
+        if (p.dmUltimaConsulta && mesesDesde(p.dmUltimaConsulta) > 6)
+            atraso++;
+    });
+
+    return `
+        <div class="card">
+            <strong>📊 Diabetes — Perfil clínico</strong><br><br>
+            Pré-diabetes: <strong>${pre}</strong><br>
+            Bom controle: <strong>${bom}</strong><br>
+            Controle regular: <strong>${regular}</strong><br>
+            Mau controle: <strong>${mau}</strong><br><br>
+            Pé diabético alterado: <strong>${peAlterado}</strong><br>
+            Amputações: <strong>${amputacoes}</strong><br>
+            Fundoscopia alterada: <strong>${fundoAlterado}</strong><br>
+            Consulta &gt; 6 meses: <strong>${atraso}</strong>
+        </div>
+    `;
+}
+
+function resumoDM_Cruzado(lista) {
+
+    let dmHAS = 0;
+    let dmTB = 0;
+    let dmHans = 0;
+    let dmGest = 0;
+
+    lista.forEach(p => {
+        if (p.hasSN === "Sim") dmHAS++;
+        if (p.tbSN === "Sim") dmTB++;
+        if (p.hansenSN === "Sim") dmHans++;
+        if (p.gestanteSN === "Sim") dmGest++;
+    });
+
+    return `
+        <div class="card">
+            <strong>🔀 Diabetes — Análise cruzada</strong><br><br>
+            DM + HAS: <strong>${dmHAS}</strong><br>
+            DM + Tuberculose: <strong>${dmTB}</strong><br>
+            DM + Hanseníase: <strong>${dmHans}</strong><br>
+            DM + Gestante: <strong>${dmGest}</strong>
+        </div>
+    `;
+}
+
+function obterTrimestreGestacional(p) {
+
+    if (!p.gestIG) return null;
+
+    // Extrai apenas o número da IG (ex: "20 semanas" → 20)
+    const ig = Number(String(p.gestIG).match(/\d+/)?.[0]);
+
+    if (!ig || isNaN(ig)) return null;
+
+    if (ig <= 13) return 1;
+    if (ig <= 27) return 2;
+    return 3;
+}
+
+
+function gestanteAcompanhada(p) {
+
+    if (!p.gestPrimeiraConsulta) return false;
+
+    if (!p.gestUltimaConsulta) return false;
+
+    // atraso maior que 30 dias
+    if (mesesDesde(p.gestUltimaConsulta) > 1) {
+        return false;
+    }
+
+    return true;
+}
+
+
+function resumoGestante_Unidimensional(grupoLinha) {
+
+    let t1 = 0, t2 = 0, t3 = 0;
+    let acompanhadas = 0;
+    let naoAcompanhadas = 0;
+    let atrasadas = 0;
+
+    grupoLinha.forEach(p => {
+
+        const trimestre = obterTrimestreGestacional(p);
+
+        if (trimestre === 1) t1++;
+        if (trimestre === 2) t2++;
+        if (trimestre === 3) t3++;
+
+        if (gestanteAcompanhada(p)) {
+            acompanhadas++;
+        } else {
+            naoAcompanhadas++;
+        }
+
+        if (p.gestUltimaConsulta && mesesDesde(p.gestUltimaConsulta) > 1) {
+            atrasadas++;
+        }
+    });
+
+    return `
+        <div class="card mini-relatorio">
+            <h4>🤰 Gestantes — Perfil Assistencial</h4>
+            <ul>
+                <li>👥 Total: <strong>${grupoLinha.length}</strong></li>
+                <li>🩺 Acompanhadas: ${acompanhadas}</li>
+                <li>⚠️ Não acompanhadas: ${naoAcompanhadas}</li>
+                <li>⏱ Consultas atrasadas (&gt; 30 dias): ${atrasadas}</li>
+                <li>📆 1º Trimestre: ${t1}</li>
+                <li>📆 2º Trimestre: ${t2}</li>
+                <li>📆 3º Trimestre: ${t3}</li>
+            </ul>
+        </div>
+    `;
+}
+
+
+function resumoGestante_Cruzado(grupoLinha, banco) {
+
+    let comHAS = 0;
+    let comDM = 0;
+    let comTB = 0;
+    let comHans = 0;
+
+    grupoLinha.forEach(p => {
+        if (p.hasSN === "Sim") comHAS++;
+        if (p.dmSN === "Sim") comDM++;
+        if (p.tbSN === "Sim") comTB++;
+        if (p.hansenSN === "Sim") comHans++;
+    });
+
+    return `
+        <div class="card mini-relatorio">
+            <h4>🔀 Gestantes — Condições Associadas</h4>
+            <ul>
+                <li>🩺 Gestante + HAS: ${comHAS}</li>
+                <li>🍬 Gestante + DM: ${comDM}</li>
+                <li>🫁 Gestante + TB: ${comTB}</li>
+                <li>🦠 Gestante + Hanseníase: ${comHans}</li>
+            </ul>
+        </div>
+    `;
+}
+
+
+function resumoTB_Unidimensional(lista) {
+
+    let atraso = 0;
+    let bacPos = 0;
+
+    lista.forEach(p => {
+
+        if (p.tbBac1 === "Positiva") bacPos++;
+
+        if (p.tbDataControle1 && mesesDesde(p.tbDataControle1) > 1)
+            atraso++;
+    });
+
+    return `
+        <div class="card">
+            <strong>📊 Tuberculose — Perfil clínico</strong><br><br>
+            Baciloscopia positiva: <strong>${bacPos}</strong><br>
+            Acompanhamento atrasado: <strong>${atraso}</strong>
+        </div>
+    `;
+}
+
+function resumoTB_Cruzado(lista) {
+
+    let tbHAS = 0;
+    let tbDM = 0;
+    let tbHans = 0;
+
+    lista.forEach(p => {
+        if (p.hasSN === "Sim") tbHAS++;
+        if (p.dmSN === "Sim") tbDM++;
+        if (p.hansenSN === "Sim") tbHans++;
+    });
+
+    return `
+        <div class="card">
+            <strong>🔀 Tuberculose — Análise cruzada</strong><br><br>
+            TB + HAS: <strong>${tbHAS}</strong><br>
+            TB + Diabetes: <strong>${tbDM}</strong><br>
+            TB + Hanseníase: <strong>${tbHans}</strong>
+        </div>
+    `;
+}
+
+function resumoHans_Unidimensional(lista) {
+
+    let atraso = 0;
+
+    lista.forEach(p => {
+        if (p.hanDataAvaliacao1 && mesesDesde(p.hanDataAvaliacao1) > 1)
+            atraso++;
+    });
+
+    return `
+        <div class="card">
+            <strong>📊 Hanseníase — Perfil clínico</strong><br><br>
+            Avaliações neurológicas atrasadas: <strong>${atraso}</strong>
+        </div>
+    `;
+}
+
+function resumoHans_Cruzado(lista) {
+
+    let hansHAS = 0;
+    let hansDM = 0;
+    let hansTB = 0;
+
+    lista.forEach(p => {
+        if (p.hasSN === "Sim") hansHAS++;
+        if (p.dmSN === "Sim") hansDM++;
+        if (p.tbSN === "Sim") hansTB++;
+    });
+
+    return `
+        <div class="card">
+            <strong>🔀 Hanseníase — Análise cruzada</strong><br><br>
+            Hanseníase + HAS: <strong>${hansHAS}</strong><br>
+            Hanseníase + Diabetes: <strong>${hansDM}</strong><br>
+            Hanseníase + Tuberculose: <strong>${hansTB}</strong>
+        </div>
+    `;
+}
+
+
+function exportarRelatorioPDF(titulo) {
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+
+    const area = document.getElementById("resultadoInicio");
+    if (!area) {
+        alert("Nada para exportar.");
+        return;
+    }
+
+    // Cabeçalho
+    doc.setFontSize(14);
+    doc.text("Relatório Clínico", 14, 15);
+
+    doc.setFontSize(11);
+    doc.text(`Linha de cuidado: ${titulo}`, 14, 22);
+    doc.text(`Data de emissão: ${new Date().toLocaleDateString()}`, 14, 28);
+
+    // Conteúdo (texto)
+    let y = 36;
+
+    const texto = area.innerText
+        .replace(/\n{2,}/g, "\n")
+        .split("\n");
+
+    doc.setFontSize(9);
+
+    texto.forEach(linha => {
+        if (y > 280) {
+            doc.addPage();
+            y = 15;
+        }
+        doc.text(linha, 14, y);
+        y += 5;
+    });
+
+    // Salvar
+    doc.save(
+        `Relatorio_${titulo.replace(/\s/g,"_")}_${Date.now()}.pdf`
+    );
+}
+
+
+/* ============================================================
+   ADICIONAR EVOLUÇÃO AO HISTÓRICO
+============================================================ */
+function adicionarEvolucao() {
+    const data = evoData.value;
+    const texto = evoTexto.value.trim();
+    const cid = evoCID.value.trim();
+    const cipesc = evoCIPESC.value.trim();
+    const interv = evoInterv.value.trim();
+    const reav = parseInt(evoReavaliar.value || 0);
+
+    if (!data || !texto) {
+        alert("Preencha a data e o texto da evolução.");
+        return;
+    }
+
+    const nova = {
+        id: crypto.randomUUID(),
+        data,
+        texto,
+        cid,
+        cipesc,
+        interv,
+        reavaliar: reav
+    };
+
+    let evolucoes = evolucoesTemp || [];
+    evolucoes.push(nova);
+    evolucoesTemp = evolucoes;
+
+    evoData.value = "";
+    evoTexto.value = "";
+    evoCID.value = "";
+    evoCIPESC.value = "";
+    evoInterv.value = "";
+    evoReavaliar.value = "";
+
+    renderizarEvolucoes();
+}
+
+/* ============================================================
+   RENDERIZAR HISTÓRICO DE EVOLUÇÕES
+============================================================ */
+function renderizarEvolucoes() {
+
+    const div = document.getElementById("listaEvolucoes");
+    const evols = evolucoesTemp || [];
+
+    if (!div) return;
+
+    if (!evols.length) {
+        div.innerHTML = "<em>Nenhuma evolução registrada.</em>";
+        return;
+    }
+
+    let html = "";
+
+    evols
+        .sort((a, b) => new Date(b.data) - new Date(a.data))
+        .forEach(ev => {
+
+            html += `
+                <div class="card">
+
+                    <strong>
+                        ${new Date(ev.data).toLocaleDateString()}
+                    </strong>
+
+                    ${ev.cid
+                        ? `<div class="badge badge-cid">CID: ${ev.cid}</div>`
+                        : ""
+                    }
+
+                    ${ev.cipesc
+                        ? `<div class="badge badge-cipesc">CIPESC: ${ev.cipesc}</div>`
+                        : ""
+                    }
+
+                    <p>
+                        ${ev.texto.length > 120
+                            ? ev.texto.substring(0, 120) + "..."
+                            : ev.texto
+                        }
+                    </p>
+
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn-acao btn-visualizar"
+                                onclick="visualizarEvolucao('${ev.id}')">
+                            👁 Visualizar
+                        </button>
+
+                        <button class="btn-acao btn-excluir"
+                                onclick="excluirEvolucao('${ev.id}')">
+                            🗑 Excluir
+                        </button>
+                    </div>
+
+                </div>
+            `;
+        });
+
+    div.innerHTML = html;
+}
+
+
+/* ============================================================
+   VISUALIZAR EVOLUÇÃO NO DRAWER
+============================================================ */
+function visualizarEvolucao(id) {
+    const ev = evolucoesTemp.find(x => x.id === id);
+    if (!ev) return;
+
+    const conteudo = `
+        <p><strong>Data:</strong> ${ev.data}</p>
+        <p><strong>Evolução:</strong><br>${ev.texto}</p>
+        ${ev.cid ? `<p><strong>CID:</strong> ${ev.cid}</p>` : ""}
+        ${ev.cipesc ? `<p><strong>CIPESC:</strong> ${ev.cipesc}</p>` : ""}
+        ${ev.interv ? `<p><strong>Intervenções:</strong> ${ev.interv}</p>` : ""}
+        ${ev.reavaliar ? `<p><strong>Reavaliar em:</strong> ${ev.reavaliar} dias</p>` : ""}
+    `;
+
+    abrirDrawer("Evolução Clínica", conteudo);
+
+    drawer.dataset.evoId = id;
+}
+
+/* ============================================================
+   EXPORTAR PDF (modo simples)
+============================================================ */
+function pdfEvolucao() {
+    alert("Exportação PDF implementável — formato pronto para integração.");
+}
+
+/* ============================================================
+   EXCLUIR EVOLUÇÃO
+============================================================ */
+function excluirEvolucao(id) {
+    if (!confirm("Excluir evolução?")) return;
+
+    evolucoesTemp = evolucoesTemp.filter(e => e.id !== id);
+    renderizarEvolucoes();
+
+registrarAuditoria("Excluir evolução", id);
+
+}
+
+/* ============================================================
+   CARREGAR PRONTUÁRIO NA TELA
+============================================================ */
+function carregarProntuarioNaTela(p) {
+
+/* =========================================================
+   CABEÇALHO DO PRONTUÁRIO (EDIÇÃO)
+========================================================= */
+
+const cabecalho = document.getElementById("cabecalhoProntuario");
+const nomeEl = document.getElementById("cabecalhoNome");
+const nascEl = document.getElementById("cabecalhoNascimento");
+
+if (cabecalho && nomeEl && nascEl) {
+
+    nomeEl.innerText = p.nome || "Paciente sem nome";
+
+    nascEl.innerText = p.nasc
+        ? "Nascimento: " + p.nasc.split("-").reverse().join("/")
+        : "Nascimento não informado";
+
+    cabecalho.style.display = "block";
+}
+
+    // Identificação
+    nomePaciente.value = p.nome;
+    cpfPaciente.value = p.cpf;
+    nascPaciente.value = p.nasc;
+    endPaciente.value = p.end;
+    telPaciente.value = p.tel;
+    unidadePaciente.value = p.unidade;
+    obsPaciente.value = p.obs;
+
+    idadePaciente.value = p.idade;
+
+
+    // AMPI
+    if (p.idade >= 60) {
+        ampiBloco.style.display = "block";
+        ampiData.value = p.ampiData || "";
+        ampiPaciente.value = p.ampiClassif || "";
+        ampiObs.value = p.ampiObs || "";
+        ampiViolencia.checked = p.ampiViolencia || false;
+    }
+
+    // Condições Clínicas
+    hasSN.value = p.hasSN;
+    dmSN.value = p.dmSN;
+    gestanteSN.value = p.gestanteSN;
+    hansenSN.value = p.hansenSN;
+    tbSN.value = p.tbSN;
+
+    mostrarCard("cardHAS", p.hasSN);
+    mostrarCard("cardDM", p.dmSN);
+    mostrarCard("cardGestante", p.gestanteSN);
+    mostrarCard("cardHanseniase", p.hansenSN);
+    mostrarCard("cardTB", p.tbSN);
+
+/* ================= HAS ================= */
+hasPAS.value = p.hasPAS || "";
+hasPAD.value = p.hasPAD || "";
+hasUltimaConsulta.value = p.hasUltimaConsulta || "";
+
+hasFundoOD.value = p.hasFundoOD || "";
+hasFundoOE.value = p.hasFundoOE || "";
+
+classificarHAS();
+atualizarAvisoHAS();
+
+/* ================= DM ================= */
+dmHbA1c.value = p.dmHbA1c || "";
+dmMicro.value = p.dmMicro || "";
+dmPeDir.value = p.dmPeDir || "";
+dmPeEsq.value = p.dmPeEsq || "";
+dmPeObs.value = p.dmPeObs || "";
+
+dmAmpMID.checked = p.dmAmpMID || false;
+dmAmpMIE.checked = p.dmAmpMIE || false;
+
+dmFundoOD.value = p.dmFundoOD || "";
+dmFundoOE.value = p.dmFundoOE || "";
+dmFundoData.value = p.dmFundoData || "";
+dmUltimaConsulta.value = p.dmUltimaConsulta || "";
+classificarDM();
+atualizarAvisoDM();
+
+    /* Gestante */
+    gestG.value = p.gestG || "";
+    gestP.value = p.gestP || "";
+    gestA.value = p.gestA || "";
+    gestDUM.value = p.gestDUM || "";
+    gestIG.value = p.gestIG || "";
+    gestDPP.value = p.gestDPP || "";
+    gestPrimeiraConsulta.value = p.gestPrimeiraConsulta || "";
+    gestUltimaConsulta.value = p.gestUltimaConsulta || "";
+    gestTR1.value = p.gestTR1 || "";
+    gestTR2.value = p.gestTR2 || "";
+    gestTR3.value = p.gestTR3 || "";
+    gestEX1.value = p.gestEX1 || "";
+    gestEX2.value = p.gestEX2 || "";
+    gestEX3.value = p.gestEX3 || "";
+    gestUSG1.value = p.gestUSG1 || "";
+    gestUSGMorf.value = p.gestUSGMorf || "";
+    gestUSG3.value = p.gestUSG3 || "";
+
+// ================= HANSENÍASE =================
+hanMotora1.value  = p.hanMotora1  || "";
+hanVibratoria1.value = p.hanVibratoria1 || "";
+hanTermo1.value   = p.hanTermo1   || "";
+hanOutras1.value  = p.hanOutras1  || "";
+hanDataAvaliacao1.value = p.hanDataAvaliacao1 || "";
+
+hanMotora2.value  = p.hanMotora2  || "";
+hanVibratoria2.value = p.hanVibratoria2 || "";
+hanTermo2.value   = p.hanTermo2   || "";
+hanOutras2.value  = p.hanOutras2  || "";
+hanDataAvaliacao2.value = p.hanDataAvaliacao2 || "";
+
+hanMotora3.value  = p.hanMotora3  || "";
+hanVibratoria3.value = p.hanVibratoria3 || "";
+hanTermo3.value   = p.hanTermo3   || "";
+hanOutras3.value  = p.hanOutras3  || "";
+hanDataAvaliacao3.value = p.hanDataAvaliacao3 || "";
+
+hanMotora4.value  = p.hanMotora4  || "";
+hanVibratoria4.value = p.hanVibratoria4 || "";
+hanTermo4.value   = p.hanTermo4   || "";
+hanOutras4.value  = p.hanOutras4  || "";
+hanDataAvaliacao4.value = p.hanDataAvaliacao4 || "";
+
+hanMotora5.value  = p.hanMotora5  || "";
+hanVibratoria5.value = p.hanVibratoria5 || "";
+hanTermo5.value   = p.hanTermo5   || "";
+hanOutras5.value  = p.hanOutras5  || "";
+hanDataAvaliacao5.value = p.hanDataAvaliacao5 || "";
+
+hanMotora6.value  = p.hanMotora6  || "";
+hanVibratoria6.value = p.hanVibratoria6 || "";
+hanTermo6.value   = p.hanTermo6   || "";
+hanOutras6.value  = p.hanOutras6  || "";
+hanDataAvaliacao6.value = p.hanDataAvaliacao6 || "";
+
+hanMotora7.value  = p.hanMotora7  || "";
+hanVibratoria7.value = p.hanVibratoria7 || "";
+hanTermo7.value   = p.hanTermo7   || "";
+hanOutras7.value  = p.hanOutras7  || "";
+hanDataAvaliacao7.value = p.hanDataAvaliacao7 || "";
+
+hanMotora8.value  = p.hanMotora8  || "";
+hanVibratoria8.value = p.hanVibratoria8 || "";
+hanTermo8.value   = p.hanTermo8   || "";
+hanOutras8.value  = p.hanOutras8  || "";
+hanDataAvaliacao8.value = p.hanDataAvaliacao8 || "";
+
+hanMotora9.value  = p.hanMotora9  || "";
+hanVibratoria9.value = p.hanVibratoria9 || "";
+hanTermo9.value   = p.hanTermo9   || "";
+hanOutras9.value  = p.hanOutras9  || "";
+hanDataAvaliacao9.value = p.hanDataAvaliacao9 || "";
+
+hanMotora10.value = p.hanMotora10 || "";
+hanVibratoria10.value = p.hanVibratoria10 || "";
+hanTermo10.value  = p.hanTermo10  || "";
+hanOutras10.value = p.hanOutras10 || "";
+hanDataAvaliacao10.value = p.hanDataAvaliacao10 || "";
+
+hanMotora11.value = p.hanMotora11 || "";
+hanVibratoria11.value = p.hanVibratoria11 || "";
+hanTermo11.value  = p.hanTermo11  || "";
+hanOutras11.value = p.hanOutras11 || "";
+hanDataAvaliacao11.value = p.hanDataAvaliacao11 || "";
+
+hanMotora12.value = p.hanMotora12 || "";
+hanVibratoria12.value = p.hanVibratoria12 || "";
+hanTermo12.value  = p.hanTermo12  || "";
+hanOutras12.value = p.hanOutras12 || "";
+hanDataAvaliacao12.value = p.hanDataAvaliacao12 || "";
+
+// ================= TUBERCULOSE =================
+tbSintomas1.value = p.tbSintomas1 || "";
+tbBac1.value      = p.tbBac1 || "";
+tbRx1.value       = p.tbRx1 || "";
+tbDataControle1.value = p.tbDataControle1 || "";
+
+tbSintomas2.value = p.tbSintomas2 || "";
+tbBac2.value      = p.tbBac2 || "";
+tbRx2.value       = p.tbRx2 || "";
+tbDataControle2.value = p.tbDataControle2 || "";
+
+tbSintomas3.value = p.tbSintomas3 || "";
+tbBac3.value      = p.tbBac3 || "";
+tbRx3.value       = p.tbRx3 || "";
+tbDataControle3.value = p.tbDataControle3 || "";
+
+tbSintomas4.value = p.tbSintomas4 || "";
+tbBac4.value      = p.tbBac4 || "";
+tbRx4.value       = p.tbRx4 || "";
+tbDataControle4.value = p.tbDataControle4 || "";
+
+tbSintomas5.value = p.tbSintomas5 || "";
+tbBac5.value      = p.tbBac5 || "";
+tbRx5.value       = p.tbRx5 || "";
+tbDataControle5.value = p.tbDataControle5 || "";
+
+tbSintomas6.value = p.tbSintomas6 || "";
+tbBac6.value      = p.tbBac6 || "";
+tbRx6.value       = p.tbRx6 || "";
+tbDataControle6.value = p.tbDataControle6 || "";
+
+    /* Evoluções */
+    evolucoesTemp = p.evolucoes || [];
+    renderizarEvolucoes();
+}
+
+/* ============================================================
+   SALVAR PRONTUÁRIO COMPLETO
+============================================================ */
+function salvarProntuarioCompleto() {
+
+    const isEdicao = !!prontuarioEmEdicao;
+    const idAtual = prontuarioEmEdicao || crypto.randomUUID();
+
+    const dados = {
+        id: idAtual,
+
+        // Identificação
+        nome: nomePaciente.value,
+        cpf: cpfPaciente.value,
+        nasc: nascPaciente.value,
+        idade: idadePaciente.value,
+        end: endPaciente.value,
+        tel: telPaciente.value,
+        unidade: unidadePaciente.value,
+        obs: obsPaciente.value,
+
+        // AMPI
+        ampiData: ampiData.value,
+        ampiClassif: ampiPaciente.value,
+        ampiObs: ampiObs.value,
+        ampiViolencia: ampiViolencia.checked,
+
+        // Condições
+        hasSN: hasSN.value,
+        dmSN: dmSN.value,
+        gestanteSN: gestanteSN.value,
+        hansenSN: hansenSN.value,
+        tbSN: tbSN.value,
+
+        // HAS
+hasPAS: hasPAS.value,
+hasPAD: hasPAD.value,
+hasClassif: hasClassif.value,
+hasUltimaConsulta: hasUltimaConsulta.value,
+hasFundoOD: hasFundoOD.value,
+hasFundoOE: hasFundoOE.value,
+
+
+        // DM
+        dmHbA1c: dmHbA1c.value,
+        dmClassif: dmClassif.value,
+        dmMicro: dmMicro.value,
+        dmMicroCat: dmMicroCat.value,
+        dmPeDir: dmPeDir.value,
+        dmPeEsq: dmPeEsq.value,
+        dmPeObs: dmPeObs.value,
+dmAmpMID: dmAmpMID.checked,
+dmAmpMIE: dmAmpMIE.checked,
+dmFundoOD: dmFundoOD.value,
+dmFundoOE: dmFundoOE.value,
+dmFundoData: dmFundoData.value,
+dmUltimaConsulta: dmUltimaConsulta.value,
+
+        // Gestante
+        gestG: gestG.value,
+        gestP: gestP.value,
+        gestA: gestA.value,
+        gestDUM: gestDUM.value,
+        gestIG: gestIG.value,
+        gestDPP: gestDPP.value,
+        gestPrimeiraConsulta: gestPrimeiraConsulta.value,
+        gestUltimaConsulta: gestUltimaConsulta.value,
+        gestTR1: gestTR1.value,
+        gestTR2: gestTR2.value,
+        gestTR3: gestTR3.value,
+        gestEX1: gestEX1.value,
+        gestEX2: gestEX2.value,
+        gestEX3: gestEX3.value,
+        gestUSG1: gestUSG1.value,
+        gestUSGMorf: gestUSGMorf.value,
+        gestUSG3: gestUSG3.value,
+
+// Hanseníase
+hanMotora1: hanMotora1.value,
+hanVibratoria1: hanVibratoria1.value,
+hanTermo1: hanTermo1.value,
+hanOutras1: hanOutras1.value,
+hanDataAvaliacao1: hanDataAvaliacao1.value,
+
+hanMotora2: hanMotora2.value,
+hanVibratoria2: hanVibratoria2.value,
+hanTermo2: hanTermo2.value,
+hanOutras2: hanOutras2.value,
+hanDataAvaliacao2: hanDataAvaliacao2.value,
+
+hanMotora3: hanMotora3.value,
+hanVibratoria3: hanVibratoria3.value,
+hanTermo3: hanTermo3.value,
+hanOutras3: hanOutras3.value,
+hanDataAvaliacao3: hanDataAvaliacao3.value,
+
+hanMotora4: hanMotora4.value,
+hanVibratoria4: hanVibratoria4.value,
+hanTermo4: hanTermo4.value,
+hanOutras4: hanOutras4.value,
+hanDataAvaliacao4: hanDataAvaliacao4.value,
+
+hanMotora5: hanMotora5.value,
+hanVibratoria5: hanVibratoria5.value,
+hanTermo5: hanTermo5.value,
+hanOutras5: hanOutras5.value,
+hanDataAvaliacao5: hanDataAvaliacao5.value,
+
+hanMotora6: hanMotora6.value,
+hanVibratoria6: hanVibratoria6.value,
+hanTermo6: hanTermo6.value,
+hanOutras6: hanOutras6.value,
+hanDataAvaliacao6: hanDataAvaliacao6.value,
+
+hanMotora7: hanMotora7.value,
+hanVibratoria7: hanVibratoria7.value,
+hanTermo7: hanTermo7.value,
+hanOutras7: hanOutras7.value,
+hanDataAvaliacao7: hanDataAvaliacao7.value,
+
+hanMotora8: hanMotora8.value,
+hanVibratoria8: hanVibratoria8.value,
+hanTermo8: hanTermo8.value,
+hanOutras8: hanOutras8.value,
+hanDataAvaliacao8: hanDataAvaliacao8.value,
+
+hanMotora9: hanMotora9.value,
+hanVibratoria9: hanVibratoria9.value,
+hanTermo9: hanTermo9.value,
+hanOutras9: hanOutras9.value,
+hanDataAvaliacao9: hanDataAvaliacao9.value,
+
+hanMotora10: hanMotora10.value,
+hanVibratoria10: hanVibratoria10.value,
+hanTermo10: hanTermo10.value,
+hanOutras10: hanOutras10.value,
+hanDataAvaliacao10: hanDataAvaliacao10.value,
+
+hanMotora11: hanMotora11.value,
+hanVibratoria11: hanVibratoria11.value,
+hanTermo11: hanTermo11.value,
+hanOutras11: hanOutras11.value,
+hanDataAvaliacao11: hanDataAvaliacao11.value,
+
+hanMotora12: hanMotora12.value,
+hanVibratoria12: hanVibratoria12.value,
+hanTermo12: hanTermo12.value,
+hanOutras12: hanOutras12.value,
+hanDataAvaliacao12: hanDataAvaliacao12.value,
+
+// Tuberculose
+tbSintomas1: tbSintomas1.value,
+tbBac1: tbBac1.value,
+tbRx1: tbRx1.value,
+tbDataControle1: tbDataControle1.value,
+
+tbSintomas2: tbSintomas2.value,
+tbBac2: tbBac2.value,
+tbRx2: tbRx2.value,
+tbDataControle2: tbDataControle2.value,
+
+tbSintomas3: tbSintomas3.value,
+tbBac3: tbBac3.value,
+tbRx3: tbRx3.value,
+tbDataControle3: tbDataControle3.value,
+
+tbSintomas4: tbSintomas4.value,
+tbBac4: tbBac4.value,
+tbRx4: tbRx4.value,
+tbDataControle4: tbDataControle4.value,
+
+tbSintomas5: tbSintomas5.value,
+tbBac5: tbBac5.value,
+tbRx5: tbRx5.value,
+tbDataControle5: tbDataControle5.value,
+
+tbSintomas6: tbSintomas6.value,
+tbBac6: tbBac6.value,
+tbRx6: tbRx6.value,
+tbDataControle6: tbDataControle6.value,
+
+        // Evoluções
+        evolucoes: evolucoesTemp
+    };
+
+let banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const idx = banco.findIndex(p => p.id === idAtual);
+
+    if (idx >= 0) {
+        banco[idx] = dados; // edição
+    } else {
+        banco.push(dados); // novo cadastro
+    }
+
+    localStorage.setItem("prontuarios", JSON.stringify(banco));
+
+
+    registrarAuditoria(
+        isEdicao ? "Atualizar prontuário" : "Cadastrar prontuário",
+        dados.nome || "Paciente sem nome"
+    );
+
+    alert(
+        isEdicao
+            ? "Prontuário atualizado com sucesso!"
+            : "Prontuário cadastrado com sucesso!"
+    );
+
+    if (!isEdicao) {
+        limparFormularioProntuario();   // volta ao modo novo
+        prontuarioEmEdicao = null;
+    } else {
+        prontuarioEmEdicao = idAtual;   // mantém edição ativa
+    }
+
+    atualizarDashboardInicio();
+    verificarAlertas();
+}
+
+
+/* ============================================================
+   MACHINE LEARNING — CÁLCULO DE RISCO GLOBAL
+============================================================ */
+function avaliarRiscoML(p) {
+
+    let pontos = 0;
+    let fatores = [];
+
+    /* HAS */
+/* HAS */
+if (p.hasSN === "Sim") {
+
+    if (p.hasClassif === "Normal-Alta") {
+        pontos += 5;
+        fatores.push("Pressão Normal-Alta");
+    }
+
+    if (p.hasClassif === "HAS Estágio 1") {
+        pontos += 10;
+        fatores.push("HAS Estágio 1");
+    }
+
+    if (p.hasClassif === "HAS Estágio 2") {
+        pontos += 20;
+        fatores.push("HAS Estágio 2");
+    }
+
+    if (p.hasClassif === "HAS Estágio 3") {
+        pontos += 40;
+        fatores.push("HAS Estágio 3");
+    }
+
+    if (p.hasUltimaConsulta && mesesDesde(p.hasUltimaConsulta) > 6) {
+        fatores.push("HAS sem acompanhamento > 6 meses");
+    }
+}
+
+
+    /* DM */
+    if (p.dmSN === "Sim") {
+        const h = parseFloat(p.dmHbA1c || 0);
+
+        if (h >= 5.7 && h <= 6.3) { pontos += 5; fatores.push("Pré-diabetes"); }
+        if (h >= 6.4 && h <= 7.2) { pontos += 10; fatores.push("Glicemia controlada"); }
+        if (h >= 7.3 && h <= 8.0) { pontos += 15; fatores.push("DM elevada"); }
+        if (h > 8.0) { pontos += 30; fatores.push("DM crítica"); }
+
+        if (p.dmMicroCat === "Microalbuminúria")
+            fatores.push("Microalbuminúria");
+
+        if (p.dmMicroCat === "Proteinúria")
+            fatores.push("Proteinúria (risco alto)");
+
+        if (p.dmUltimaConsulta && mesesDesde(p.dmUltimaConsulta) > 6)
+            fatores.push("DM sem acompanhamento há >6 meses");
+    }
+
+    /* Gestante */
+    if (p.gestanteSN === "Sim") {
+        pontos += 15;
+        fatores.push("Gestante — atenção prioritária");
+    }
+
+    // Score limitado
+    pontos = Math.min(pontos, 100);
+
+    return { score: pontos, fatores };
+}
+
+/* ============================================================
+   RECOMENDAÇÕES DE ENFERMAGEM (ML)
+============================================================ */
+function gerarRecomendacoesML(p) {
+
+    let r = [];
+
+    /* =========================================================
+       CONDIÇÕES CLÍNICAS
+    ========================================================= */
+
+    if (p.hasSN === "Sim") {
+        r.push("Reforçar adesão ao tratamento anti-hipertensivo.");
+        r.push("Orientar redução de sal e hábitos de vida saudáveis.");
+        r.push("Educar sobre sinais de alarme: cefaleia intensa, tontura, dor torácica.");
+    }
+
+    if (p.dmSN === "Sim") {
+        r.push("Orientar automonitorização glicêmica quando indicada.");
+        r.push("Reforçar cuidados com os pés e inspeção diária.");
+        r.push("Educar sobre sinais de hipo e hiperglicemia.");
+    }
+
+    if (p.gestanteSN === "Sim") {
+        r.push("Garantir acompanhamento pré-natal regular.");
+        r.push("Orientar sinais de alerta gestacional.");
+        r.push("Reforçar vínculo com a equipe e plano de parto.");
+    }
+
+    if (p.hansenSN === "Sim") {
+        r.push("Monitorar reações hansênicas e alterações neurológicas.");
+        r.push("Orientar autocuidado para prevenção de incapacidades.");
+        r.push("Reforçar adesão ao tratamento.");
+    }
+
+    if (p.tbSN === "Sim") {
+        r.push("Reforçar adesão rigorosa ao tratamento.");
+        r.push("Orientar prevenção da transmissão.");
+        r.push("Acompanhar baciloscopia e sinais de agravamento.");
+    }
+
+    /* =========================================================
+       RISCO GLOBAL (ML)
+    ========================================================= */
+
+    if (typeof avaliarRiscoML === "function") {
+        const { score } = avaliarRiscoML(p);
+
+        if (score >= 70) {
+            r.push("Priorizar acompanhamento intensivo e visitas domiciliares.");
+            r.push("Articular cuidado com equipe multiprofissional.");
+        } else if (score >= 40) {
+            r.push("Manter acompanhamento regular e reavaliação periódica.");
+        }
+    }
+
+    /* =========================================================
+       FALLBACK
+    ========================================================= */
+
+    if (!r.length) {
+        r.push("Manter acompanhamento conforme rotina da unidade.");
+    }
+
+    /* Remove duplicados */
+    r = [...new Set(r)];
+
+    return "<ul>" + r.map(x => `<li>${x}</li>`).join("") + "</ul>";
+}
+
+function gerarRecomendacoesMLArray(p) {
+
+    let r = [];
+
+    if (p.hasSN === "Sim") {
+        r.push(
+            "Reforçar adesão ao tratamento anti-hipertensivo",
+            "Orientar redução de sal e atividade física",
+            "Educar sobre sinais de alarme cardiovasculares"
+        );
+    }
+
+    if (p.dmSN === "Sim") {
+        r.push(
+            "Orientar automonitorização glicêmica",
+            "Reforçar cuidados com os pés",
+            "Educar sobre hipo e hiperglicemia"
+        );
+    }
+
+    if (p.gestanteSN === "Sim") {
+        r.push(
+            "Garantir pré-natal regular",
+            "Orientar sinais de alerta gestacional",
+            "Reforçar plano de parto"
+        );
+    }
+
+    if (p.hansenSN === "Sim") {
+        r.push(
+            "Monitorar reações hansênicas",
+            "Orientar autocuidado e prevenção de incapacidades"
+        );
+    }
+
+    if (p.tbSN === "Sim") {
+        r.push(
+            "Reforçar adesão ao tratamento",
+            "Orientar prevenção da transmissão"
+        );
+    }
+
+    const { score } = avaliarRiscoML(p);
+    if (score >= 70) {
+        r.push(
+            "Priorizar acompanhamento intensivo",
+            "Avaliar necessidade de visita domiciliar"
+        );
+    }
+
+    return [...new Set(r)];
+}
+
+function gerarPDFCartilhaOrientacoes(pacienteId) {
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const p = banco.find(x => x.id === pacienteId);
+    if (!p) {
+        alert("Paciente não encontrado.");
+        return;
+    }
+
+    const orientacoes = gerarRecomendacoesMLArray(p);
+
+    if (!orientacoes.length) {
+        alert("Nenhuma orientação disponível.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+
+    /* =========================================================
+       CAPA
+    ========================================================= */
+    doc.setFontSize(18);
+    doc.text("Cartilha de Orientações de Enfermagem", 105, 30, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.text(`Paciente: ${p.nome}`, 20, 50);
+    if (p.nasc) {
+        doc.text(`Data de nascimento: ${p.nasc.split("-").reverse().join("/")}`, 20, 58);
+    }
+
+    doc.text(`Data de emissão: ${new Date().toLocaleDateString()}`, 20, 70);
+
+    doc.addPage();
+
+    /* =========================================================
+       CONTEÚDO
+    ========================================================= */
+    doc.setFontSize(14);
+    doc.text("Cuidados Importantes para sua Saúde", 20, 20);
+
+    let y = 35;
+    doc.setFontSize(11);
+
+    orientacoes.forEach((o, index) => {
+
+        const linhas = doc.splitTextToSize(`• ${o}`, 170);
+        doc.text(linhas, 20, y);
+        y += linhas.length * 6 + 4;
+
+        if (y > 270) {
+            doc.addPage();
+            y = 20;
+        }
+    });
+
+    /* =========================================================
+       RODAPÉ
+    ========================================================= */
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.text(
+            "Este material não substitui a orientação presencial da equipe de saúde.",
+            105,
+            290,
+            { align: "center" }
+        );
+    }
+
+    doc.save(`Cartilha_Orientacoes_${p.nome}.pdf`);
+}
+
+
+/* ============================================================
+   LINHAS DE CUIDADO — BUSCAR PACIENTE
+============================================================ */
+let pacienteMLAtual = null;
+
+function buscarLinhasCuidado() {
+
+    const termo = buscaLinhas.value.toLowerCase().trim();
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    const result = document.getElementById("linhasResultado");
+    const cardML = document.getElementById("mlCard");
+    const btnPDF = document.getElementById("btnGerarCartilha");
+
+    /* =========================================================
+       SEM BUSCA → POPULACIONAL
+    ========================================================= */
+    if (!termo) {
+        result.innerHTML = "";
+        cardML.style.display = "none";
+        btnPDF.style.display = "none";
+        pacienteMLAtual = null;
+
+        gerarGraficosLinhas(); // sempre do banco
+        return;
+    }
+
+    /* =========================================================
+       BUSCA
+    ========================================================= */
+    const encontrados = banco.filter(p =>
+        p.nome?.toLowerCase().includes(termo) ||
+        p.cpf?.includes(termo)
+    );
+
+    if (encontrados.length === 0) {
+        result.innerHTML = "<em>Paciente não encontrado.</em>";
+        cardML.style.display = "none";
+        btnPDF.style.display = "none";
+        pacienteMLAtual = null;
+        return;
+    }
+
+    /* =========================================================
+       MÚLTIPLOS PACIENTES → POPULACIONAL FILTRADO
+    ========================================================= */
+    if (encontrados.length > 1) {
+        result.innerHTML = `<em>${encontrados.length} pacientes encontrados.</em>`;
+        cardML.style.display = "none";
+        btnPDF.style.display = "none";
+        pacienteMLAtual = null;
+
+        gerarGraficosLinhas(encontrados); // se quiser manter esse modo
+        return;
+    }
+
+    /* =========================================================
+       👤 PACIENTE ÚNICO
+    ========================================================= */
+    const p = encontrados[0];
+
+    result.innerHTML = `
+        <strong>${p.nome}</strong><br>
+        CPF: ${p.cpf || "—"}<br>
+        Último atendimento: ${
+            p.evolucoes?.length
+                ? p.evolucoes[p.evolucoes.length - 1].data
+                : "—"
+        }
+    `;
+
+    /* =========================================================
+       GRÁFICOS INDIVIDUAIS
+    ========================================================= */
+    gerarGraficosLinhas([p]); // mantém seu padrão atual
+
+    /* =========================================================
+       🤖 MACHINE LEARNING
+    ========================================================= */
+    const { score, fatores } = avaliarRiscoML(p);
+
+    mlRisco.innerHTML = `<strong>Risco Global:</strong> ${score}%`;
+    mlRisco.style.background =
+        score < 20 ? "#dcfce7" :
+        score < 40 ? "#fef9c3" :
+        score < 70 ? "#ffedd5" :
+        "#fee2e2";
+
+    mlFatores.innerHTML =
+        fatores.length
+            ? "<strong>Fatores:</strong><ul>" +
+              fatores.map(f => `<li>${f}</li>`).join("") +
+              "</ul>"
+            : "<em>Nenhum fator significativo.</em>";
+
+    mlRecomendacoes.innerHTML =
+        "<strong>Orientações de Enfermagem:</strong>" +
+        gerarRecomendacoesML(p);
+
+    /* =========================================================
+       📘 PDF — CARTILHA
+    ========================================================= */
+    pacienteMLAtual = p.id;
+    btnPDF.style.display = "inline-block";
+    btnPDF.onclick = () => gerarPDFCartilhaOrientacoes(pacienteMLAtual);
+
+    cardML.style.display = "block";
+}
+
+/* ============================================================
+   Função Logout
+============================================================ */
+function logout() {
+
+    registrarAuditoria("Logout", "");
+
+    localStorage.removeItem("usuarioLogado");
+
+    document.getElementById("app").style.display = "none";
+
+    const login = document.getElementById("loginScreen");
+    login.style.display = "flex";   // 👈 importante
+    login.style.alignItems = "center";
+    login.style.justifyContent = "center";
+
+    loginUser.value = "";
+    loginPass.value = "";
+}
+
+/* ============================================================
+   GRÁFICOS DO DASHBOARD
+============================================================ */
+function gerarGraficosLinhas(bancoParam) {
+
+    const banco =
+        Array.isArray(bancoParam)
+            ? bancoParam
+            : JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    if (!Array.isArray(banco) || banco.length === 0) return;
+    if (typeof Chart === "undefined") return;
+
+    /* =========================================================
+       FUNÇÃO AUXILIAR SEGURA
+    ========================================================= */
+    function ctx(id) {
+        const el = document.getElementById(id);
+        return el ? el.getContext("2d") : null;
+    }
+
+    /* =========================================================
+       ACUMULADORES
+    ========================================================= */
+
+    let riscos = [];
+
+    let condicoes = {
+        HAS: 0,
+        DM: 0,
+        Gestante: 0,
+        Hanseniase: 0,
+        Tuberculose: 0
+    };
+
+    let atrasos = { HAS: 0, DM: 0 };
+
+    let faixasEtarias = {
+        "0–17": 0,
+        "18–39": 0,
+        "40–59": 0,
+        "60+": 0
+    };
+
+    let multimorbidade = {
+        "1 condição": 0,
+        "2 condições": 0,
+        "3 ou mais": 0
+    };
+
+    /* =========================================================
+       PROCESSAMENTO
+    ========================================================= */
+
+    banco.forEach(p => {
+
+        if (!p || typeof p !== "object") return;
+
+        if (typeof avaliarRiscoML === "function") {
+            const r = avaliarRiscoML(p);
+            if (r && typeof r.score === "number") {
+                riscos.push(r.score);
+            }
+        }
+
+        let totalCond = 0;
+
+        if (p.hasSN === "Sim") {
+            condicoes.HAS++;
+            totalCond++;
+            if (p.hasUltimaConsulta && mesesDesde(p.hasUltimaConsulta) > 6)
+                atrasos.HAS++;
+        }
+
+        if (p.dmSN === "Sim") {
+            condicoes.DM++;
+            totalCond++;
+            if (p.dmUltimaConsulta && mesesDesde(p.dmUltimaConsulta) > 6)
+                atrasos.DM++;
+        }
+
+        if (p.gestanteSN === "Sim") {
+            condicoes.Gestante++;
+            totalCond++;
+        }
+
+        if (p.hansenSN === "Sim") {
+            condicoes.Hanseniase++;
+            totalCond++;
+        }
+
+        if (p.tbSN === "Sim") {
+            condicoes.Tuberculose++;
+            totalCond++;
+        }
+
+        if (totalCond === 1) multimorbidade["1 condição"]++;
+        else if (totalCond === 2) multimorbidade["2 condições"]++;
+        else if (totalCond >= 3) multimorbidade["3 ou mais"]++;
+
+        const idade = Number(p.idade);
+        if (!isNaN(idade)) {
+            if (idade < 18) faixasEtarias["0–17"]++;
+            else if (idade < 40) faixasEtarias["18–39"]++;
+            else if (idade < 60) faixasEtarias["40–59"]++;
+            else faixasEtarias["60+"]++;
+        }
+    });
+
+    /* =========================================================
+       GRÁFICOS
+    ========================================================= */
+
+    if (ctx("graficoRisco")) {
+        if (window.chartRisco) window.chartRisco.destroy();
+        window.chartRisco = new Chart(ctx("graficoRisco"), {
+            type: "bar",
+            data: {
+                labels: riscos.map((_, i) => `Paciente ${i + 1}`),
+                datasets: [{ label: "Risco (%)", data: riscos }]
+            }
+        });
+    }
+
+    if (ctx("graficoCondicoes")) {
+        if (window.chartCondicoes) window.chartCondicoes.destroy();
+        window.chartCondicoes = new Chart(ctx("graficoCondicoes"), {
+            type: "pie",
+            data: {
+                labels: Object.keys(condicoes),
+                datasets: [{ data: Object.values(condicoes) }]
+            }
+        });
+    }
+
+    if (ctx("graficoAtrasos")) {
+        if (window.chartAtrasos) window.chartAtrasos.destroy();
+        window.chartAtrasos = new Chart(ctx("graficoAtrasos"), {
+            type: "bar",
+            data: {
+                labels: ["HAS", "DM"],
+                datasets: [{
+                    label: "Consultas em atraso",
+                    data: [atrasos.HAS, atrasos.DM]
+                }]
+            }
+        });
+    }
+
+    if (ctx("graficoIdade")) {
+        if (window.chartIdade) window.chartIdade.destroy();
+        window.chartIdade = new Chart(ctx("graficoIdade"), {
+            type: "doughnut",
+            data: {
+                labels: Object.keys(faixasEtarias),
+                datasets: [{ data: Object.values(faixasEtarias) }]
+            }
+        });
+    }
+
+    if (ctx("graficoMultimorbidade")) {
+        if (window.chartMulti) window.chartMulti.destroy();
+        window.chartMulti = new Chart(ctx("graficoMultimorbidade"), {
+            type: "pie",
+            data: {
+                labels: Object.keys(multimorbidade),
+                datasets: [{ data: Object.values(multimorbidade) }]
+            }
+        });
+    }
+}
+
+
+function inicializarLinhasCuidado() {
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    const input = document.getElementById("buscaLinhas");
+    if (input) input.value = "";
+
+    const linhasResultado = document.getElementById("linhasResultado");
+    if (linhasResultado) linhasResultado.innerHTML = "";
+
+    const mlCard = document.getElementById("mlCard");
+    if (mlCard) mlCard.style.display = "none";
+
+    // 🔑 só gera gráficos se os canvases existirem
+    setTimeout(() => {
+        if (
+            document.getElementById("graficoRisco") ||
+            document.getElementById("graficoCondicoes")
+        ) {
+            gerarGraficosLinhas(banco);
+        }
+    }, 100);
+}
+
+function carregarRelatoriosLinhas() {
+
+    const container = document.getElementById("relatoriosLinhas");
+    if (!container) return;
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    if (!banco.length) {
+        container.innerHTML = "<em>Nenhum dado populacional disponível.</em>";
+        return;
+    }
+
+    let html = `
+        <h3>📊 Relatórios Populacionais — Linhas de Cuidado</h3>
+    `;
+
+    /* ================= HAS ================= */
+    const grupoHAS = banco.filter(p => p.hasSN === "Sim");
+    if (grupoHAS.length) {
+        html += `
+            <div class="linha-bloco">
+                <h4>🩺 Hipertensão Arterial Sistêmica</h4>
+                ${resumoHAS_Unidimensional(grupoHAS)}
+                ${resumoHAS_Cruzado(grupoHAS, banco)}
+            </div>
+        `;
+    }
+
+    /* ================= DM ================= */
+    const grupoDM = banco.filter(p => p.dmSN === "Sim");
+    if (grupoDM.length) {
+        html += `
+            <div class="linha-bloco">
+                <h4>🍬 Diabetes Mellitus</h4>
+                ${resumoDM_Unidimensional(grupoDM)}
+                ${resumoDM_Cruzado(grupoDM, banco)}
+            </div>
+        `;
+    }
+
+    /* ================= GESTANTE ================= */
+    const grupoGest = banco.filter(p => p.gestanteSN === "Sim");
+    if (grupoGest.length) {
+        html += `
+            <div class="linha-bloco">
+                <h4>🤰 Gestantes</h4>
+                ${resumoGestante_Unidimensional(grupoGest)}
+                ${resumoGestante_Cruzado(grupoGest, banco)}
+            </div>
+        `;
+    }
+
+    /* ================= TB ================= */
+    const grupoTB = banco.filter(p => p.tbSN === "Sim");
+    if (grupoTB.length) {
+        html += `
+            <div class="linha-bloco">
+                <h4>🫁 Tuberculose</h4>
+                ${resumoTB_Unidimensional(grupoTB)}
+                ${resumoTB_Cruzado(grupoTB, banco)}
+            </div>
+        `;
+    }
+
+    /* ================= HANSENÍASE ================= */
+    const grupoHans = banco.filter(p => p.hansenSN === "Sim");
+    if (grupoHans.length) {
+        html += `
+            <div class="linha-bloco">
+                <h4>🦠 Hanseníase</h4>
+                ${resumoHans_Unidimensional(grupoHans)}
+                ${resumoHans_Cruzado(grupoHans, banco)}
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+
+/* ============================================================
+   VARIÁVEIS GERAIS
+============================================================ */
+let prontuarioEmEdicao = null;
+let evolucoesTemp = [];
+
+/* ============================================================
+   LISTAR BANCO DE DADOS
+============================================================ */
+function listarBanco() {
+
+    const tabela = document.getElementById("listaBanco");
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    if (!banco.length) {
+        tabela.innerHTML = "<em>Nenhum prontuário cadastrado.</em>";
+        return;
+    }
+
+    let html = `
+        <table>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Último atendimento</th>
+                <th>Ações</th>
+            </tr>
+    `;
+
+    banco.forEach(p => {
+        const ult = p.evolucoes?.length
+            ? p.evolucoes[p.evolucoes.length - 1].data
+            : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome}</td>
+                <td>${p.cpf}</td>
+                <td>${ult}</td>
+                <td>
+                    <button onclick="editarProntuario('${p.id}')">Abrir</button>
+                    <button style="background:#b91c1c;"
+                        onclick="excluirProntuario('${p.id}')">Excluir</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+    tabela.innerHTML = html;
+}
+
+
+/* ============================================================
+   BANCO DE DADOS — BUSCAR (NOME OU CPF)
+============================================================ */
+function buscarBanco() {
+
+    const termo = document.getElementById("buscaBanco").value
+        .toLowerCase()
+        .trim();
+
+    const tabela = document.getElementById("listaBanco");
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    // Se não tiver nada digitado → mostra tudo
+    if (!termo) {
+        listarBanco();
+        return;
+    }
+
+    const filtro = banco.filter(p => {
+
+        const nome = (p.nome || "").toLowerCase();
+        const cpf = (p.cpf || "").replace(/\D/g, "");
+
+        // Se o usuário digitar número, filtra CPF também
+        const termoNumerico = termo.replace(/\D/g, "");
+
+        const matchNome = nome.includes(termo);
+        const matchCPF = termoNumerico && cpf.includes(termoNumerico);
+
+        return matchNome || matchCPF;
+    });
+
+    if (!filtro.length) {
+        tabela.innerHTML = "<em>Nenhum prontuário encontrado.</em>";
+        return;
+    }
+
+    let html = `
+        <table>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Último atendimento</th>
+                <th>Ações</th>
+            </tr>
+    `;
+
+    filtro.forEach(p => {
+
+        const ult = p.evolucoes?.length
+            ? p.evolucoes[p.evolucoes.length - 1].data
+            : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome || "—"}</td>
+                <td>${p.cpf || "—"}</td>
+                <td>${ult}</td>
+                <td>
+                    <button onclick="editarProntuario('${p.id}')">Abrir</button>
+                    <button style="background:#b91c1c;"
+                        onclick="excluirProntuario('${p.id}')">Excluir</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+    tabela.innerHTML = html;
+}
+
+/* ============================================================
+   BUSCA POR NOME OU CPF
+============================================================ */
+function buscarInicio() {
+
+    const termoNome = buscaNomeInicio.value.toLowerCase().trim();
+    const termoCPF = buscaCPFInicio.value.replace(/\D/g, "").trim();
+
+    const tabela = document.getElementById("resultadoInicio");
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    /* 🔁 SEM BUSCA */
+    if (!termoNome && !termoCPF) {
+        tabela.innerHTML = "<em>Digite um nome ou CPF para iniciar a busca. Clique nos Cards abaixo para puxar os relatórios da linha de cuidados.</em>";
+        return;
+    }
+
+    /* 🔎 FILTRO REAL */
+    const filtro = banco.filter(p => {
+
+        const nome = (p.nome || "").toLowerCase();
+        const cpf = (p.cpf || "").replace(/\D/g, "");
+
+        const matchNome = termoNome && nome.includes(termoNome);
+        const matchCPF = termoCPF && cpf.includes(termoCPF);
+
+        return matchNome || matchCPF;
+    });
+
+    if (!filtro.length) {
+        tabela.innerHTML = "<em>Prontuário não encontrado.</em>";
+        return;
+    }
+
+    /* 📋 TABELA */
+    let html = `
+        <table>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Última evolução</th>
+                <th>Ações</th>
+            </tr>
+    `;
+
+    filtro.forEach(p => {
+
+        const ult =
+            p.evolucoes?.length
+                ? p.evolucoes[p.evolucoes.length - 1].data
+                : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome || "—"}</td>
+                <td>${p.cpf || "—"}</td>
+                <td>${ult}</td>
+                <td>
+                    <button class="btn-primary"
+                            onclick="editarProntuario('${p.id}')">
+                        Abrir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+    tabela.innerHTML = html;
+}
+
+/* ============================================================
+   EDITAR PRONTUÁRIO
+============================================================ */
+function editarProntuario(id) {
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const p = banco.find(x => x.id === id);
+
+    if (!p) {
+        alert("Prontuário não encontrado.");
+        return;
+    }
+
+    prontuarioEmEdicao = id;
+
+    navigate("prontuario");
+
+    carregarProntuarioNaTela(p);
+}
+
+/* ============================================================
+   EXCLUIR PRONTUÁRIO
+============================================================ */
+function excluirProntuario(id) {
+
+if (!confirm("Deseja excluir este prontuário?")) return;
+
+registrarAuditoria("Excluir prontuário", id);
+
+let banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+banco = banco.filter(x => x.id !== id);
+
+localStorage.setItem("prontuarios", JSON.stringify(banco));
+
+    listarBanco();
+    buscarInicio();
+
+    alert("Prontuário excluído.");
+}
+
+/* ============================================================
+   LISTAR REUNIÕES
+============================================================ */
+
+// ============================================================
+// ATA DA REUNIÃO — ESTRUTURADA POR MOMENTOS (APS)
+// ============================================================
+
+// Estrutura da ata em memória
+let ataAPS = {
+  "1": [],
+  "2": [],
+  "3": [],
+  "4": [],
+  "4.1": [],
+  "4.2": [],
+  "4.3": [],
+  "4.4": [],
+  "5": [],
+  "6": [],
+  "7": [],
+  "8": [],
+  "9": []
+};
+
+// Títulos oficiais
+const tituloMomento = {
+  "1": "1) Acolhimento rápido e objetivo do encontro",
+  "2": "2) Informes gerais e alinhamentos",
+  "3": "3) Indicadores do território e “visão de painel”",
+  "4": "4) Discussão de casos complexos",
+  "4.1": "4.1 Apresentação rápida do caso",
+  "4.2": "4.2 O que está difícil?",
+  "4.3": "4.3 Plano compartilhado",
+  "4.4": "4.4 Responsáveis + prazo",
+  "5": "5) Matriciamento e apoio multiprofissional",
+  "6": "6) Segurança do paciente e riscos",
+  "7": "7) Planejamento da semana",
+  "8": "8) Pendências e devolutivas",
+  "9": "9) Encaminhamentos finais e ata"
+};
+
+function adicionarMomentoNaAta() {
+  const sel = document.getElementById("momentoReuniao");
+  const txt = document.getElementById("textoMomento");
+
+  if (!sel || !txt) return;
+
+  const chave = sel.value;
+  const conteudo = (txt.value || "").trim();
+
+  if (!chave) {
+    alert("Selecione um momento da reunião.");
+    return;
+  }
+
+  if (!conteudo) {
+    alert("Digite o conteúdo do tópico antes de adicionar.");
+    return;
+  }
+
+  // adiciona com data/hora (opcional, mas bom)
+  const registro = {
+    texto: conteudo,
+    criadoEm: new Date().toLocaleString()
+  };
+
+  if (!ataAPS[chave]) ataAPS[chave] = [];
+  ataAPS[chave].push(registro);
+
+  // limpa campo
+  txt.value = "";
+
+  // atualiza a ata na tela
+  renderizarAtaAPS();
+}
+
+function limparCampoMomento() {
+  const txt = document.getElementById("textoMomento");
+  if (txt) txt.value = "";
+}
+
+function resetarAtaReuniao() {
+  if (!confirm("Deseja reiniciar a ata em construção?")) return;
+
+  ataAPS = {
+    "1": [],
+    "2": [],
+    "3": [],
+    "4": [],
+    "4.1": [],
+    "4.2": [],
+    "4.3": [],
+    "4.4": [],
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": []
+  };
+
+  renderizarAtaAPS();
+}
+
+function removerItemAta(chave, index) {
+  if (!ataAPS[chave]) return;
+  ataAPS[chave].splice(index, 1);
+  renderizarAtaAPS();
+}
+
+function renderizarAtaAPS() {
+  const box = document.getElementById("ataConstruida");
+  if (!box) return;
+
+  // Ordem que você pediu
+  const ordem = ["1", "2", "3", "4", "4.1", "4.2", "4.3", "4.4", "5", "6", "7", "8", "9"];
+
+  let html = "";
+
+  ordem.forEach(chave => {
+    const itens = ataAPS[chave] || [];
+
+    // Sempre mostra o bloco (mesmo vazio) para ficar com “cara de ata”
+    html += `
+      <div style="margin-top:14px;">
+        <h4 style="margin-bottom:6px;">${tituloMomento[chave]}</h4>
+        ${itens.length === 0
+          ? `<div style="opacity:0.7;"><em>Sem registro.</em></div>`
+          : `<ul style="margin-left:18px;">${
+              itens.map((it, idx) => `
+                <li style="margin-bottom:8px;">
+                  <div>${escapeHtml(it.texto).replace(/\n/g, "<br>")}</div>
+                  <small style="opacity:0.7;">Registrado em: ${it.criadoEm}</small><br>
+                  <button class="btn-secondary" style="margin-top:6px;"
+                    onclick="removerItemAta('${chave}', ${idx})">
+                    Remover
+                  </button>
+                </li>
+              `).join("")
+            }</ul>`
+        }
+      </div>
+    `;
+  });
+
+  box.innerHTML = html;
+}
+
+function copiarAtaParaCampo() {
+  const campoFinal = document.getElementById("ataTexto");
+  if (!campoFinal) {
+    alert("Campo final da ata não encontrado (id='ataTexto').");
+    return;
+  }
+
+  // Monta texto final “limpo”
+  const ordem = ["1", "2", "3", "4", "4.1", "4.2", "4.3", "4.4", "5", "6", "7", "8", "9"];
+
+  let texto = "ATA DA REUNIÃO DE EQUIPE APS\n\n";
+
+  ordem.forEach(chave => {
+    texto += `${tituloMomento[chave]}\n`;
+
+    const itens = ataAPS[chave] || [];
+    if (!itens.length) {
+      texto += "- (sem registro)\n\n";
+      return;
+    }
+
+    itens.forEach((it, idx) => {
+      texto += `- ${it.texto}\n`;
+    });
+
+    texto += "\n";
+  });
+
+  campoFinal.value = texto.trim() + "\n";
+  campoFinal.focus();
+}
+
+// Proteção simples contra HTML (segurança do innerHTML)
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function listarReunioes() {
+
+    const div = document.getElementById("listaReunioes");
+    const reunioes = JSON.parse(localStorage.getItem("reunioes")) || [];
+
+    if (!reunioes.length) {
+        div.innerHTML = "<em>Nenhuma reunião registrada.</em>";
+        return;
+    }
+
+    let html = "";
+
+    reunioes
+        .map((r, index) => ({ r, index })) // mantém índice real
+        .reverse()
+        .forEach(({ r, index }) => {
+
+            html += `
+                <div class="card">
+                    <strong>${new Date(r.data).toLocaleDateString()}</strong>
+
+                    <div class="acoes-card">
+                        <button class="btn-acao btn-visualizar"
+                            onclick="visualizarReuniao(${index})">
+                            👁 Visualizar
+                        </button>
+
+                        <button class="btn-acao btn-imprimir"
+                            onclick="imprimirReuniao(${index})">
+                            🖨 Imprimir
+                        </button>
+
+                        <button class="btn-acao btn-excluir"
+                            onclick="excluirReuniao(${index})">
+                            🗑 Excluir
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+    div.innerHTML = html;
+}
+
+
+let reuniaoAtual = {
+    data: new Date().toISOString(),
+    topicos: []
+};
+
+function adicionarTopico() {
+
+    const titulo = document.getElementById("topicoTitulo").value.trim();
+    const descricao = document.getElementById("topicoDescricao").value.trim();
+
+    if (!titulo || !descricao) {
+        alert("Preencha o título e a descrição do tópico.");
+        return;
+    }
+
+    reuniaoAtual.topicos.push({
+        titulo,
+        descricao
+    });
+
+    document.getElementById("topicoTitulo").value = "";
+    document.getElementById("topicoDescricao").value = "";
+
+    renderizarAta();
+}
+
+function renderizarAta() {
+
+    const div = document.getElementById("ataEmConstrucao");
+
+    if (!reuniaoAtual.topicos.length) {
+        div.innerHTML = "<em>Nenhum tópico adicionado.</em>";
+        return;
+    }
+
+    let html = "";
+
+    reuniaoAtual.topicos.forEach((t, i) => {
+        html += `
+            <div class="ata-topico">
+                <h4>${i + 1}. ${t.titulo}</h4>
+                <p>${t.descricao}</p>
+            </div>
+        `;
+    });
+
+    div.innerHTML = html;
+
+    // 🔽 rolar para baixo automaticamente
+    div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function salvarReuniao() {
+
+    if (!reuniaoAtual.topicos.length) {
+        alert("Nenhum tópico foi adicionado.");
+        return;
+    }
+
+    const reunioes = JSON.parse(localStorage.getItem("reunioes")) || [];
+    reunioes.push(reuniaoAtual);
+
+    localStorage.setItem("reunioes", JSON.stringify(reunioes));
+
+    reuniaoAtual = {
+        data: new Date().toISOString(),
+        topicos: []
+    };
+
+    renderizarAta();
+    listarReunioes();
+
+    alert("Reunião salva com sucesso!");
+}
+
+function visualizarReuniao(index) {
+
+    const reunioes = JSON.parse(localStorage.getItem("reunioes")) || [];
+    const r = reunioes[index];
+    if (!r) return;
+
+    reuniaoAtual = r;
+    renderizarAta();
+}
+
+function imprimirReuniao(index) {
+
+    const reunioes = JSON.parse(localStorage.getItem("reunioes")) || [];
+    const r = reunioes[index];
+    if (!r) return;
+
+    let texto = `ATA DA REUNIÃO\nData: ${new Date(r.data).toLocaleDateString()}\n\n`;
+
+    r.topicos.forEach((t, i) => {
+        texto += `${i + 1}. ${t.titulo}\n${t.descricao}\n\n`;
+    });
+
+    const w = window.open("", "_blank");
+    w.document.write(`<pre>${texto}</pre>`);
+    w.print();
+}
+
+function excluirReuniao(index) {
+
+    if (!confirm("Deseja excluir esta reunião? Essa ação não pode ser desfeita.")) {
+        return;
+    }
+
+    let reunioes = JSON.parse(localStorage.getItem("reunioes")) || [];
+
+    reunioes.splice(index, 1);
+
+    localStorage.setItem("reunioes", JSON.stringify(reunioes));
+
+    registrarAuditoria("Excluir reunião", `Reunião índice ${index}`);
+
+    listarReunioes();
+}
+
+function filtrarReuniao(condicao) {
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    let conjunto = [];
+
+    if (condicao === "HAS") conjunto = banco.filter(p => p.hasSN === "Sim");
+    if (condicao === "DM") conjunto = banco.filter(p => p.dmSN === "Sim");
+    if (condicao === "GEST") conjunto = banco.filter(p => p.gestanteSN === "Sim");
+    if (condicao === "TB") conjunto = banco.filter(p => p.tbSN === "Sim");
+    if (condicao === "HANS") conjunto = banco.filter(p => p.hansenSN === "Sim");
+
+    // relatório e lista dentro da aba reunião
+    renderizarRelatorioReuniao(conjunto, condicao);
+    renderizarListaPacientesReuniao(conjunto, condicao);
+}
+
+
+function renderizarRelatorioReuniao(conjunto, condicao) {
+    const box = document.getElementById("relatorioReuniao");
+    if (!box) return;
+
+    const total = conjunto.length;
+
+    const cruzada = {
+        HAS: conjunto.filter(p => p.hasSN === "Sim").length,
+        DM: conjunto.filter(p => p.dmSN === "Sim").length,
+        GEST: conjunto.filter(p => p.gestanteSN === "Sim").length,
+        TB: conjunto.filter(p => p.tbSN === "Sim").length,
+        HANS: conjunto.filter(p => p.hansenSN === "Sim").length
+    };
+
+    box.innerHTML = `
+        <div class="card">
+            <h3>Relatório — ${condicao}</h3>
+            <p><strong>Total:</strong> ${total}</p>
+
+            <h4 style="margin-top:12px;">Cruzada dentro do grupo</h4>
+            <ul style="margin-left:18px;">
+                <li>HAS: ${cruzada.HAS}</li>
+                <li>DM: ${cruzada.DM}</li>
+                <li>Gestantes: ${cruzada.GEST}</li>
+                <li>TB: ${cruzada.TB}</li>
+                <li>Hanseníase: ${cruzada.HANS}</li>
+            </ul>
+        </div>
+    `;
+}
+
+function renderizarListaPacientesReuniao(conjunto, condicao) {
+    const box = document.getElementById("listaPacientesReuniao");
+    if (!box) return;
+
+    if (!conjunto.length) {
+        box.innerHTML = `<div class="card"><em>Nenhum paciente encontrado para ${condicao}.</em></div>`;
+        return;
+    }
+
+    let html = `
+        <div class="card">
+            <h3>Pacientes — ${condicao}</h3>
+            <table>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Última evolução</th>
+                    <th>Ações</th>
+                </tr>
+    `;
+
+    conjunto.forEach(p => {
+        const ult = p.evolucoes?.length
+            ? p.evolucoes[p.evolucoes.length - 1].data
+            : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome || "—"}</td>
+                <td>${p.cpf || "—"}</td>
+                <td>${ult}</td>
+                <td>
+                    <button class="btn-primary" onclick="editarProntuario('${p.id}')">
+                        Abrir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</table></div>`;
+    box.innerHTML = html;
+}
+
+function getModeloPautaAPS() {
+    return `✅ Reunião de Equipe APS – Roteiro
+
+1) Acolhimento rápido e objetivo do encontro (1–2 min)
+- O que precisa sair decidido hoje?
+- Algum risco/urgência na agenda?
+
+2) Informes gerais e alinhamentos (5–10 min)
+- Mudanças de fluxo (acolhimento, agenda, encaixes)
+- Ausências/escala da semana (férias, ACS, médico, enfermagem)
+- Estoques críticos (medicação, insumos, testes)
+- Comunicados da gestão/secretaria
+
+3) Indicadores do território e “visão de painel” (10–15 min)
+- HAS/DM: pacientes sem acompanhamento há > 6 meses
+- Gestantes: início precoce do pré-natal, faltosas, alto risco
+- TB: acompanhamento, sintomáticos respiratórios, contatos
+- Hanseníase: contatos, avaliação neurológica periódica
+- Saúde mental: casos em crise, uso abusivo de álcool/drogas
+- Crianças: atraso vacinal e puericultura
+- Idosos frágeis: quedas, acamados, risco social
+
+4) Discussão de casos complexos (15–25 min)
+4.1 Apresentação rápida do caso
+- Quem é, contexto familiar e social
+- Principais problemas e risco atual
+
+4.2 O que está difícil?
+- Adesão? Acesso? Fragilidade social? conflito familiar? violência?
+
+4.3 Plano compartilhado
+- Conduta clínica
+- Conduta de enfermagem
+- Intervenções do ACS
+- Encaminhamentos (eMulti/NASF, CAPS, CRAS, CREAS, regulação)
+
+4.4 Responsáveis + prazo
+- Quem faz o quê e até quando
+
+5) Matriciamento e apoio multiprofissional (10–15 min)
+- Sofrimento mental persistente
+- Dor crônica
+- Obesidade/emagrecimento
+- Reabilitação
+- Vulnerabilidade social grave
+- Violência e risco
+
+6) Segurança do paciente e riscos (5–10 min)
+- Quedas em idosos
+- Risco de violência/negligência
+- Risco de agravamento (dispneia, dor intensa, sinais de alarme)
+- Falhas de comunicação / perda de seguimento
+- Eventos adversos (hipoglicemia frequente, reação medicamentosa)
+
+7) Planejamento da semana (10–15 min)
+- Visitas domiciliares prioritárias (por microárea)
+- Mutirões/ações (pré-natal, saúde do homem, vacina)
+- Grupos (tabagismo, hipertensos, gestantes, ansiedade)
+- Busca ativa de faltosos
+
+8) Pendências e devolutivas (5–10 min)
+- Resultados de exames “parados”
+- Encaminhamentos sem retorno
+- Interconsultas e regulação
+- Pacientes com alta hospitalar recente
+
+9) Encaminhamentos finais e ata (2–5 min)
+- Decisões tomadas
+- Responsáveis
+- Prazos
+- Data da próxima reunião
+
+📌 Dica: limitar a reunião a até 3 casos complexos e sair com tarefas (responsável + prazo).
+`;
+}
+
+function aplicarModeloPauta(inserirNoTexto = false) {
+    const select = document.getElementById("modeloPauta");
+    const preview = document.getElementById("previewPautaReuniao");
+
+    if (!select || !preview) return;
+
+    const modelo = select.value;
+
+    if (modelo === "aps_padrao") {
+        const texto = getModeloPautaAPS();
+
+        // Mostra na tela (preview bonitinho)
+        preview.innerHTML = `
+            <div class="card">
+                <h3>Pauta sugerida (modelo APS)</h3>
+                <pre style="white-space:pre-wrap; font-family:inherit; margin-top:10px;">${texto}</pre>
+            </div>
+        `;
+
+        // Se clicou no botão "Inserir pauta no texto"
+        if (inserirNoTexto) {
+            const ata = document.getElementById("ataTexto");
+            if (!ata) {
+                alert("Não encontrei o campo de texto da ata (id='ataTexto').");
+                return;
+            }
+
+            // Não duplicar várias vezes se já estiver inserido
+            if (!ata.value.includes("✅ Reunião de Equipe APS – Roteiro")) {
+                ata.value = (ata.value.trim() ? ata.value + "\n\n" : "") + texto + "\n";
+            }
+
+            ata.focus();
+        }
+
+        return;
+    }
+
+    // Se escolher vazio
+    preview.innerHTML = "";
+}
+
+/* ============================================================
+   CARDS DO TERRITÓRIO — REUTILIZÁVEL (INÍCIO + REUNIÃO)
+============================================================ */
+function renderizarCardsTerritorio(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const prontuarios = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    const totalHAS = prontuarios.filter(p => p.hasSN === "Sim").length;
+    const totalDM = prontuarios.filter(p => p.dmSN === "Sim").length;
+    const totalGestantes = prontuarios.filter(p => p.gestanteSN === "Sim").length;
+    const totalTB = prontuarios.filter(p => p.tbSN === "Sim").length;
+    const totalHans = prontuarios.filter(p => p.hansenSN === "Sim").length;
+
+    container.innerHTML = `
+        <div class="dashboard">
+
+            <div class="dash-card has" style="cursor:pointer" onclick="filtrarReuniao('HAS')">
+                <h3>Hipertensão</h3>
+                <span>${totalHAS}</span>
+            </div>
+
+            <div class="dash-card dm" style="cursor:pointer" onclick="filtrarReuniao('DM')">
+                <h3>Diabetes</h3>
+                <span>${totalDM}</span>
+            </div>
+
+            <div class="dash-card gest" style="cursor:pointer" onclick="filtrarReuniao('GEST')">
+                <h3>Gestantes</h3>
+                <span>${totalGestantes}</span>
+            </div>
+
+            <div class="dash-card tb" style="cursor:pointer" onclick="filtrarReuniao('TB')">
+                <h3>Tuberculose</h3>
+                <span>${totalTB}</span>
+            </div>
+
+            <div class="dash-card hansen" style="cursor:pointer" onclick="filtrarReuniao('HANS')">
+                <h3>Hanseníase</h3>
+                <span>${totalHans}</span>
+            </div>
+
+        </div>
+    `;
+}
+
+function abrirFiltroTerritorio(condicao) {
+    // 1) abre a aba Banco de Dados
+    navigate("banco");
+
+    // 2) lista pacientes daquela condição dentro do Banco
+    filtrarBancoPorCondicao(condicao);
+}
+
+
+function filtrarBancoPorCondicao(condicao) {
+    const tabela = document.getElementById("listaBanco");
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    let filtrado = [];
+
+    if (condicao === "HAS") filtrado = banco.filter(p => p.hasSN === "Sim");
+    if (condicao === "DM") filtrado = banco.filter(p => p.dmSN === "Sim");
+    if (condicao === "GEST") filtrado = banco.filter(p => p.gestanteSN === "Sim");
+    if (condicao === "TB") filtrado = banco.filter(p => p.tbSN === "Sim");
+    if (condicao === "HANS") filtrado = banco.filter(p => p.hansenSN === "Sim");
+
+    if (!filtrado.length) {
+        tabela.innerHTML = "<em>Nenhum prontuário encontrado para este filtro.</em>";
+        return;
+    }
+
+    let html = `
+        <table>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Último atendimento</th>
+                <th>Ações</th>
+            </tr>
+    `;
+
+    filtrado.forEach(p => {
+        const ult = p.evolucoes?.length
+            ? p.evolucoes[p.evolucoes.length - 1].data
+            : "—";
+
+        html += `
+            <tr>
+                <td>${p.nome || "—"}</td>
+                <td>${p.cpf || "—"}</td>
+                <td>${ult}</td>
+                <td>
+                    <button class="btn-primary"
+                            onclick="editarProntuario('${p.id}')">
+                        Abrir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+    tabela.innerHTML = html;
+}
+
+/* ============================================================
+   VERIFICAR ALERTAS DE REAVALIAÇÃO
+============================================================ */
+function verificarAlertas() {
+
+    const sino = document.getElementById("alertBell");
+    const painel = document.getElementById("alertasPainel");
+
+    if (!sino || !painel) return;
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const alertas = [];
+
+    banco.forEach(p => {
+
+        function registrarAlerta(condicao, tipo, dataUltima, limiteMeses) {
+            if (condicao !== "Sim") return;
+            if (!dataUltima) return;
+
+            const meses = mesesDesde(dataUltima);
+            if (meses > limiteMeses) {
+                alertas.push({
+                    nome: p.nome,          // ✅ CAMPO CORRETO
+                    cpf: p.cpf,
+                    tipo,
+                    meses
+                });
+            }
+        }
+
+        registrarAlerta(p.hasSN, "HAS", p.hasUltimaConsulta, 6);
+        registrarAlerta(p.dmSN, "Diabetes", p.dmUltimaConsulta, 6);
+        registrarAlerta(p.gestanteSN, "Gestante", p.gestUltimaConsulta, 1);
+        registrarAlerta(p.hansenSN, "Hanseníase", p.hanDataAvaliacao1, 1);
+        registrarAlerta(p.tbSN, "Tuberculose", p.tbDataControle1, 1);
+    });
+
+    if (alertas.length === 0) {
+        sino.style.display = "none";
+        painel.style.display = "none";
+        painel.innerHTML = "";
+        painel.scrollTop = 0;
+        return;
+    }
+
+    sino.style.display = "inline-block";
+    sino.style.color = "red";
+
+    painel.innerHTML = `
+        <h3>Reavaliações pendentes</h3>
+        ${alertas.map(a => `
+            <div class="alerta-item"
+                 style="cursor:pointer"
+                 onclick="abrirProntuarioPorCPF('${a.cpf}')">
+
+                <strong>${a.nome}</strong><br>
+                <small class="atraso">
+                    ${a.tipo} — ${a.meses} meses em atraso
+                </small>
+
+            </div>
+        `).join("")}
+    `;
+
+    if (alertas.length > 0) {
+
+    sino.style.display = "inline-block";
+    sino.style.color = "red";
+
+    painel.innerHTML = `
+        <h3>Reavaliações pendentes</h3>
+        ${alertas.map(a => `
+            <div class="alerta-item"
+                 style="cursor:pointer"
+                 onclick="abrirProntuarioPorCPF('${a.cpf}')">
+                <strong>${a.nome}</strong><br>
+                <small class="atraso">
+                    ${a.tipo} — ${a.meses} meses em atraso
+                </small>
+            </div>
+        `).join("")}
+    `;
+
+    // 🔒 MANTÉM FECHADO
+    painel.style.display = "none";
+
+} else {
+
+    sino.style.display = "none";
+    painel.style.display = "none";
+    painel.innerHTML = "";
+}
+
+}
+
+/* ============================================================
+   MOSTRAR / OCULTAR PAINEL DO SINO
+============================================================ */
+function toggleAlertas() {
+
+    const painel = document.getElementById("alertasPainel");
+    if (!painel) return;
+
+    painel.style.display =
+        painel.style.display === "block"
+            ? "none"
+            : "block";
+}
+
+
+/* ============================================================
+   ABRIR PRONTUÁRIO POR CPF
+============================================================ */
+
+function abrirProntuarioPorCPF(cpf) {
+    if (!cpf) return;
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+    const paciente = banco.find(p => p.cpf === cpf);
+
+    if (!paciente) {
+        alert("Prontuário não encontrado.");
+        return;
+    }
+
+    navigate("prontuario");
+    carregarProntuarioNaTela(paciente);
+}
+
+/* ============================================================
+   ADMIN — CRIAR USUÁRIO
+============================================================ */
+function adminCriarUsuario() {
+
+    const user = document.getElementById("adminNovoUser").value.trim();
+    const pass = document.getElementById("adminNovoPass").value.trim();
+    const tipo = document.getElementById("adminNovoTipo").value;
+
+    if (!user || !pass) {
+        alert("Preencha usuário e senha.");
+        return;
+    }
+
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    if (usuarios.find(u => u.user === user)) {
+        alert("Usuário já existe.");
+        return;
+    }
+
+    usuarios.push({
+        id: crypto.randomUUID(),
+        user,
+        pass,
+        tipo
+    });
+
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+
+registrarAuditoria(
+    "Criar usuário",
+    `${adminNovoUser.value} (${adminNovoTipo.value})`
+);
+
+    document.getElementById("adminNovoUser").value = "";
+    document.getElementById("adminNovoPass").value = "";
+
+    listarUsuariosAdmin();
+    alert("Usuário criado com sucesso!");
+}
+
+/* ============================================================
+   ADMIN — LISTAR USUÁRIOS
+============================================================ */
+function listarUsuariosAdmin() {
+
+    const div = document.getElementById("adminListaUsuarios");
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+    if (!usuarios.length) {
+        div.innerHTML = "<em>Nenhum usuário cadastrado.</em>";
+        return;
+    }
+
+    let html = `
+        <table class="tabela-admin">
+            <tr>
+                <th>Usuário</th>
+                <th>Tipo de acesso</th>
+                <th>Ações</th>
+            </tr>
+    `;
+
+    usuarios.forEach(u => {
+
+        let campoTipo = u.tipo;
+
+        // ✅ Somente ADMIN pode editar tipo
+        if (usuarioLogado?.tipo === "admin") {
+            campoTipo = `
+                <select onchange="alterarTipoUsuario('${u.id}', this.value)">
+                    <option value="admin" ${u.tipo === "admin" ? "selected" : ""}>Administrador</option>
+                    <option value="clinico" ${u.tipo === "clinico" ? "selected" : ""}>Clínico</option>
+                    <option value="observador" ${u.tipo === "observador" ? "selected" : ""}>Observador</option>
+                </select>
+            `;
+        }
+
+        html += `
+            <tr>
+                <td>${u.user}</td>
+                <td>${campoTipo}</td>
+                <td>
+                    <button class="btn-danger"
+                        onclick="excluirUsuario('${u.id}')">
+                        Excluir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+    div.innerHTML = html;
+}
+
+
+function excluirUsuario(id) {
+    if (!confirm("Excluir usuário?")) return;
+
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    usuarios = usuarios.filter(u => u.id !== id);
+
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    listarUsuariosAdmin();
+}
+
+/* ============================================================
+   DASHBOARD INÍCIO
+============================================================ */
+function atualizarDashboardInicio() {
+
+    const banco = JSON.parse(localStorage.getItem("prontuarios")) || [];
+
+    let has = 0, dm = 0, gest = 0, tb = 0, hansen = 0;
+
+    banco.forEach(p => {
+        if (p.hasSN === "Sim") has++;
+        if (p.dmSN === "Sim") dm++;
+        if (p.gestanteSN === "Sim") gest++;
+        if (p.tbSN === "Sim") tb++;
+        if (p.hansenSN === "Sim") hansen++;
+    });
+
+    document.getElementById("dashHAS").innerText = has;
+    document.getElementById("dashDM").innerText = dm;
+    document.getElementById("dashGest").innerText = gest;
+    document.getElementById("dashTB").innerText = tb;
+    document.getElementById("dashHansen").innerText = hansen;
+}
+
+/* ============================================================
+   AUDITORIA — REGISTRO DE EVENTOS
+============================================================ */
+function registrarAuditoria(acao, detalhe) {
+
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+    if (!usuario) return;
+
+    const log = {
+        id: crypto.randomUUID(),
+        data: new Date().toISOString(),
+        usuario: usuario.user,
+        tipo: usuario.tipo,
+        acao,
+        detalhe
+    };
+
+    const auditoria = JSON.parse(localStorage.getItem("auditoria")) || [];
+    auditoria.push(log);
+
+    localStorage.setItem("auditoria", JSON.stringify(auditoria));
+}
+
+
+
+/* ============================================================
+   AUDITORIA — CAPTURA GLOBAL DE CLIQUES
+============================================================ */
+document.addEventListener("click", function (e) {
+
+    const el = e.target?.closest("button, a, span");
+    if (!el) return;
+    if (el.disabled) return;
+
+    const detalhe =
+        el.getAttribute("data-audit") ||
+        el.innerText?.trim() ||
+        el.getAttribute("aria-label") ||
+        el.id ||
+        el.className ||
+        "Clique sem identificação";
+
+    registrarAuditoria("Clique", detalhe);
+});
+
+
+/* ============================================================
+  Imprimir Prontuário
+============================================================ */
+function imprimirEvolucao() {
+    window.print();
+}
+
+/* ============================================================
+   AUDITORIA — LISTAR EVENTOS (ADMIN)
+============================================================ */
+function listarAuditoria() {
+
+    const container = document.getElementById("listaAuditoria");
+    if (!container) return;
+
+    let logs = JSON.parse(localStorage.getItem("auditoria")) || [];
+
+    if (!logs.length) {
+        container.innerHTML = "<em>Nenhum registro de auditoria.</em>";
+        return;
+    }
+
+    const safe = typeof escapeHTML === "function"
+        ? escapeHTML
+        : (v => v);
+
+    /* =========================================================
+       NORMALIZAÇÃO DOS LOGS (LEGADO + NOVO)
+    ========================================================= */
+
+    logs = logs.map(l => ({
+        data: l.data,
+        usuario: l.usuario || "—",
+        perfil: l.perfil || l.tipo || "—",
+        acao: l.acao || "—",
+        detalhe: l.detalhe || l.alvo || ""
+    }));
+
+    /* =========================================================
+       ORDENAÇÃO (MAIS RECENTE PRIMEIRO)
+    ========================================================= */
+
+    logs.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+
+    /* =========================================================
+       TABELA
+    ========================================================= */
+
+    let html = `
+        <table class="tabela-auditoria">
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Usuário</th>
+                    <th>Ação</th>
+                    <th>Detalhe</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    logs.forEach(log => {
+
+        const dataFmt = log.data
+            ? (log.data.includes("T")
+                ? new Date(log.data).toLocaleString()
+                : log.data)
+            : "—";
+
+        html += `
+            <tr>
+                <td>${dataFmt}</td>
+                <td>${safe(log.usuario)}</td>
+                <td>${safe(log.acao)}</td>
+                <td>${safe(log.detalhe || "-")}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
+}
+
+
+
+/* ============================================================
+   UTIL — ESCAPE HTML
+============================================================ */
+function escapeHTML(text) {
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* ============================================================
+   INICIALIZAÇÃO COMPLETA DO SISTEMA
+============================================================ */
+function initSistema() {
+
+    listarBanco();
+    listarReunioes();
+
+    drawer.style.display = "none";
+    drawerOverlay.style.display = "none";
+
+    verificarAlertas();
+    atualizarDashboardInicio();
+
+    /* 🔐 RESTAURAR SESSÃO */
+    const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+    if (sessao) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+
+        // 🔐 ADMIN
+        document.getElementById("btnAdmin").style.display =
+            sessao.tipo === "admin" ? "inline-block" : "none";
+
+        document.getElementById("btnAuditoria").style.display =
+            sessao.tipo === "admin" ? "inline-block" : "none";
+
+        navigate("inicio");
+    }
+}
+
+
+
+
+/* Executar ao carregar página */
+window.onload = initSistema;
+
+</script>
+</body>
+</html>
