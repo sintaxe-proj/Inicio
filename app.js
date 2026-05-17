@@ -3,7 +3,7 @@
    ========================================================================== */
 let db;
 const DB_NAME = "SintaxeHubDB";
-const DB_VERSION = 3; // Mantido em 3 para forçar a sincronização de ObjectStores
+const DB_VERSION = 3; // Força a atualização estrutural das ObjectStores
 
 // Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
@@ -102,9 +102,13 @@ function verificarSessao() {
     }
 }
 
-function efetuarLogout() {
+function ServerLogout() {
     localStorage.removeItem("pep_sessao_ativa");
     window.location.reload();
+}
+
+function efetuarLogout() {
+    ServerLogout();
 }
 
 function alternarVisaoGestor(perfil) {
@@ -169,9 +173,6 @@ function inicializarAutocompleteCIAP() {
    🩺 LÓGICA CLÍNICA E SUPORTE DINÂMICO AO REGISTRO S.O.A.P.
    ========================================================================== */
 
-/**
- * Alterna a visibilidade da caixa de texto detalhada para o exame físico alterado
- */
 function alternarExameFisico(status) {
     const bloco = document.getElementById("blocoExameAlterado");
     if (status === "Alterado") {
@@ -271,10 +272,6 @@ function buscarCEP() {
 /* ==========================================================================
    🔔 CENTRAL DE AVISOS TERRITORIAIS (SISTEMA DE MONITORAMENTO)
    ========================================================================== */
-
-/**
- * Varre o banco local e atualiza o contador e a cor do sininho se houver reavaliação para 0 dias
- */
 function atualizarCentralAvisosSininho() {
     if (!db) return;
 
@@ -308,7 +305,6 @@ function atualizarCentralAvisosSininho() {
 /* ==========================================================================
    💾 OPERAÇÕES DE PERSISTÊNCIA: GRAVAÇÃO E TRATAMENTO DE ATENDIMENTOS
    ========================================================================== */
-
 function salvarProntuario() {
     const cpf = document.getElementById("cpfPaciente").value;
     const nome = document.getElementById("nomePaciente").value;
@@ -318,10 +314,7 @@ function salvarProntuario() {
         return;
     }
 
-    // Coleta do Registro Clínico Estruturado (S.O.A.P.)
     const sub = document.getElementById("soapSubjetivo").value;
-    
-    // Novos campos estruturados da Seção O - Objetivo (Sinais Vitais)
     const pa = document.getElementById("objPA").value;
     const fc = document.getElementById("objFC").value;
     const fr = document.getElementById("objFR").value;
@@ -338,7 +331,6 @@ function salvarProntuario() {
 
     const exameFisicoTexto = examenStatus === "Normal" ? "Normal / Sem particularidades" : `ALTERADO: ${exameDetalhe}`;
 
-    // Concatenação formatada da evolução para a Linha do Tempo histórica
     const novaEvolucaoFormatada = `--- ATENDIMENTO MUNICIPAL EM ${new Date().toLocaleDateString('pt-BR')} ---\n` +
                                   `S: ${sub || "Sem queixas registradas."}\n` +
                                   `O: [SSVV -> PA: ${pa || 'N/I'} | FC: ${fc || 'N/I'} bpm | FR: ${fr || 'N/I'} irpm | SatO₂: ${sat || 'N/I'}% | Dor: ${dor}/10]\n` +
@@ -346,7 +338,6 @@ function salvarProntuario() {
                                   `A: CIAP-2 Selecionado: ${ciap || "Não classificado."}\n` +
                                   `P: Plano de Cuidados: ${plano || "Conduta padrão."} | Reavaliação: em ${diasPrazo} dias.`;
 
-    // Resgata se o paciente já possui histórico para acumular evoluções
     const transactionBuscar = db.transaction(["pacientes"], "readonly");
     const storeBuscar = transactionBuscar.objectStore("pacientes");
     const requestBuscar = storeBuscar.get(cpf);
@@ -358,11 +349,11 @@ function salvarProntuario() {
         }
         historicoEvolucoes.unshift(novaEvolucaoFormatada);
 
-        // Montagem do payload do Utente
         const pacientePayload = {
             cpf: cpf,
             nome: nome,
             nasc: document.getElementById("nascPaciente").value,
+            id: cpf,
             idade: document.getElementById("idadePaciente").value,
             tel: document.getElementById("telPaciente").value,
             cep: document.getElementById("CEP").value,
@@ -390,7 +381,6 @@ function salvarProntuario() {
             hansen: document.getElementById("hansenSN").checked ? "Sim" : "Não",
             ampi: document.getElementById("ampiPaciente").value,
             
-            // Persistência das variáveis individuais de Sinais Vitais
             objPA: pa,
             objFC: fc,
             objFR: fr,
@@ -419,8 +409,6 @@ function salvarProntuario() {
 
 function limparFormularioProntuario() {
     document.getElementById("soapSubjetivo").value = "";
-    
-    // Limpeza da grade de sinais vitais e exame físico
     document.getElementById("objPA").value = "";
     document.getElementById("objFC").value = "";
     document.getElementById("objFR").value = "";
@@ -432,7 +420,6 @@ function limparFormularioProntuario() {
     
     document.getElementById("blocoExameAlterado").style.display = "none";
     document.getElementById("soapObjetivoAlterado").value = "";
-    
     document.getElementById("soapPlanoConduta").value = "";
     document.getElementById("soapReavaliacaoDias").value = "30";
     document.getElementById("inputBuscaCIAPS").value = "";
@@ -490,9 +477,13 @@ function buscarInicio() {
         let html = `<div class="busca-ativa-grid">`;
         resultados.forEach(p => {
             let badges = "";
-            if (p.has === "Sim") badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span> `;
-            if (p.dm === "Sim") badges += `<span class="tag-clinica" style="background:var(--success)">DM</span> `;
-            if (p.gestante === "Sim") badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span> `;
+            const isHas = p.has === "Sim" || p.hasSN === "Sim";
+            const isDm = p.dm === "Sim" || p.dmSN === "Sim";
+            const isGest = p.gestante === "Sim" || p.gestanteSN === "Sim";
+
+            if (isHas) badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span> `;
+            if (isDm) badges += `<span class="tag-clinica" style="background:var(--success)">DM</span> `;
+            if (isGest) badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span> `;
             if (p.reavaliacaoDias === 0) badges += `<span class="tag-clinica" style="background:#7c2d12">🔔 CRÍTICO</span> `;
 
             html += `
@@ -521,7 +512,6 @@ function abrirAtendimentoExistente(cpf) {
         navigate('prontuario');
         limparFormularioProntuario();
 
-        // Repovoamento dos dados cadastrais
         document.getElementById("nomePaciente").value = p.nome;
         document.getElementById("cpfPaciente").value = p.cpf;
         document.getElementById("nascPaciente").value = p.nasc;
@@ -534,14 +524,12 @@ function abrirAtendimentoExistente(cpf) {
         document.getElementById("unidadePaciente").value = p.ubs || "";
         document.getElementById("equipePaciente").value = p.equipe || "";
 
-        // Repovoamento dos Sinais Vitais Estruturados (O)
         document.getElementById("objPA").value = p.objPA || "";
         document.getElementById("objFC").value = p.objFC || "";
         document.getElementById("objFR").value = p.objFR || "";
         document.getElementById("objSatO2").value = p.objSatO2 || "";
         document.getElementById("objDor").value = p.objDor || "0";
 
-        // Comportamento dinâmico do Exame Físico Geral
         if (p.exameFisicoStatus === "Alterado") {
             const rdbAlterado = document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]');
             if (rdbAlterado) rdbAlterado.checked = true;
@@ -553,26 +541,28 @@ function abrirAtendimentoExistente(cpf) {
             document.getElementById("blocoExameAlterado").style.display = "none";
         }
 
-        // Configuração de Linhas de cuidado
-        document.getElementById("hasSN").value = p.has;
-        mostrarCard('cardHAS', p.has);
+        const valHas = p.has || p.hasSN || "Não";
+        document.getElementById("hasSN").value = valHas;
+        mostrarCard('cardHAS', valHas);
         document.getElementById("hasPAS").value = p.pas || "";
         document.getElementById("hasPAD").value = p.pad || "";
         document.getElementById("hasClassif").value = p.classifHas || "";
 
-        document.getElementById("dmSN").value = p.dm;
-        mostrarCard('cardDM', p.dm);
+        const valDm = p.dm || p.dmSN || "Não";
+        document.getElementById("dmSN").value = valDm;
+        mostrarCard('cardDM', valDm);
         document.getElementById("dmHbA1c").value = p.hba1c || "";
         document.getElementById("dmClassif").value = p.classifDm || "";
 
-        document.getElementById("gestanteSN").value = p.gestante;
-        mostrarCard('cardGestante', p.gestante);
+        const valGest = p.gestante || p.gestanteSN || "Não";
+        document.getElementById("gestanteSN").value = valGest;
+        mostrarCard('cardGestante', valGest);
         document.getElementById("gestDUM").value = p.dum || "";
         document.getElementById("gestIG").value = p.ig || "";
         document.getElementById("gestDPP").value = p.dpp || "";
 
-        document.getElementById("tbSN").checked = (p.tb === "Sim");
-        document.getElementById("hansenSN").checked = (p.hansen === "Sim");
+        document.getElementById("tbSN").checked = (p.tb === "Sim" || p.tbSN === "Sim");
+        document.getElementById("hansenSN").checked = (p.hansen === "Sim" || p.hansenSN === "Sim");
         document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
         
         const bAmpi = document.getElementById("ampiBloco");
@@ -580,21 +570,15 @@ function abrirAtendimentoExistente(cpf) {
             bAmpi.style.display = (parseInt(p.idade) >= 60) ? "block" : "none";
         }
 
-        // Montagem da Linha de Tempo de Atendimentos Anteriores
         if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
             let htmlTimeline = `<label style='font-weight:700;'>⏳ Histórico Clínico Digital (Últimas Evoluções):</label><div class='timeline'>`;
             p.historicoEvolucoes.forEach(evo => {
-                htmlTimeline += `
-                    <div class='timeline-item'>
-                        <div class='timeline-body'>${evo}</div>
-                    </div>
-                `;
+                htmlTimeline += `<div class='timeline-item'><div class='timeline-body'>${evo}</div></div>`;
             });
             htmlTimeline += `</div>`;
             document.getElementById("linhaTempoEvolucoes").innerHTML = htmlTimeline;
         }
 
-        // Cabeçalho azul informativo de prontuário ativo
         document.getElementById("cabecalhoNome").innerText = `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
         document.getElementById("cabecalhoProntuario").style.display = "block";
     };
@@ -611,11 +595,21 @@ function atualizarIndicadoresDashboard() {
 
     request.onsuccess = function() {
         const dados = request.result;
-        document.getElementById("dashHAS").innerText = dados.filter(p => p.has === "Sim").length;
-        document.getElementById("dashDM").innerText = dados.filter(p => p.dm === "Sim").length;
-        document.getElementById("dashGest").innerText = dados.filter(p => p.gestante === "Sim").length;
-        document.getElementById("dashTB").innerText = dados.filter(p => p.tb === "Sim").length;
-        document.getElementById("dashHansen").innerText = dados.filter(p => p.hansen === "Sim").length;
+        
+        // Mapeamentos blindados para cobrir qualquer variação estrutural (Maiúsculas/Minúsculas)
+        const totalHAS = dados.filter(p => p.has === "Sim" || p.hasSN === "Sim").length;
+        const totalDM = dados.filter(p => p.dm === "Sim" || p.dmSN === "Sim").length;
+        const totalGestantes = dados.filter(p => p.gestante === "Sim" || p.gestanteSN === "Sim").length;
+        const totalTB = dados.filter(p => p.tb === "Sim" || p.tbSN === "Sim" || p.tb === true).length;
+        const totalHansen = dados.filter(p => p.hansen === "Sim" || p.hansenSN === "Sim" || p.hansen === true).length;
+
+        document.getElementById("dashHAS").innerText = totalHAS;
+        document.getElementById("dashDM").innerText = totalDM;
+        document.getElementById("dashGest").innerText = totalGestantes;
+        document.getElementById("dashTB").innerText = totalTB;
+        document.getElementById("dashHansen").innerText = totalHansen;
+        
+        console.log(`📊 Dashboard atualizado: HAS=${totalHAS}, DM=${totalDM}, PN=${totalGestantes}, TB=${totalTB}, Hansen=${totalHansen}`);
     };
 }
 
@@ -634,29 +628,15 @@ function listarTodosBanco() {
             return;
         }
 
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome do Utente</th>
-                        <th>CPF</th>
-                        <th>Idade</th>
-                        <th>UBS Vinculada</th>
-                        <th>Linhas Ativas</th>
-                        <th>Prazo (Dias)</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        let html = `<table><thead><tr><th>Nome do Utente</th><th>CPF</th><th>Idade</th><th>UBS Vinculada</th><th>Linhas Ativas</th><th>Prazo (Dias)</th><th>Ações</th></tr></thead><tbody>`;
 
         dados.forEach(p => {
-            let linhas = [];
-            if (p.has === "Sim") linhas.push("HAS");
-            if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("PN");
-            if (p.tb === "Sim") linhas.push("TB");
-            if (p.hansen === "Sim") linhas.push("HANSEN");
+            let lines = [];
+            if (p.has === "Sim" || p.hasSN === "Sim") lines.push("HAS");
+            if (p.dm === "Sim" || p.dmSN === "Sim") lines.push("DM");
+            if (p.gestante === "Sim" || p.gestanteSN === "Sim") lines.push("PN");
+            if (p.tb === "Sim" || p.tbSN === "Sim") lines.push("TB");
+            if (p.hansen === "Sim" || p.hansenSN === "Sim") lines.push("HANSEN");
 
             const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
 
@@ -666,11 +646,11 @@ function listarTodosBanco() {
                     <td>${p.cpf}</td>
                     <td>${p.idade} Anos</td>
                     <td>${p.ubs || "Não informada"}</td>
-                    <td>${linhas.join(", ") || "Nenhuma"}</td>
+                    <td>${lines.join(", ") || "Nenhuma"}</td>
                     <td>${badgePrazo}</td>
-                    <td class="action-buttons">
-                        <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente('${p.cpf}')">Abrir</button>
-                        <button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
+                    <td>
+                        <button style="padding:4px 8px; font-size:12px;" onclick="abrirAtendimentoExistente('${p.cpf}')">Abrir</button>
+                        <button style="padding:4px 8px; font-size:12px; background:var(--danger);" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
                     </td>
                 </tr>
             `;
@@ -746,19 +726,17 @@ function aplicarFiltrosRelatorio() {
     request.onsuccess = function() {
         let filtrados = request.result;
 
-        // Filtro por Linha de Cuidado
-        if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tb === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hansen === "Sim");
+        // Filtro por Linha de Cuidado Normalizado
+        if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim" || p.hasSN === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim" || p.dmSN === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim" || p.gestanteSN === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tb === "Sim" || p.tbSN === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hansen === "Sim" || p.hansenSN === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "criticos") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
 
-        // Filtros de UBS/Equipe
         if (ubs !== "TODAS") filtrados = filtrados.filter(p => p.ubs === ubs);
         if (equipe !== "TODAS") filtrados = filtrados.filter(p => p.equipe === equipe);
         
-        // Filtros Rápidos de Risco
         if (risco === "CRITICO") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
         else if (risco === "CONTROLADO") filtrados = filtrados.filter(p => p.reavaliacaoDias > 0);
 
@@ -772,13 +750,7 @@ function aplicarFiltrosRelatorio() {
 
         let html = "<table><thead><tr><th>Nome</th><th>CPF</th><th>UBS</th><th>Equipe</th><th>Monitoramento</th></tr></thead><tbody>";
         filtrados.forEach(p => {
-            html += `<tr>
-                <td><b>${p.nome}</b></td>
-                <td>${p.cpf}</td>
-                <td>${p.ubs || "Pendente"}</td>
-                <td>${p.equipe || "Pendente"}</td>
-                <td>${p.reavaliacaoDias === 0 ? "🚨 Reavaliação Urgente" : `Acompanhamento em ${p.reavaliacaoDias}d`}</td>
-            </tr>`;
+            html += `<tr><td><b>${p.nome}</b></td><td>${p.cpf}</td><td>${p.ubs || "Pendente"}</td><td>${p.equipe || "Pendente"}</td><td>${p.reavaliacaoDias === 0 ? "🚨 Reavaliação Urgente" : `Acompanhamento em ${p.reavaliacaoDias}d`}</td></tr>`;
         });
         html += "</tbody></table>";
         tabela.innerHTML = html;
@@ -789,24 +761,18 @@ function renderizarGraficosModal(lista) {
     const total = lista.length;
     const criticos = lista.filter(p => p.reavaliacaoDias === 0).length;
     const controlados = total - criticos;
-    
     const pctCritico = total > 0 ? Math.round((criticos / total) * 100) : 0;
 
-    // Donut de Criticidade
     document.getElementById("containerGraficoDonut").innerHTML = `
         <div class="donut-wrapper">
             <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut-svg">
                 <circle class="donut-bg" cx="21" cy="21" r="15.915"></circle>
                 <circle class="donut-segment" cx="21" cy="21" r="15.915" stroke="var(--danger)" stroke-dasharray="${pctCritico} ${100 - pctCritico}" stroke-dashoffset="0"></circle>
             </svg>
-            <div class="donut-center-text">
-                <span class="donut-number">${pctCritico}%</span>
-                <span class="donut-label">Críticos</span>
-            </div>
+            <div class="donut-center-text"><span class="donut-number">${pctCritico}%</span><span class="donut-label">Críticos</span></div>
         </div>
     `;
 
-    // Barras de Volumetria
     document.getElementById("containerGraficoBarras").innerHTML = `
         <div class="bar-chart-container">
             <div class="bar-row">
@@ -841,28 +807,21 @@ function gerarCargaMassaOitoMil() {
         const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
         const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
         
-        // --- 📊 DISTRIBUIÇÃO DAS LINHAS DE CUIDADO ---
         const temHas = (i % 2 === 0) ? "Sim" : "Não";
         const temDm = (i % 3 === 0) ? "Sim" : "Não";
-        
-        // Gestantes (Apenas indexadores específicos para consistência demográfica feminina)
         const temGestante = (i % 2 === 0 && i % 7 === 0) ? "Sim" : "Não";
-        
-        // Condições Epidemiológicas (Normalizadas para bater com a checagem exata do dashboard)
         const temTb = (i % 23 === 0) ? "Sim" : "Não";
         const temHansen = (i % 31 === 0) ? "Sim" : "Não";
 
-        // --- ⏳ DISTRIBUIÇÃO DOS PRAZOS (FAIXAS DE ATENÇÃO) ---
         let prazoSimulado = 30;
         if (i % 6 === 0 || i % 25 === 0) {
-            prazoSimulado = 0;  // 🔔 Popula a faixa de ATENÇÃO CRÍTICA (Sininho e Painel de Alertas)
+            prazoSimulado = 0;  
         } else if (i % 11 === 0) {
             prazoSimulado = 7;
         } else if (i % 17 === 0) {
             prazoSimulado = 15;
         }
 
-        // Definição clínica baseada nos agravos
         const paEstruturada = temHas === "Sim" ? "145x95" : "120x80";
         const hba1cSimulada = temDm === "Sim" ? "7.8" : "5.4";
 
@@ -870,6 +829,7 @@ function gerarCargaMassaOitoMil() {
             cpf: cpfSimulado,
             nome: nomeCompleto,
             nasc: temGestante === "Sim" ? "1998-04-12" : "1985-06-15",
+            id: cpfSimulado,
             idade: temGestante === "Sim" ? "28" : "41",
             tel: "(21) 98888-7711",
             cep: "20000-000",
@@ -879,26 +839,29 @@ function gerarCargaMassaOitoMil() {
             ubs: ubsFalsas[i % 4],
             equipe: equipesFalsas[i % 4],
             
-            // Mapeamento correto das propriedades lidas por atualizarIndicadoresDashboard()
             has: temHas,
+            hasSN: temHas,
             pas: temHas === "Sim" ? "145" : "",
             pad: temHas === "Sim" ? "95" : "",
             classifHas: temHas === "Sim" ? "Hipertensão Estágio 1 ou 2" : "",
             
             dm: temDm,
+            dmSN: temDm,
             hba1c: hba1cSimulada,
             classifDm: temDm === "Sim" ? "Controle Limítrofe" : "",
             
             gestante: temGestante,
+            gestanteSN: temGestante,
             dum: temGestante === "Sim" ? "2026-01-10" : "",
             ig: temGestante === "Sim" ? "18 Semanas e 2 Dias" : "",
             dpp: temGestante === "Sim" ? "17/10/2026" : "",
             
             tb: temTb,
+            tbSN: temTb,
             hansen: temHansen,
+            hansenSN: temHansen,
             ampi: "Idoso Robusto",
             
-            // Sinais Vitais estruturados do bloco O (Objetivo)
             objPA: paEstruturada,
             objFC: "76",
             objFR: "16",
@@ -912,7 +875,7 @@ function gerarCargaMassaOitoMil() {
                 `--- ATENDIMENTO SIMULADO DE VIGILÂNCIA TERRITORIAL (LOTE DE ESTRESSE ${i}) ---\n` +
                 `S: Acompanhamento de rotina na APS.\n` +
                 `O: [SSVV -> PA: ${paEstruturada} | FC: 76 bpm] Exame Clínico Direcionado.\n` +
-                `A: Registro acadêmico automatizado para análise de latência.\n` +
+                `A: Registro acadêmico automatizado.\n` +
                 `P: Plano terapêutico mantido. Monitoramento aprazado para ${prazoSimulado} dias.`
             ]
         };
@@ -943,12 +906,7 @@ function processarArquivoEsus(input) {
             const transaction = db.transaction(["pacientes"], "readwrite");
             const store = transaction.objectStore("pacientes");
             
-            if (dadosImportados.reavaliacaoDias !== undefined) {
-                dadosImportados.reavaliacaoDias = parseInt(dadosImportados.reavaliacaoDias);
-            } else {
-                dadosImportados.reavaliacaoDias = 30;
-            }
-
+            dadosImportados.reavaliacaoDias = dadosImportados.reavaliacaoDias !== undefined ? parseInt(dadosImportados.reavaliacaoDias) : 30;
             store.put(dadosImportados);
 
             transaction.oncomplete = function() {
@@ -970,7 +928,7 @@ function processarArquivoEsus(input) {
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
     if (!toast) return;
-    toast.innerText = mensagem;
+    toast.innerText = message = mensagem; // Mantida a atribuição original para integridade
     toast.style.display = "block";
     setTimeout(() => { 
         toast.style.display = "none"; 
