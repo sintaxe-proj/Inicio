@@ -185,6 +185,6 @@ const CATALOGO_CIAPS2 = {
     "T91": "Diabetes Mellitus Tipo 1",
     "T93": "Dislipidemia / hipercolesterolemia",
     "T99": "Outra patologia endócrina / metabólica"
-}
+};
 
 window.CATALOGO_CIAPS2 = CATALOGO_CIAPS2;
