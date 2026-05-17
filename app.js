@@ -112,7 +112,7 @@ function autenticarUsuario() {
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = mensagem;
+        erroDiv.innerText = message;
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -723,7 +723,7 @@ function fecharPainelEpidemiologico() {
 }
 
 /* ============================================================
-   🔍 MOTOR DE PESQUISA TEXTUAL RÁPIDA DA HOME (ATUALIZADO)
+   🔍 MOTOR DE PESQUISA TEXTUAL RÁPIDA DA HOME (LAYOUT EM QUADROS)
 ============================================================ */
 function buscarInicio() {
     const termoBusca = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
@@ -741,7 +741,7 @@ function buscarInicio() {
     request.onsuccess = function(event) {
         const prontuarios = event.target.result;
         
-        // Filtragem estendida para abranger Nome ou CPF (removendo pontos e traços para busca limpa)
+        // Filtragem estendida para abranger Nome ou CPF (removendo pontos e traços)
         const filtrados = prontuarios.filter(p => {
             const nomeMatch = p.nome.toLowerCase().includes(termoBusca);
             const cpfLimpo = p.cpf ? p.cpf.replace(/\D/g, "") : "";
@@ -758,16 +758,11 @@ function buscarInicio() {
             return;
         }
 
-        // Tabela limpa no padrão visual original
-        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
-            <tr style="background:#f1f5f9; text-align:left;">
-                <th style="padding:10px;">Nome / CPF</th>
-                <th>Nascimento (Idade)</th>
-                <th>Ações</th>
-            </tr>`;
+        // Renderização em cascata de Quadros/Cards independentes (Visual Antigo)
+        let html = `<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">`;
         
         filtrados.forEach(p => {
-            // Tratamento visual para converter datas ISO (AAAA-MM-DD) para padrão pt-BR se necessário
+            // Tratamento visual para converter datas ISO para padrão brasileiro
             let dataNascFormatada = "---";
             if (p.nascimento) {
                 if (p.nascimento.includes("-")) {
@@ -778,19 +773,35 @@ function buscarInicio() {
                 }
             }
 
-            html += `<tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px; font-weight:500;">
-                    <div style="color:#0f172a;">${escapeHTML(p.nome)}</div>
-                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'}</small>
-                </td>
-                <td style="color:#334155;">
-                    <div>${dataNascFormatada}</div>
-                    <small style="color:#94a3b8; font-size:11px;">(${p.idade || 'Não calculada'})</small>
-                </td>
-                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button></td>
-            </tr>`;
+            // Construção do bloco em formato de Quadro Clínico integrado
+            html += `
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid var(--dark); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                
+                <div style="flex: 1;">
+                    <div style="font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">
+                        ${escapeHTML(p.nome)}
+                    </div>
+                    <div style="display: flex; gap: 15px; font-size: 12px; color: #64748b;">
+                        <span><strong>CPF:</strong> ${p.cpf || '---'}</span>
+                        <span>•</span>
+                        <span><strong>Nascimento:</strong> ${dataNascFormatada}</span>
+                        <span>•</span>
+                        <span style="color: #334155; font-weight: 500;">(${p.idade || 'Não calculada'})</span>
+                    </div>
+                </div>
+
+                <div style="margin-left: 20px;">
+                    <button class="btn-primary" 
+                            style="padding: 6px 14px; font-size: 13px; font-weight: 600;" 
+                            onclick="carregarPacienteParaEdicao('${p.id}')">
+                        Abrir Prontuário
+                    </button>
+                </div>
+
+            </div>`;
         });
-        html += `</table>`;
+        
+        html += `</div>`;
         container.innerHTML = html;
     };
 }
@@ -898,15 +909,15 @@ function listarBanco() {
             </tr>`;
 
         prontuarios.forEach(p => {
-            let linhas = [];
-            if (p.has === "Sim") linhas.push("HAS");
-            if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("Gestante");
+            let lines = [];
+            if (p.has === "Sim") lines.push("HAS");
+            if (p.dm === "Sim") lines.push("DM");
+            if (p.gestante === "Sim") lines.push("Gestante");
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
                 <td style="color:#475569;">${p.cpf || 'Não cadastrado'}</td>
-                <td>${linhas.length > 0 ? linhas.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
+                <td>${lines.length > 0 ? lines.map(l => `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; margin-right:4px;">${l}</span>`).join('') : '<span style="color:#94a3b8;">Nenhuma</span>'}</td>
                 <td><button class="btn-primary" style="padding:5px 12px;" onclick="carregarPacienteParaEdicao('${p.id}')">Editar</button></td>
             </tr>`;
         });
@@ -988,7 +999,7 @@ function processarArquivoEsus(inputElement) {
 }
 
 /* ============================================================
-   📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS) - PARTE 2
+   📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS)
 ============================================================ */
 function gerarCargaMassaOitoMil() {
     if (!db) return alert("❌ Banco de dados offline.");
@@ -996,7 +1007,6 @@ function gerarCargaMassaOitoMil() {
 
     console.time("⏱️ Tempo de Carga de Estresse");
     
-    // Nomes base para geração combinatória
     const nomesFemininos = ["Maria", "Ana", "Francisca", "Antônia", "Adriana", "Juliana", "Márcia", "Fernanda", "Patrícia", "Aline"];
     const nomesMasculinos = ["José", "João", "Antônio", "Francisco", "Carlos", "Paulo", "Pedro", "Lucas", "Luiz", "Marcos"];
     const sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima", "Gomes"];
@@ -1004,7 +1014,6 @@ function gerarCargaMassaOitoMil() {
     const ubsLista = ["UBS Centro Territorial", "UBS Laranjais da APS"];
     const equipesLista = ["eSF Aliança - 01", "eSF Harmonia - 02", "eSF Esperança - 03", "eSF Progresso - 04"];
 
-    // Abre uma única transação em lote (Bulk Insert) para alta performance
     const transaction = db.transaction(["prontuarios"], "readwrite");
     const store = transaction.objectStore("prontuarios");
 
@@ -1018,12 +1027,10 @@ function gerarCargaMassaOitoMil() {
         const sobrenome2 = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
         const nomeCompleto = `${nomeSorteado} ${sobrenome1} ${sobrenome2} (Simulação ${i})`;
 
-        // Determinação epidemiológica randômica baseada em prevalência real na APS
-        const temHAS = Math.random() < 0.28 ? "Sim" : "Não"; // ~28% de hipertensos
-        const temDM = Math.random() < 0.12 ? "Sim" : "Não";  // ~12% de diabéticos
-        const ehGestante = (!sexoMasculino && Math.random() < 0.05) ? "Sim" : "Não"; // ~5% das mulheres em idade fértil
+        const temHAS = Math.random() < 0.28 ? "Sim" : "Não";
+        const temDM = Math.random() < 0.12 ? "Sim" : "Não";
+        const ehGestante = (!sexoMasculino && Math.random() < 0.05) ? "Sim" : "Não";
 
-        // Dados clínicos flutuantes (Metas do Previne Brasil/Monitoramento)
         let pas = ""; let pad = ""; let hba1c = ""; let dum = "";
         
         if (temHAS === "Sim") {
@@ -1034,20 +1041,17 @@ function gerarCargaMassaOitoMil() {
             hba1c = (Math.random() * (12.0 - 5.5) + 5.5).toFixed(1);
         }
         if (ehGestante === "Sim") {
-            // Sorteia uma data nos últimos 8 meses
             const dataDUM = new Date();
             dataDUM.setDate(dataDUM.getDate() - Math.floor(Math.random() * 240));
             dum = dataDUM.toISOString().split('T')[0];
         }
 
-        // Distribuição de idade realista
         const idadeAnos = Math.floor(Math.random() * (88 - 18 + 1)) + 18;
         const anoNasc = 2026 - idadeAnos;
         const mesNasc = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
         const diaNasc = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
         const dataNascimentoString = `${anoNasc}-${mesNasc}-${diaNasc}`;
 
-        // Geração fictícia de CPF estruturado
         const cpfFicticio = `${Math.floor(Math.random()*899+100)}.${Math.floor(Math.random()*899+100)}.${Math.floor(Math.random()*899+100)}-${Math.floor(Math.random()*89+10)}`;
 
         const pacienteFicticio = {
@@ -1088,7 +1092,7 @@ function gerarCargaMassaOitoMil() {
     transaction.oncomplete = function() {
         console.timeEnd("⏱️ Tempo de Carga de Estresse");
         registrarLogAuditoria("CARGA_ESTRESSE_CONCLUIDA", "Injeção em massa de 8.000 prontuários executada com sucesso.");
-        alert("⚡ Carga populacional de 8.000 prontuários integrada com sucesso ao IndexedDB! Painel atualizado.");
+        alert("⚡ Carga populacional de 8.000 prontuários integrada com sucesso ao IndexedDB! Painel updated.");
         atualizarDashboardInicio();
     };
 
