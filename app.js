@@ -3,7 +3,7 @@
    ========================================================================== */
 let db;
 const DB_NAME = "SintaxeHubDB";
-const DB_VERSION = 2; // Versão atualizada para suportar novos metadados SOAP
+const DB_VERSION = 2; // Mantido em 2 para suportar a estrutura SOAP estendida
 
 // Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
@@ -100,6 +100,11 @@ function verificarSessao() {
         document.getElementById("loginScreen").style.display = "flex";
         document.getElementById("app").style.display = "none";
     }
+}
+
+function BowserSessao() {
+    localStorage.removeItem("pep_sessao_ativa");
+    window.location.reload();
 }
 
 function efetuarLogout() {
@@ -314,8 +319,17 @@ function salvarProntuario() {
 
     // Coleta do Registro Clínico Estruturado (S.O.A.P.)
     const sub = document.getElementById("soapSubjetivo").value;
+    
+    // Novos campos estruturados da Seção O - Objetivo (Sinais Vitais)
+    const pa = document.getElementById("objPA").value;
+    const fc = document.getElementById("objFC").value;
+    const fr = document.getElementById("objFR").value;
+    const sat = document.getElementById("objSatO2").value;
+    const dor = document.getElementById("objDor").value;
+
     const exameStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
     const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
+    
     const ciap = document.getElementById("inputBuscaCIAPS").value;
     const plano = document.getElementById("soapPlanoConduta").value;
     const diasPrazo = document.getElementById("soapReavaliacaoDias").value;
@@ -325,7 +339,8 @@ function salvarProntuario() {
     // Concatenação formatada da evolução para persistência na Linha do Tempo histórica
     const novaEvolucaoFormatada = `--- ATENDIMENTO MUNICIPAL EM ${new Date().toLocaleDateString('pt-BR')} ---\n` +
                                   `S: ${sub || "Sem queixas registradas."}\n` +
-                                  `O: Exame Físico Geral ${exameFisicoTexto}\n` +
+                                  `O: [SSVV -> PA: ${pa || 'N/I'} | FC: ${fc || 'N/I'} bpm | FR: ${fr || 'N/I'} irpm | SatO₂: ${sat || 'N/I'}% | Dor: ${dor}/10]\n` +
+                                  `   Exame Físico Geral: ${exameFisicoTexto}\n` +
                                   `A: CIAP-2 Selecionado: ${ciap || "Não classificado."}\n` +
                                   `P: Plano de Cuidados: ${plano || "Conduta padrão."} | Reavaliação: em ${diasPrazo} dias.`;
 
@@ -341,7 +356,7 @@ function salvarProntuario() {
         }
         historicoEvolucoes.unshift(novaEvolucaoFormatada); // Adiciona a mais recente no início
 
-        // Montagem do payload completo do Utente
+        // Montagem do payload completo do Utente com os sinais vitais persistidos individualmente
         const pacientePayload = {
             cpf: cpf,
             nome: nome,
@@ -373,6 +388,15 @@ function salvarProntuario() {
             hansen: document.getElementById("hansenSN").checked ? "Sim" : "Não",
             ampi: document.getElementById("ampiPaciente").value,
             
+            // Persistência dos campos de Sinais Vitais no objeto
+            objPA: pa,
+            objFC: fc,
+            objFR: fr,
+            objSatO2: sat,
+            objDor: dor,
+            exameFisicoStatus: exameStatus,
+            soapObjetivoAlterado: exameDetalhe,
+            
             reavaliacaoDias: parseInt(diasPrazo) || 0, // Metadado indexador do sininho
             historicoEvolucoes: historicoEvolucoes
         };
@@ -394,11 +418,19 @@ function salvarProntuario() {
 function limparFormularioProntuario() {
     // Limpeza dos inputs de texto e áreas estruturadas SOAP
     document.getElementById("soapSubjetivo").value = "";
-    document.getElementById("soapObjetivoAlterado").value = "";
-    document.getElementById("soapPlanoConduta").value = "";
-    document.getElementById("soapReavaliacaoDias").value = "0";
+    
+    // Limpeza da grade de sinais vitais e exame físico
+    document.getElementById("objPA").value = "";
+    document.getElementById("objFC").value = "";
+    document.getElementById("objFR").value = "";
+    document.getElementById("objSatO2").value = "";
+    document.getElementById("objDor").value = "0";
     document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
     document.getElementById("blocoExameAlterado").style.display = "none";
+    document.getElementById("soapObjetivoAlterado").value = "";
+    
+    document.getElementById("soapPlanoConduta").value = "";
+    document.getElementById("soapReavaliacaoDias").value = "0";
     document.getElementById("inputBuscaCIAPS").value = "";
 
     // Campos cadastrais e de endereço
@@ -487,12 +519,29 @@ function abrirAtendimentoExistente(cpf) {
         document.getElementById("nascPaciente").value = p.nasc;
         document.getElementById("idadePaciente").value = p.idade;
         document.getElementById("telPaciente").value = p.tel;
-        document.getElementById("CEP").value = p.cep;
-        document.getElementById("endPaciente").value = p.endereco;
-        document.getElementById("endNumero").value = p.numero;
-        document.getElementById("endComplemento").value = p.complemento;
-        document.getElementById("unidadePaciente").value = p.ubs;
-        document.getElementById("equipePaciente").value = p.equipe;
+        document.getElementById("CEP").value = p.cep || "";
+        document.getElementById("endPaciente").value = p.endereco || "";
+        document.getElementById("endNumero").value = p.numero || "";
+        document.getElementById("endComplemento").value = p.complemento || "";
+        document.getElementById("unidadePaciente").value = p.ubs || "";
+        document.getElementById("equipePaciente").value = p.equipe || "";
+
+        // Repovoamento dos Sinais Vitais Estruturados (O)
+        document.getElementById("objPA").value = p.objPA || "";
+        document.getElementById("objFC").value = p.objFC || "";
+        document.getElementById("objFR").value = p.objFR || "";
+        document.getElementById("objSatO2").value = p.objSatO2 || "";
+        document.getElementById("objDor").value = p.objDor || "0";
+
+        // Comportamento dinâmico do Exame Físico Geral
+        if (p.exameFisicoStatus === "Alterado") {
+            document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "block";
+            document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
+        } else {
+            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "none";
+        }
 
         // Configuração de Linhas de cuidado
         document.getElementById("hasSN").value = p.has;
@@ -593,7 +642,7 @@ function listarTodosBanco() {
             if (p.dm === "Sim") linhas.push("DM");
             if (p.gestante === "Sim") linhas.push("PN");
             if (p.tb === "Sim") linhas.push("TB");
-            if (p.hansen === "Sim") lines.push("HANSEN");
+            if (p.hansen === "Sim") linhas.push("HANSEN");
 
             const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
 
@@ -804,9 +853,19 @@ function gerarCargaMassaOitoMil() {
             tb: "Não",
             hansen: "Não",
             ampi: "Idoso Robusto",
+            
+            // Sinais Vitais Falsos para Massa de Teste
+            objPA: i % 2 === 0 ? "140x90" : "120x80",
+            objFC: "76",
+            objFR: "16",
+            objSatO2: "98",
+            objDor: "0",
+            exameFisicoStatus: "Normal",
+            soapObjetivoAlterado: "",
+
             reavaliacaoDias: prazoSimulado,
             historicoEvolucoes: [
-                `--- ATENDIMENTO SIMULADO DE ESTRESSE DE MEMÓRIA (LOTE ${i}) ---\nS: Sem queixas aparentes.\nO: Exame Físico Normal.\nA: Registro inserido via robô de simulação acadêmica municipal.\nP: Manter monitoramento do território. Prazo: ${prazoSimulado} dias.`
+                `--- ATENDIMENTO SIMULADO DE ESTRESSE DE MEMÓRIA (LOTE ${i}) ---\nS: Sem queixas aparentes.\nO: [SSVV -> PA: 120x80 | FC: 76 bpm] Exame Físico Normal.\nA: Registro inserido via robô de simulação acadêmica municipal.\nP: Manter monitoramento do território. Prazo: ${prazoSimulado} dias.`
             ]
         };
         store.put(payload);
@@ -864,7 +923,7 @@ function processarArquivoEsus(input) {
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
     if (!toast) return;
-    toast.innerText = mensagem;
+    toast.innerText = message = mensagem;
     toast.style.display = "block";
     setTimeout(() => { toast.style.display = "none"; }, 3500);
 }
