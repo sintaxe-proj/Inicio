@@ -130,8 +130,21 @@
                     <div class="dash-card" style="border-left-color: #10b981;"><h3 style="color:#10b981;">Hanseníase</h3><div class="number" id="dashHansen">0</div></div>
                 </div>
 
+                <div class="card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+                    <div class="card-title" style="color: #065f46; margin-bottom: 10px;">🧬 Barramento de Integração e-SUS APS / Sisab</div>
+                    <p style="font-size: 13px; color: #047857; margin-bottom: 15px;">
+                        Selecione relatórios territoriais, cadastros individuais ou prontuários digitais exportados do barramento e-SUS para realizar a leitura de metadados e sincronização local.
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="file" id="arquivoEsusInput" class="form-control" style="margin-bottom:0; background: white;" accept=".json,.xml,.txt,.pdf" onchange="processarArquivoEsus(this)">
+                    </div>
+                </div>
+
                 <div class="card">
-                    <div class="card-title">🔍 Busca Ativa Coordenada de Utentes (Dados Locais)</div>
+                    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>🔍 Busca Ativa Coordenada de Utentes (Dados Locais)</span>
+                        <button type="button" class="btn-primary" style="background: #6d28d9; font-size: 12px; padding: 6px 12px;" onclick="gerarCargaMassaOitoMil()">⚡ Injetar 8.000 Prontuários (Estresse)</button>
+                    </div>
                     <input type="text" id="buscaNomeInicio" class="form-control" placeholder="Digite o nome completo do paciente para buscar no IndexedDB..." oninput="buscarInicio()">
                     <div id="resultadoInicio" style="margin-top: 15px;">
                         <em style="color: #94a3b8;">Introduza um critério acima para pesquisar.</em>
@@ -266,6 +279,4 @@
 
     <script src="app.js"></script>
 </body>
-</html>
-
 </html>
