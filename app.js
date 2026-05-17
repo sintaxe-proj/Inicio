@@ -87,7 +87,6 @@ function alternarVisaoGestor(perfil) {
    🗄️ CONFIGURAÇÃO DA CAMADA DE PERSISTÊNCIA LOCAL (INDEXEDDB)
    ========================================================================== */
 function configurarIndexedDB() {
-    // Solicita armazenamento persistente ao navegador para evitar autolimpeza
     if (navigator.storage && navigator.storage.persist) {
         navigator.storage.persist().then(granted => {
             if (granted) console.log("Armazenamento definido como PERSISTENTE pelo navegador.");
@@ -125,9 +124,6 @@ function configurarIndexedDB() {
    🧠 MOTOR DE INTELIGÊNCIA EPIDEMIOLÓGICA & REGRAS DE CRITICIDADE
    ========================================================================== */
 
-/**
- * Avalia criticidade baseada no absenteísmo gestacional conforme regras solicitadas
- */
 function avaliarCriticoPreNatal(dataDUM, dataUltimaConsulta) {
     if (!dataDUM || !dataUltimaConsulta) {
         return { critico: false, motivo: "Dados incompletos" };
@@ -141,17 +137,17 @@ function avaliarCriticoPreNatal(dataDUM, dataUltimaConsulta) {
     const semanasIG = Math.floor(totalDiasGestacao / 7);
     const diasDesdeUltimaConsulta = Math.floor((hoje - ultimaConsulta) / (1000 * 60 * 60 * 24));
 
-    let limiteDiasTolerancia = 30; // 1º Trimestre: Mensal
+    let limiteDiasTolerancia = 30; 
     let faseTexto = "1º Trimestre";
 
     if (semanasIG >= 14 && semanasIG <= 27) {
-        limiteDiasTolerancia = 15; // 2º Trimestre: Quinzenal
+        limiteDiasTolerancia = 15; 
         faseTexto = "2º Trimestre";
     } else if (semanasIG > 27 && semanasIG < 36) {
-        limiteDiasTolerancia = 15; // Transição / Início do 3º Trimestre
+        limiteDiasTolerancia = 15; 
         faseTexto = "3º Trimestre Inicial";
     } else if (semanasIG >= 36) {
-        limiteDiasTolerancia = 7;  // A partir de 36 semanas: Semanal
+        limiteDiasTolerancia = 7;  
         faseTexto = "3º Trimestre Avançado (≥36 semanas)";
     }
 
@@ -171,9 +167,6 @@ function avaliarAbsenteismoTrintaDias(dataUltimaConsulta) {
     return diasAtraso > 30;
 }
 
-/**
- * Classifica e centraliza os critérios de risco clínico (HAS, DM, Pré-Natal, TB, Hansen)
- */
 function processarRiscoPaciente(paciente) {
     let riscoCalculado = "CONTROLADO";
     let alertas = [];
@@ -250,6 +243,7 @@ function abrirPainelEpidemiologico(agravo) {
 }
 
 function fecharPainelEpidemiologico() {
+    document.getElementById("painelEpidemiologicoContainer").style.none = "none";
     document.getElementById("painelEpidemiologicoContainer").style.display = "none";
 }
 
@@ -266,7 +260,6 @@ function carregarFiltrosSelectsEDados() {
             return String(campo).trim().toLowerCase() === "sim" || String(campo).trim().toLowerCase() === "true";
         };
 
-        // Isolar dados conforme o agravo clicado
         dadosFiltradosAtuais = todos.filter(p => {
             if (filtroAgravoAtual === "has") return checarValor(p.hasSN);
             if (filtroAgravoAtual === "dm") return checarValor(p.dmSN);
@@ -303,22 +296,19 @@ function aplicarFiltrosRelatorio() {
     const equipe = document.getElementById("filtroEquipe").value;
     const risco = document.getElementById("filtroRisco").value;
 
-    let exibicao = dadosFiltradosAtuais.filter(p => {
+    // 1. Filtramos por território para amparar a volumetria dos gráficos
+    let dadosTerritorio = dadosFiltradosAtuais.filter(p => {
         if (ubs !== "TODAS" && p.unidadePaciente !== ubs) return false;
         if (equipe !== "TODAS" && p.equipePaciente !== equipe) return false;
-        
-        const diagnostico = processarRiscoPaciente(p);
-        if (risco === "CRITICO" && diagnostico.statusRisco !== "CRITICO") return false;
-        if (risco === "CONTROLADO" && diagnostico.statusRisco === "CRITICO") return false;
-        
         return true;
     });
 
+    // 2. Contabilizamos os riscos reais daquele território (Acorda os cards do Alerta)
     let totalCriticos = 0;
     let totalAlertas = 0;
     let totalControlados = 0;
 
-    exibicao.forEach(p => {
+    dadosTerritorio.forEach(p => {
         const diag = processarRiscoPaciente(p);
         if (diag.statusRisco === "CRITICO") totalCriticos++;
         else if (diag.statusRisco === "ALERTA") totalAlertas++;
@@ -327,7 +317,16 @@ function aplicarFiltrosRelatorio() {
 
     renderizarGraficoDonut(totalCriticos, totalAlertas, totalControlados);
     renderizarGraficoBarras(totalCriticos, totalAlertas, totalControlados);
-    renderizarTabelaPainel(exibicao);
+
+    // 3. Aplica o filtro de risco para desenhar as linhas visíveis da tabela
+    let exibicaoTabela = dadosTerritorio.filter(p => {
+        const diagnostico = processarRiscoPaciente(p);
+        if (risco === "CRITICO" && diagnostico.statusRisco !== "CRITICO") return false;
+        if (risco === "CONTROLADO" && diagnostico.statusRisco === "CRITICO") return false;
+        return true;
+    });
+
+    renderizarTabelaPainel(exibicaoTabela);
 }
 
 function renderizarGraficoDonut(c, a, ctrl) {
@@ -419,9 +418,6 @@ function renderizarTabelaPainel(lista) {
     container.innerHTML = html;
 }
 
-/**
- * 🔒 ATUALIZAR DASHBOARD (Versão Sanitizada e Blindada contra Falhas)
- */
 function atualizarDashboard() {
     if (!db) {
         console.warn("Aviso: Tentativa de atualizar dashboard antes da abertura do IndexedDB. Retentando em 200ms...");
@@ -437,7 +433,6 @@ function atualizarDashboard() {
         const dados = event.target.result;
         let cHas = 0, cDm = 0, cGest = 0, cTb = 0, cHansen = 0;
 
-        // Normalização flexível independente de maiúsculas/minúsculas ou booleanos salvos
         const checarCondicao = (campo) => {
             if (!campo) return false;
             const valor = String(campo).trim().toLowerCase();
@@ -537,8 +532,8 @@ function abrirParaEdicao(cpf) {
         document.getElementById("hasSN").value = p.hasSN || "Não";
         document.getElementById("dmSN").value = p.dmSN || "Não";
         document.getElementById("gestanteSN").value = p.gestanteSN || "Não";
-        document.getElementById("tbSN").checked = p.tbSN === "Sim";
-        document.getElementById("hansenSN").checked = p.hansenSN === "Sim";
+        document.getElementById("tbSN").checked = p.tbSN === "sim" || p.tbSN === "Sim";
+        document.getElementById("hansenSN").checked = p.hansenSN === "sim" || p.hansenSN === "Sim";
 
         document.getElementById("hasPAS").value = p.hasPAS || "";
         document.getElementById("hasPAD").value = p.hasPAD || "";
@@ -600,11 +595,11 @@ function salvarProntuario() {
             CEP: document.getElementById("CEP").value,
             unidadePaciente: document.getElementById("unidadePaciente").value,
             equipePaciente: document.getElementById("equipePaciente").value,
-            hasSN: document.getElementById("hasSN").value,
-            dmSN: document.getElementById("dmSN").value,
-            gestanteSN: document.getElementById("gestanteSN").value,
-            tbSN: document.getElementById("tbSN").checked ? "Sim" : "Não",
-            hansenSN: document.getElementById("hansenSN").checked ? "Sim" : "Não",
+            hasSN: document.getElementById("hasSN").value.toLowerCase(),
+            dmSN: document.getElementById("dmSN").value.toLowerCase(),
+            gestanteSN: document.getElementById("gestanteSN").value.toLowerCase(),
+            tbSN: document.getElementById("tbSN").checked ? "sim" : "não",
+            hansenSN: document.getElementById("hansenSN").checked ? "sim" : "não",
             hasPAS: document.getElementById("hasPAS").value,
             hasPAD: document.getElementById("hasPAD").value,
             dmHbA1c: document.getElementById("dmHbA1c").value,
@@ -687,7 +682,7 @@ function carregarTabelaBancoCompleta() {
 }
 
 /* ==========================================================================
-   ⚡ INJETOR EM MASSA (8.000 PRONTUÁRIOS - ESTRESSE DE MEMÓRIA)
+   ⚡ INJETOR EM MASSA (8.000 PRONTUÁRIOS - ESTRESSE DE MEMÓRIA SANITIZADO)
    ========================================================================== */
 function gerarCargaMassaOitoMil() {
     showToast("Iniciando injeção em lote de 8.000 prontuários...");
@@ -713,11 +708,11 @@ function gerarCargaMassaOitoMil() {
         const nomeCompleto = `${nomeSorteado} ${sobrenomes[Math.floor(Math.random() * 10)]} ${sobrenomes[Math.floor(Math.random() * 10)]} ${i}`;
         const cpfFicticio = `999${String(i).padStart(8, '0')}`;
 
-        const has = Math.random() < 0.25 ? "Sim" : "Não";
-        const dm = Math.random() < 0.12 ? "Sim" : "Não";
-        const gest = (isFeminino && Math.random() < 0.08) ? "Sim" : "Não";
-        const tb = Math.random() < 0.02 ? "Sim" : "Não";
-        const hansen = Math.random() < 0.015 ? "Sim" : "Não";
+        const has = Math.random() < 0.25 ? "sim" : "não";
+        const dm = Math.random() < 0.12 ? "sim" : "não";
+        const gest = (isFeminino && Math.random() < 0.08) ? "sim" : "não";
+        const tb = Math.random() < 0.02 ? "sim" : "não";
+        const hansen = Math.random() < 0.015 ? "sim" : "não";
 
         const prontuario = {
             cpf: cpfFicticio,
@@ -734,10 +729,10 @@ function gerarCargaMassaOitoMil() {
             gestanteSN: gest,
             tbSN: tb,
             hansenSN: hansen,
-            hasPAS: has === "Sim" ? (Math.random() > 0.85 ? "185" : "130") : "",
-            hasPAD: has === "Sim" ? (Math.random() > 0.85 ? "115" : "85") : "",
-            dmHbA1c: dm === "Sim" ? (Math.random() > 0.80 ? "9.8" : "6.2") : "",
-            gestDUM: gest === "Sim" ? gerarDataPassada(250) : "",
+            hasPAS: has === "sim" ? (Math.random() > 0.85 ? "185" : "130") : "",
+            hasPAD: has === "sim" ? (Math.random() > 0.85 ? "115" : "85") : "",
+            dmHbA1c: dm === "sim" ? (Math.random() > 0.80 ? "9.8" : "6.2") : "",
+            gestDUM: gest === "sim" ? gerarDataPassada(250) : "",
             ampiPaciente: "Idoso Robusto",
             inputBuscaCIAPS: "",
             obsPaciente: "Carga automatizada via motor de estresse.",
@@ -751,7 +746,7 @@ function gerarCargaMassaOitoMil() {
     }
 
     transaction.oncomplete = () => {
-        showToast("Sucesso: 8.000 Prontuários persistidos no IndexedDB local!");
+        showToast("Sucesso: 8.000 Prontuários gerados com chaves sanitizadas!");
         atualizarDashboard();
         if(document.getElementById("view-banco").style.display === "block") carregarTabelaBancoCompleta();
     };
@@ -800,8 +795,9 @@ function navigate(targetView) {
 }
 
 function mostrarCard(id, valor) {
-    document.getElementById(id).style.display = (valor === "Sim" || valor === "true") ? "block" : "none";
-    if(id === 'cardGestante' && valor === 'Sim') {
+    const v = String(valor).trim().toLowerCase();
+    document.getElementById(id).style.display = (v === "sim" || v === "true") ? "block" : "none";
+    if(id === 'cardGestante' && (v === 'sim' || v === 'true')) {
         calcIdade();
     }
 }
