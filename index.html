@@ -6,9 +6,9 @@
     <title>SintaxeHub - PEP & Inteligência Populacional na APS</title>
     <style>
         :root {
-            --primary: #0284c7;
-            --primary-dark: #0369a1;
-            --dark: #0f172a;
+            --primary: #10b981; /* Verde Esmeralda Original */
+            --primary-dark: #059669;
+            --dark: #064e3b; /* Verde Floresta Profundo */
             --light: #f8fafc;
             --gray-border: #e2e8f0;
         }
@@ -25,13 +25,13 @@
             color: #334155;
         }
 
-        /* 🔒 TELA DE LOGIN */
+        /* 🔒 TELA DE LOGIN ORIGINAL */
         #loginScreen {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0c4a6e 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
             padding: 20px;
         }
 
@@ -127,7 +127,7 @@
             margin-top: 5px;
         }
 
-        /* 📋 FORMULÁRIOS E CAMPOS CLINICOS */
+        /* 📋 FORMULÁRIOS E CAMPOS CLÍNICOS */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -160,7 +160,7 @@
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
         }
 
         .btn-primary {
@@ -243,7 +243,7 @@
                 <span id="nomeUsuarioLogado" style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500;">Carregando...</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
-                <select id="seletorNivelAcesso" style="display:none; background:#1e293b; color:white; border:1px solid #475569; padding:5px; font-size:12px;" onchange="alternarVisaoGestor(this.value)">
+                <select id="seletorNivelAcesso" style="display:none; background:#064e3b; color:white; border:1px solid #059669; padding:5px; font-size:12px;" onchange="alternarVisaoGestor(this.value)">
                     <option value="admin">Perfil: Gestor Completo</option>
                     <option value="clinico">Perfil: Apenas Clínico</option>
                     <option value="leitura">Perfil: Apenas Leitura</option>
@@ -265,7 +265,7 @@
                 <h2 style="margin-bottom: 20px; color: var(--dark);">Painel de Monitoramento de Coortes Estratégicas</h2>
                 
                 <div class="grid-dash">
-                    <div class="card-monitor" style="border-left: 4px solid #0284c7;" onclick="abrirPainelEpidemiologico('has')">
+                    <div class="card-monitor" style="border-left: 4px solid #10b981;" onclick="abrirPainelEpidemiologico('has')">
                         <div style="font-size: 12px; font-weight:600; color:#64748b; text-transform:uppercase;">Hipertensão (HAS)</div>
                         <div class="count" id="dashHAS">0</div>
                     </div>
@@ -318,17 +318,16 @@
                     </div>
 
                     <div id="metricasPainelEpidemiologico" style="margin-top:15px; margin-bottom:15px;"></div>
-                    
                     <div id="tabelaPainelEpidemiologico" style="overflow-x:auto; margin-top:10px;"></div>
                 </div>
 
-                <div class="card" style="margin-top:20px; padding:20px; border-left: 4px solid #10b981; background:white; border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div class="card" style="margin-top:20px; padding:20px; border-left: 4px solid var(--primary); background:white; border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <h3 style="color:var(--dark); margin-bottom:5px;">📥 Barramento de Dados e Integração Municipal</h3>
                     <p style="color:#64748b; font-size:13px; margin-bottom:12px;">Faça upload de JSON estruturado do e-SUS PEC ou prontuários digitalizados para injeção na malha territorial.</p>
                     <input type="file" accept=".json,.pdf,.txt" style="font-size:13px;" onchange="processarArquivoEsus(this)">
                 </div>
 
-                <div class="card" style="margin-top: 20px; padding: 20px; border-left: 4px solid var(--primary); background:white; border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div class="card" style="margin-top: 20px; padding: 20px; border-left: 4px solid var(--dark); background:white; border-radius:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <h3 style="color: var(--dark); margin-bottom: 5px;">🔍 Busca Ativa Coordenada de Utentes (Dados Locais)</h3>
                     <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
                         Digite o nome completo, fragmentos do nome ou os números do CPF para localizar o prontuário.
@@ -341,7 +340,7 @@
                                style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;"
                                onkeyup="if(event.key === 'Enter') buscarInicio()">
                                
-                        <button class="btn-primary" style="padding: 10px 20px;" onclick="buscarInicio()">
+                        <button class="btn-primary" onclick="buscarInicio()">
                             Pesquisar
                         </button>
                     </div>
@@ -353,13 +352,13 @@
             </div>
 
             <div id="view-prontuario" class="view">
-                <div id="cabecalhoProntuario" style="display:none; background:#e0f2fe; border-left:4px solid var(--primary); padding:12px; border-radius:4px; margin-bottom:20px;">
-                    <h3 id="cabecalhoNome" style="color:var(--primary-dark); font-size:15px;">Modo de Edição Activo</h3>
+                <div id="cabecalhoProntuario" style="display:none; background:#e6f4ea; border-left:4px solid var(--dark); padding:12px; border-radius:4px; margin-bottom:20px;">
+                    <h3 id="cabecalhoNome" style="color:var(--dark); font-size:15px;">Modo de Edição Activo</h3>
                 </div>
 
                 <h2 style="margin-bottom: 20px; color:var(--dark);">Ficha de Registro Clínico Interoperável</h2>
                 
-                <h3 style="font-size:14px; color:var(--primary); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">1. Identificação Administrativa</h3>
+                <h3 style="font-size:14px; color:var(--primary-dark); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">1. Identificação Administrativa</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Nome Completo do Utente *</label>
@@ -413,7 +412,7 @@
                     </div>
                 </div>
 
-                <h3 style="font-size:14px; color:var(--primary); margin-top:25px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">2. Condições Clínicas e Estratificação de Risco (APS)</h3>
+                <h3 style="font-size:14px; color:var(--primary-dark); margin-top:25px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">2. Condições Clínicas e Estratificação de Risco (APS)</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Possui Diagnóstico de HAS?</label>
@@ -482,7 +481,7 @@
 
                 <div class="form-group" style="margin-top:15px;">
                     <label>Codificação CIAP-2 / Diagnósticos Adicionais</label>
-                    <input type="text" id="inputBuscaCIAPS" placeholder="Ex: K86 (Hipertensão sem complicação); T90 (Diabetes não insulinodependente)">
+                    <input type="text" id="inputBuscaCIAPS" placeholder="Ex: K86; T90">
                 </div>
 
                 <div class="form-group" style="margin-top:15px;">
@@ -490,16 +489,16 @@
                     <textarea id="obsPaciente" rows="2" placeholder="Dados permanentes do histórico de saúde..."></textarea>
                 </div>
 
-                <h3 style="font-size:14px; color:var(--primary); margin-top:25px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">3. Evolução SOAP / Registro do Encontro Atual</h3>
+                <h3 style="font-size:14px; color:var(--primary-dark); margin-top:25px; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">3. Evolução SOAP / Registro do Encontro Atual</h3>
                 <div class="form-group">
-                    <label>Evolução Clínica Atual (Será assinada digitalmente com data/hora e trancada ao salvar)</label>
+                    <label>Evolução Clínica Atual</label>
                     <textarea id="evoTexto" rows="4" placeholder="Descreva o Subjetivo, Objetivo, Avaliação e Plano (SOAP)..."></textarea>
                 </div>
 
                 <div id="linhaTempoEvolucoes"></div>
 
                 <div style="margin-top:25px; display:flex; gap:10px;">
-                    <button class="btn-primary" style="background:#16a34a;" onclick="salvarProntuario()">Assinar e Gravar no IndexedDB</button>
+                    <button class="btn-primary" style="background:#10b981;" onclick="salvarProntuario()">Assinar e Gravar no IndexedDB</button>
                     <button class="btn-primary" style="background:#64748b;" onclick="limparFormularioProntuario(); navigate('inicio')">Cancelar</button>
                 </div>
             </div>
@@ -509,7 +508,6 @@
                     <h2 style="color:var(--dark);">Base de Prontuários Locais (IndexedDB)</h2>
                     <button class="btn-primary" style="background:#4f46e5; margin-left:auto;" onclick="gerarCargaMassaOitoMil()">⚡ Injetar Carga de Estresse (8.000 Prontuários)</button>
                 </div>
-                <p style="color:#64748b; font-size:13px; margin-bottom:15px;">Esta seção simula o banco interno trancado do navegador. Ideal para conferência de volumetria populacional e auditorias rápidas.</p>
                 <div id="tabelaBancoContainer" style="overflow-x:auto;"></div>
             </div>
 
