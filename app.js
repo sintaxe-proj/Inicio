@@ -1,5 +1,5 @@
 /* ============================================================
-   🔐 CONFIGURAÇÃO E BASE DE USUÁRIOS
+   🔐 CONFIGURAÇÃO E BASE DE USUÁRIOS (RBAC)
 ============================================================ */
 const usuariosPermitidos = [
     { 
@@ -29,28 +29,57 @@ let atualPacienteEdicaoId = null;
 let db = null;
 
 /* ============================================================
-   📦 CONFIGURAÇÃO E INICIALIZAÇÃO DO INDEXEDDB
+   📦 CONFIGURAÇÃO DO INDEXEDDB DE ALTA SEGURANÇA (PEP)
 ============================================================ */
 function iniciarBancoDados(callback) {
-    const request = indexedDB.open("SintaxeHubDB", 1);
+    // Elevado para a Versão 2 para suportar a arquitetura de tabelas do PEP
+    const request = indexedDB.open("SintaxeHubDB", 2);
 
     request.onupgradeneeded = function(event) {
         const database = event.target.result;
-        // Cria a tabela de prontuários usando o 'id' como chave primária
+        
+        // Tabela 1: Prontuários (Dados cadastrais, chaves clínicas e Linha do Tempo)
         if (!database.objectStoreNames.contains("prontuarios")) {
             database.createObjectStore("prontuarios", { keyPath: "id" });
+        }
+        
+        // Tabela 2 [REQUISITO PEP]: Trilha de Auditoria Imutável (Audit Trail)
+        if (!database.objectStoreNames.contains("auditoria")) {
+            database.createObjectStore("auditoria", { keyPath: "logId", autoIncrement: true });
         }
     };
 
     request.onsuccess = function(event) {
         db = event.target.result;
-        console.log("📦 Banco de Dados IndexedDB inicializado com sucesso!");
+        console.log("🛡️ Banco de Dados PEP (IndexedDB) inicializado e auditado!");
         if (callback) callback();
     };
 
     request.onerror = function(event) {
-        console.error("❌ Erro ao abrir o IndexedDB:", event.target.error);
+        console.error("❌ Falha crítica de segurança ao abrir o banco de dados:", event.target.error);
     };
+}
+
+/* ============================================================
+   🕵️‍♂️ REQUISITO PEP: REGISTRO INDELÉVEL DE AUDITORIA (AUDIT TRAIL)
+============================================================ */
+function registrarLogAuditoria(acao, detalhes) {
+    if (!db) return;
+
+    const sessao = JSON.parse(localStorage.getItem("usuarioLogado")) || { matricula: "ANÔNIMO", nome: "Não Autenticado" };
+    
+    const log = {
+        dataHora: new Date().toISOString(),
+        usuarioMatricula: sessao.matricula,
+        usuarioNome: sessao.nome,
+        acao: acao,           // Ex: "LOGIN_SUCESSO", "PRONTUARIO_VISUALIZADO", "EVOLUCAO_SALVA"
+        detalhes: detalhes,   // Ex: "Acessou prontuário do paciente X"
+        userAgent: navigator.userAgent
+    };
+
+    const transaction = db.transaction(["auditoria"], "readwrite");
+    const store = transaction.objectStore("auditoria");
+    store.add(log); // .add garante inclusão no fim da fila sem risco de sobrescrita
 }
 
 /* ============================================================
@@ -78,6 +107,8 @@ function autenticarUsuario() {
     if (usuarioEncontrado) {
         efetuarLoginSucesso(usuarioEncontrado);
     } else {
+        // Auditoria registra tentativa de invasão ou erro de senha
+        registrarLogAuditoria("LOGIN_FALHA", `Tentativa frustrada de login com a matrícula: ${matriculaInput}`);
         exibirErroLogin("⚠️ Matrícula ou senha incorretas. Verifique as credenciais.");
     }
 }
@@ -96,13 +127,13 @@ function efetuarLoginSucesso(usuario) {
     const campoNome = document.getElementById("nomeUsuarioLogado");
     if (campoNome) campoNome.innerText = usuario.nome;
 
-    // 🔥 Força a aparição do seletor imediatamente no login se for admin
     const seletorAcesso = document.getElementById("seletorNivelAcesso");
     if (usuario.tipo === "admin" && seletorAcesso) {
         seletorAcesso.style.display = "inline-block";
         seletorAcesso.value = "admin"; 
     }
 
+    registrarLogAuditoria("LOGIN_SUCESSO", `Usuário autenticado com o cargo: ${usuario.cargo}`);
     aplicarPermissoesPerfil(usuario.tipo);
     navigate("inicio");
 }
@@ -129,7 +160,7 @@ function aplicarPermissoesPerfil(tipoPerfil) {
         desbloquearFormularios(true);
     } else if (tipoPerfil === "leitura") {
         if (btnAuditoria) btnAuditoria.style.display = "none";
-        desbloquearFormularios(false);
+        desbloquearFormularios(false); // Congela escrita para auditoria passiva
     }
 }
 
@@ -144,6 +175,7 @@ function alternarVisaoGestor(novaVisao) {
         campoNome.innerText = sessao.nome.split(" (")[0] + sufixo;
     }
     
+    registrarLogAuditoria("PERFIL_ALTERADO", `Transitou temporariamente para o nível de visão: ${novaVisao}`);
     navigate("inicio");
 }
 
@@ -179,6 +211,7 @@ function exibirErroLogin(mensagem) {
 }
 
 function efetuarLogout() {
+    registrarLogAuditoria("LOGOUT", "Sessão encerrada voluntariamente pelo usuário.");
     localStorage.removeItem("usuarioLogado");
     document.getElementById("loginUser").value = "";
     document.getElementById("loginSenha").value = "";
@@ -299,7 +332,7 @@ function calcIG() {
 }
 
 /* ============================================================
-   💾 PERSISTÊNCIA: GRAVAÇÃO E CRUD NO INDEXEDDB
+   💾 PERSISTÊNCIA: GRAVAÇÃO PEP (LINHA DO TEMPO IMUTÁVEL)
 ============================================================ */
 function salvarProntuario() {
     const nome = document.getElementById("nomePaciente").value.trim();
@@ -308,51 +341,77 @@ function salvarProntuario() {
         return;
     }
 
-    const paciente = {
-        id: atualPacienteEdicaoId || Date.now().toString(),
-        nome: nome,
-        cpf: document.getElementById("cpfPaciente").value,
-        nascimento: document.getElementById("nascPaciente").value,
-        idade: document.getElementById("idadePaciente").value,
-        telefone: document.getElementById("telPaciente").value,
-        endereco: document.getElementById("endPaciente").value,
-        cep: document.getElementById("CEP").value,
-        unidade: document.getElementById("unidadePaciente").value,
-        equipe: document.getElementById("equipePaciente").value,
-        obs: document.getElementById("obsPaciente").value,
-        
-        has: document.getElementById("hasSN").value,
-        hasPAS: document.getElementById("hasPAS").value,
-        hasPAD: document.getElementById("hasPAD").value,
-        
-        dm: document.getElementById("dmSN").value,
-        dmHbA1c: document.getElementById("dmHbA1c").value,
-        
-        gestante: document.getElementById("gestanteSN").value,
-        gestDUM: document.getElementById("gestDUM").value,
-        
-        hanseniase: document.getElementById("hansenSN").value,
-        tuberculose: document.getElementById("tbSN").value,
-        
-        ampiClassif: document.getElementById("ampiPaciente") ? document.getElementById("ampiPaciente").value : "",
-        evolucao: document.getElementById("evoTexto").value,
-        ciaps2: document.getElementById("inputBuscaCIAPS").value,
-        dataRegistro: new Date().toLocaleDateString('pt-BR')
-    };
+    const sessaoAtend = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const novaEvolucaoTexto = document.getElementById("evoTexto").value.trim();
 
-    const transaction = db.transaction(["prontuarios"], "readwrite");
-    const store = transaction.objectStore("prontuarios");
+    // Requisito PEP: Buscar registro anterior para não apagar a linha do tempo existente
+    const idPaciente = atualPacienteEdicaoId || Date.now().toString();
     
-    store.put(paciente);
+    const transactionLeitura = db.transaction(["prontuarios"], "readonly");
+    const storeLeitura = transactionLeitura.objectStore("prontuarios");
+    const requestGet = storeLeitura.get(idPaciente);
 
-    transaction.oncomplete = function() {
-        alert("💾 Prontuário registrado com sucesso no IndexedDB Municipal!");
-        limparFormularioProntuario();
-        navigate("inicio");
-    };
+    requestGet.onsuccess = function(event) {
+        const registroExistente = event.target.result;
+        let historicoEvolucoes = (registroExistente && registroExistente.evolucoes) ? registroExistente.evolucoes : [];
 
-    transaction.onerror = function() {
-        alert("❌ Erro técnico ao tentar salvar no IndexedDB.");
+        // 🔥 SE HOUVER TEXTO NA EVOLUÇÃO, CRIA UM ADENDO ASSINADO (NÃO SOBRESCREVE O PASSADO)
+        if (novaEvolucaoTexto) {
+            historicoEvolucoes.push({
+                dataHora: new Date().toLocaleString('pt-BR'),
+                profissional: sessaoAtend.nome,
+                matricula: sessaoAtend.matricula,
+                texto: novaEvolucaoTexto
+            });
+        }
+
+        const paciente = {
+            id: idPaciente,
+            nome: nome,
+            cpf: document.getElementById("cpfPaciente").value,
+            nascimento: document.getElementById("nascPaciente").value,
+            idade: document.getElementById("idadePaciente").value,
+            telefone: document.getElementById("telPaciente").value,
+            endereco: document.getElementById("endPaciente").value,
+            cep: document.getElementById("CEP").value,
+            unidade: document.getElementById("unidadePaciente").value,
+            equipe: document.getElementById("equipePaciente").value,
+            obs: document.getElementById("obsPaciente").value,
+            
+            has: document.getElementById("hasSN").value,
+            hasPAS: document.getElementById("hasPAS").value,
+            hasPAD: document.getElementById("hasPAD").value,
+            
+            dm: document.getElementById("dmSN").value,
+            dmHbA1c: document.getElementById("dmHbA1c").value,
+            
+            gestante: document.getElementById("gestanteSN").value,
+            gestDUM: document.getElementById("gestDUM").value,
+            
+            hanseniase: document.getElementById("hansenSN").value,
+            tuberculose: document.getElementById("tbSN").value,
+            
+            ampiClassif: document.getElementById("ampiPaciente") ? document.getElementById("ampiPaciente").value : "",
+            ciaps2: document.getElementById("inputBuscaCIAPS").value,
+            
+            // Grava a linha do tempo imutável das evoluções clínicas
+            evolucoes: historicoEvolucoes,
+            dataUltimoRegistro: new Date().toLocaleDateString('pt-BR')
+        };
+
+        const transactionEscrita = db.transaction(["prontuarios"], "readwrite");
+        const storeEscrita = transactionEscrita.objectStore("prontuarios");
+        storeEscrita.put(paciente);
+
+        transactionEscrita.oncomplete = function() {
+            registrarLogAuditoria(
+                atualPacienteEdicaoId ? "PRONTUARIO_ALTERADO" : "PRONTUARIO_CRIADO", 
+                `Prontuário de ${nome} (ID: ${idPaciente}) gravado com ${historicoEvolucoes.length} evoluções em linha do tempo.`
+            );
+            alert("💾 Registro clínico processado e assinado digitalmente no IndexedDB PEP!");
+            limparFormularioProntuario();
+            navigate("inicio");
+        };
     };
 }
 
@@ -367,6 +426,10 @@ function limparFormularioProntuario() {
         if (input.tagName === "SELECT") input.value = "Não";
         else input.value = "";
     });
+
+    // Limpa a div de linha do tempo visual, se existir no HTML
+    const timelineDiv = document.getElementById("linhaTempoEvolucoes");
+    if (timelineDiv) timelineDiv.innerHTML = "";
 
     mostrarCard('cardHAS', 'Não');
     mostrarCard('cardDM', 'Não');
@@ -422,6 +485,9 @@ function buscarInicio() {
         const prontuarios = event.target.result;
         const filtrados = prontuarios.filter(p => p.nome.toLowerCase().includes(nomeBusca));
 
+        // Registro de Auditoria Obrigatório para Busca Populacional de Dados Sensíveis
+        registrarLogAuditoria("BUSCA_CLINICA", `Pesquisa textual no Dashboard pelo termo: "${nomeBusca}". Retornou ${filtrados.length} resultados.`);
+
         if (filtrados.length === 0) {
             container.innerHTML = `<span style="color: #ef4444;">Nenhum utente encontrado com este critério.</span>`;
             return;
@@ -450,6 +516,9 @@ function carregarPacienteParaEdicao(id) {
     request.onsuccess = function(event) {
         const p = event.target.result;
         if (!p) return;
+
+        // 🔥 REGISTRO DE AUDITORIA: Quem abriu o prontuário clínico e quando?
+        registrarLogAuditoria("PRONTUARIO_VISUALIZADO", `Acessou a ficha clínica completa do paciente: ${p.nome} (ID: ${p.id})`);
 
         atualPacienteEdicaoId = p.id;
         navigate("prontuario");
@@ -494,8 +563,29 @@ function carregarPacienteParaEdicao(id) {
         }
         
         calcIdade();
-        document.getElementById("evoTexto").value = p.evolucao || "";
         document.getElementById("inputBuscaCIAPS").value = p.ciaps2 || "";
+        
+        // Limpa o campo de digitação de novas evoluções para o atendimento atual
+        document.getElementById("evoTexto").value = "";
+
+        // 🔥 EXIBIÇÃO DA LINHA DO TEMPO HISTÓRICA NA TELA
+        const timelineDiv = document.getElementById("linhaTempoEvolucoes");
+        if (timelineDiv) {
+            if (p.evolucoes && p.evolucoes.length > 0) {
+                let htmlTimeline = `<h4 style="margin-top:20px; color:#1e293b; border-bottom:2px solid #cbd5e1; padding-bottom:5px;">📋 Linha do Tempo de Evoluções (Trancada)</h4>`;
+                // Exibe as evoluções da mais recente para a mais antiga
+                p.evolucoes.slice().reverse().forEach(evo => {
+                    htmlTimeline += `
+                    <div style="background:#f8fafc; border-left:4px solid #0284c7; padding:10px; margin-bottom:10px; border-radius:0 6px 6px 0; font-size:13px;">
+                        <div style="color:#64748b; font-weight:600; margin-bottom:4px;">👁️ Em ${evo.dataHora} | Profissional: ${escapeHTML(evo.profissional)} (Matrícula: ${evo.matricula})</div>
+                        <p style="margin:0; color:#334155; white-space:pre-wrap; font-style:italic;">"${escapeHTML(evo.texto)}"</p>
+                    </div>`;
+                });
+                timelineDiv.innerHTML = htmlTimeline;
+            } else {
+                timelineDiv.innerHTML = `<p style="color:#94a3b8; font-size:13px; margin-top:15px;">*Nenhum registro clínico anterior nesta ficha técnica.</p>`;
+            }
+        }
     };
 }
 
@@ -511,7 +601,7 @@ function listarBanco() {
         const prontuarios = event.target.result;
 
         if (prontuarios.length === 0) {
-            container.innerHTML = `<p style="color:#64748b; padding:15px;">Base de dados municipal vazia (IndexedDB).</p>`;
+            container.innerHTML = `<p style="color:#64748b; padding:15px;">Base de dados municipal vazia (IndexedDB PEP).</p>`;
             return;
         }
 
@@ -564,7 +654,7 @@ function escapeHTML(text) {
 }
 
 /* ============================================================
-   🛡️ INITIALIZATION SYSTEM (INTEGRADO COM INDEXEDDB)
+   🛡️ INITIALIZATION SYSTEM (INTEGRADO COM INDEXEDDB PEP)
 ============================================================ */
 function initSistema() {
     iniciarBancoDados(function() {
