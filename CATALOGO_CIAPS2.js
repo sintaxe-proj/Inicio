@@ -1,7 +1,7 @@
 /* ============================================================
    📚 CATÁLOGO COMPLETO DE DIAGNÓSTICOS CIAPS-2
 ============================================================ */
-var CATALOGO_CIAPS2 = {
+const CATALOGO_CIAPS2 = {
     // CAPÍTULO A: Problemas Gerais e Inespecíficos
     "A01": "Dor generalizada / múltipla",
     "A03": "Febre",
@@ -185,5 +185,6 @@ var CATALOGO_CIAPS2 = {
     "T91": "Diabetes Mellitus Tipo 1",
     "T93": "Dislipidemia / hipercolesterolemia",
     "T99": "Outra patologia endócrina / metabólica",
+}
 
 window.CATALOGO_CIAPS2 = CATALOGO_CIAPS2;
