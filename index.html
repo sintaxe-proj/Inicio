@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Sintaxe Hub</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sintaxe Hub Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="styles.css">
 
@@ -15,447 +15,526 @@
 
 <body>
 
-<div id="loginScreen" class="login-container">
-    <div class="login-box">
-        <h1>Sintaxe Hub</h1>
-
-        <label>Usuário:</label>
-        <input type="text" id="loginUser">
-
-        <label>Senha:</label>
-        <input type="password" id="loginPass">
-
-        <button onclick="login()">Entrar</button>
-
-        <p id="loginErro" class="erro">Usuário ou senha incorretos</p>
+    <div id="loginScreen" style="max-width: 420px; margin: 80px auto; padding: 30px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+        <h2 style="text-align: center; color: #0b6efd; margin-bottom: 25px;">Sintaxe Hub</h2>
+        <div class="campo-grupo" style="margin-bottom: 15px;">
+            <label for="loginUser">Utilizador / Matrícula:</label>
+            <input type="text" id="loginUser" placeholder="Digite seu utilizador...">
+        </div>
+        <div class="campo-grupo" style="margin-bottom: 20px;">
+            <label for="loginSenha">Palavra-passe:</label>
+            <input type="password" id="loginSenha" placeholder="Digite sua palavra-passe...">
+        </div>
+        <button class="btn-primary" style="width: 100%; padding: 12px;" onclick="autenticarUsuario()">Entrar no Sistema</button>
+        <div id="loginErro" style="color: #dc2626; text-align: center; margin-top: 15px; font-weight: bold; display: none;">Utilizador ou palavra-passe incorretos.</div>
     </div>
-</div>
 
-<div id="app" style="display:none;">
-
-    <header id="header">
-        <div class="logo-titulo" onclick="navigate('inicio')">
-            <strong>Sintaxe Hub Pro 4.0</strong>
-        </div>
-
-        <nav id="menu">
-            <span onclick="navigate('inicio')">Início</span>
-            <span id="btnAdmin" onclick="navigate('admin')" style="display:none;">Administrar</span>
-            <span id="btnAuditoria" onclick="navigate('auditoria')" style="display:none;">Auditoria</span>
-            <span onclick="navigate('prontuario')">Cadastrar Prontuário</span>
-            <span onclick="navigate('linhas')">Linhas de Cuidado</span>
-            <span onclick="navigate('reunioes')">Reuniões</span>
-            <span onclick="navigate('banco')">Banco de Dados</span>
-        </nav>
-
-        <div class="header-actions">
-            <div id="alertBell" class="bell" title="Reavaliações pendentes" onclick="toggleAlertas()" style="display:none;">🔔</div>
-            <button class="logout" onclick="logout()">Sair</button>
-        </div>
-
-        <div id="alertasPainel" class="alertas-painel" style="display:none;"></div>
-    </header>
-
-    <div class="container">
-
-        <section id="view-inicio" class="view">
-            <h2>Consulta de Prontuários</h2>
-            <div class="card">
-                <label>Buscar por Nome:
-                    <input id="buscaNomeInicio" type="text" placeholder="Digite o nome" oninput="buscarInicio()">
-                </label>
-                <label>Buscar por CPF:
-                    <input id="buscaCPFInicio" type="text" placeholder="Digite o CPF" oninput="buscarInicio()">
-                </label>
-            </div>
-
-            <div id="resultadoInicio" class="card">
-                <em>Digite um nome ou CPF para iniciar a busca. Clique nos Cards abaixo para puxar os relatórios da linha de cuidados.</em>
-            </div>
-
-            <h2>Visão Geral do Território</h2>
-            <div class="dashboard">
-                <div class="dash-card has" style="cursor:pointer" onclick="filtrarPorCondicao('HAS')">
-                    <h3>Hipertensão</h3>
-                    <span id="dashHAS">0</span>
-                </div>
-                <div class="dash-card dm" style="cursor:pointer" onclick="filtrarPorCondicao('DM')">
-                    <h3>Diabetes</h3>
-                    <span id="dashDM">0</span>
-                </div>
-                <div class="dash-card gest" style="cursor:pointer" onclick="filtrarPorCondicao('GEST')">
-                    <h3>Gestantes</h3>
-                    <span id="dashGest">0</span>
-                </div>
-                <div class="dash-card tb" style="cursor:pointer" onclick="filtrarPorCondicao('TB')">
-                    <h3>Tuberculose</h3>
-                    <span id="dashTB">0</span>
-                </div>
-                <div class="dash-card hansen" style="cursor:pointer" onclick="filtrarPorCondicao('HANS')">
-                    <h3>Hanseníase</h3>
-                    <span id="dashHansen">0</span>
+    <div id="app" style="display: none;">
+        
+        <header>
+            <div class="header-container" style="display: flex; justify-content: space-between; align-items: center; background: #2a2f35; color: #fff; padding: 15px 25px;">
+                <h1 style="margin: 0; font-size: 22px; color: #0b6efd;">Sintaxe Hub <span style="font-size: 14px; color: #cbd5e1;">| APS Digital</span></h1>
+                <div class="user-info" style="display: flex; align-items: center; gap: 15px;">
+                    <span id="nomeUsuarioLogado" style="font-weight: bold;">Profissional</span>
+                    <button id="alertBell" onclick="toggleAlertas()" style="background: #dc2626; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: none;">!</button>
+                    <button class="btn-primary" style="background: #ef4444; padding: 6px 12px;" onclick="efetuarLogout()">Sair</button>
                 </div>
             </div>
-        </section>
 
-        <section id="view-prontuario" class="view" style="display:none;">
-            <div id="cabecalhoProntuario" style="display:none; margin-bottom:12px; padding:12px; background:#f1f5f9; border-left:5px solid #2563eb;">
-                <strong id="cabecalhoNome"></strong>
-                <small id="cabecalhoNascimento"></small>
-            </div>
+            <div id="alertasPainel" class="card" style="display: none; position: absolute; right: 25px; top: 70px; width: 350px; z-index: 2000; border-left: 5px solid #dc2626; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"></div>
 
-            <h2>Cadastrar / Editar Prontuário</h2>
+            <nav class="main-nav" style="background: #0b6efd; padding: 10px 25px; display: flex; gap: 10px;">
+                <button onclick="navigate('inicio')">Painel Inicial</button>
+                <button onclick="navigate('prontuario')">Novo Prontuário</button>
+                <button onclick="navigate('banco')">Base de Dados</button>
+                <button onclick="navigate('reunioes')">Reuniões Clínicas</button>
+                <button onclick="navigate('linhas')">Gráficos de Linhas</button>
+                <button id="btnAuditoria" style="display: none;" onclick="navigate('auditoria')">Auditoria</button>
+            </nav>
+        </header>
 
-            <div class="accordion">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Identificação do Paciente</div>
-                <div class="acc-body">
-                    <label>Nome completo: <input id="nomePaciente" type="text"></label>
-                    <label>CPF: <input id="cpfPaciente" type="text" oninput="mascaraCPF(this)"></label>
-                    <label>Data de nascimento: <input id="nascPaciente" type="date" oninput="calcIdade()"></label>
-                    <label>Idade: <input id="idadePaciente" type="text" disabled></label>
-                    <label>Endereço: <input id="endPaciente" type="text"></label>
-                    <label>CEP: <input id="CEP" type="text"></label>
-                    <label>Telefone: <input id="telPaciente" type="text" oninput="mascaraTelefone(this)"></label>
-                    <label>Unidade: <input id="unidadePaciente" type="text"></label>
-                    <label>Equipe: <input id="equipePaciente" type="text"></label>
-                    <label>Outros Comentários: <textarea id="obsPaciente"></textarea></label>
+        <main style="padding: 25px; max-width: 1400px; margin: 0 auto;">
 
-                    <div id="ampiBloco" style="display:none;">
-                        <h4>Avaliação AMPI (somente idosos)</h4>
-                        <label>Data do AMPI: <input id="ampiData" type="date"></label>
-                        <label>Classificação:
-                            <select id="ampiPaciente">
-                                <option value="">Selecione</option>
-                                <option>Normal</option>
-                                <option>Pré-frágil</option>
-                                <option>Frágil</option>
-                            </select>
-                        </label>
-                        <label>Observações: <textarea id="ampiObs"></textarea></label>
-                        <label><input id="ampiViolencia" type="checkbox"> Sinalização de violência</label>
+            <section id="view-inicio" class="view">
+                <h2>Painel Geral de Monitorização</h2>
+                
+                <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div class="card" style="border-left: 5px solid #2563eb; cursor: pointer;" onclick="filtrarPorCondicao('HAS')">
+                        <h3>Hipertensos (HAS)</h3>
+                        <p class="dash-num" id="dashHAS">0</p>
+                    </div>
+                    <div class="card" style="border-left: 5px solid #16a34a; cursor: pointer;" onclick="filtrarPorCondicao('DM')">
+                        <h3>Diabéticos (DM)</h3>
+                        <p class="dash-num" id="dashDM">0</p>
+                    </div>
+                    <div class="card" style="border-left: 5px solid #ec4899; cursor: pointer;" onclick="filtrarPorCondicao('Gestante')">
+                        <h3>Gestantes (Pré-Natal)</h3>
+                        <p class="dash-num" id="dashGest">0</p>
+                    </div>
+                    <div class="card" style="border-left: 5px solid #f59e0b; cursor: pointer;" onclick="filtrarPorCondicao('Tuberculose')">
+                        <h3>Tuberculose</h3>
+                        <p class="dash-num" id="dashTB">0</p>
+                    </div>
+                    <div class="card" style="border-left: 05px solid #7c3aed; cursor: pointer;" onclick="filtrarPorCondicao('Hanseníase')">
+                        <h3>Hanseníase</h3>
+                        <p class="dash-num" id="dashHansen">0</p>
                     </div>
                 </div>
-            </div>
 
-            <div class="accordion">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Condições Clínicas</div>
-                <div class="acc-body">
-                    <label>Hipertensão:
-                        <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
-                            <option>Não</option>
-                            <option>Sim</option>
-                        </select>
-                    </label>
-                    <label>Diabetes:
-                        <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
-                            <option>Não</option>
-                            <option>Sim</option>
-                        </select>
-                    </label>
-                    <label>Gestante:
-                        <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
-                            <option>Não</option>
-                            <option>Sim</option>
-                        </select>
-                    </label>
-                    <label>Hanseníase:
-                        <select id="hansenSN" onchange="mostrarCard('cardHanseniase', this.value)">
-                            <option>Não</option>
-                            <option>Sim</option>
-                        </select>
-                    </label>
-                    <label>Tuberculose:
-                        <select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
-                            <option>Não</option>
-                            <option>Sim</option>
-                        </select>
-                    </label>
+                <div class="card" style="margin-bottom: 25px;">
+                    <h3>Procurar Utente na Base de Dados</h3>
+                    <div style="display: flex; gap: 15px;">
+                        <input type="text" id="buscaNomeInicio" placeholder="Digite o nome completo do utente..." style="flex: 2;">
+                        <input type="text" id="buscaCPFInicio" oninput="mascaraCPF(this)" placeholder="CPF (Apenas números)..." style="flex: 1;">
+                        <button class="btn-primary" onclick="buscarInicio()">Pesquisar</button>
+                    </div>
+                    <div id="resultadoInicio" style="margin-top: 20px; overflow-x: auto;">
+                        <em>Introduza um critério acima para pesquisar.</em>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div id="cardHAS" class="accordion clinical-card" style="display:none;">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Hipertensão Arterial Sistêmica</div>
-                <div class="acc-body">
-                    <label>PAS: <input id="hasPAS" type="number" oninput="classificarHAS()"></label>
-                    <label>PAD: <input id="hasPAD" type="number" oninput="classificarHAS()"></label>
-                    <label>Classificação: <input id="hasClassif" disabled></label>
-                    <label>Última consulta: <input id="hasUltimaConsulta" type="date" onchange="atualizarAvisoHAS()"></label>
-                    <div id="hasInfoUltimaConsulta" class="info-consulta"></div>
-                    <div id="hasAviso6m"></div>
-
-                    <h4>Retinografia</h4>
-                    <label>Olho Direito (OD):
-                        <select id="hasFundoOD">
-                            <option></option>
-                            <option>Leve</option>
-                            <option>Moderada</option>
-                            <option>Grave</option>
-                        </select>
-                    </label>
-                    <label>Olho Esquerdo (OE):
-                        <select id="hasFundoOE">
-                            <option></option>
-                            <option>Leve</option>
-                            <option>Moderada</option>
-                            <option>Grave</option>
-                        </select>
-                    </label>
+            <section id="view-prontuario" class="view" style="display: none;">
+                <div id="cabecalhoProntuario" class="card" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; margin-bottom: 20px;">
+                    <span style="font-size: 16px; font-weight: bold; color: #1e40af;" id="cabecalhoNome">Editando: -</span>
+                    <span style="font-size: 14px; color: #1e40af;" id="cabecalhoNascimento"></span>
+                    <button class="btn-primary" style="float: right; padding: 4px 10px; background: #6b7280;" onclick="limparFormularioProntuario()">Fechar Edição</button>
                 </div>
-            </div>
 
-            <div id="cardDM" class="accordion clinical-card" style="display:none;">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Diabetes Mellitus</div>
-                <div class="acc-body">
-                    <label>HbA1c: <input id="dmHbA1c" type="number" step="0.1" oninput="classificarDM()"></label>
-                    <label>Classificação da HbA1c: <input id="dmClassif" disabled></label>
-                    <label>Microalbuminúria (mg/g): <input id="dmMicro" type="number" oninput="classificarDM()"></label>
-                    <label>Categoria: <input id="dmMicroCat" disabled></label>
-
-                    <h4>Pé diabético</h4>
-                    <label>Grau (Direito):
-                        <select id="dmPeDir" onchange="classificarDM()">
-                            <option value=""></option>
-                            <option>0</option>
-                            <option>1</option>
-                            <option>2</option>
-                            <option>3</option>
-                            <option>4</option>
-                        </select>
-                    </label>
-                    <label>Grau (Esquerdo):
-                        <select id="dmPeEsq" onchange="classificarDM()">
-                            <option value=""></option>
-                            <option>0</option>
-                            <option>1</option>
-                            <option>2</option>
-                            <option>3</option>
-                            <option>4</option>
-                        </select>
-                    </label>
-                    <label>Observações do pé: <input id="dmPeObs" type="text"></label>
-                    <label><input id="dmAmpMID" type="checkbox"> Amputação MID</label>
-                    <label><input id="dmAmpMIE" type="checkbox"> Amputação MIE</label>
-
-                    <h4>Fundoscopia</h4>
-                    <label>OD:
-                        <select id="dmFundoOD">
-                            <option></option>
-                            <option>Leve</option>
-                            <option>Moderada</option>
-                            <option>Grave</option>
-                        </select>
-                    </label>
-                    <label>OE:
-                        <select id="dmFundoOE">
-                            <option></option>
-                            <option>Leve</option>
-                            <option>Moderada</option>
-                            <option>Grave</option>
-                        </select>
-                    </label>
-                    <label>Data da última fundoscopia: <input id="dmFundoData" type="date"></label>
-                    <label>Última consulta: <input id="dmUltimaConsulta" type="date" onchange="atualizarAvisoDM()"></label>
-                    <div id="dmInfoUltimaConsulta" class="info-consulta"></div>
-                    <div id="dmAviso6m"></div>
-                </div>
-            </div>
-
-            <div id="cardGestante" class="accordion clinical-card" style="display:none;">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Gestante</div>
-                <div class="acc-body">
-                    <label>G: <input id="gestG" type="number"></label>
-                    <label>P: <input id="gestP" type="number"></label>
-                    <label>A: <input id="gestA" type="number"></label>
-                    <label>DUM: <input id="gestDUM" type="date" oninput="calcIG()"></label>
-                    <label>Idade gestacional: <input id="gestIG" disabled></label>
-                    <label>Data provável do parto (DPP): <input id="gestDPP" disabled></label>
-                    <label>Primeira consulta pré-natal: <input id="gestPrimeiraConsulta" type="date"></label>
-
-                    <h4>Testes rápidos</h4>
-                    <label>1º trimestre: <input id="gestTR1" type="text"></label>
-                    <label>2º trimestre: <input id="gestTR2" type="text"></label>
-                    <label>3º trimestre: <input id="gestTR3" type="text"></label>
-
-                    <h4>Exames laboratoriais</h4>
-                    <label>1º trimestre: <input id="gestEX1" type="text"></label>
-                    <label>2º trimestre: <input id="gestEX2" type="text"></label>
-                    <label>3º trimestre: <input id="gestEX3" type="text"></label>
-
-                    <h4>Ultrassom</h4>
-                    <label>USG Transvaginal: <input id="gestUSG1" type="text"></label>
-                    <label>USG Morfológica: <input id="gestUSGMorf" type="text"></label>
-                    <label>Doppler Fetal: <input id="gestUSG3" type="text"></label>
-                    <label>Última consulta: <input id="gestUltimaConsulta" type="date"></label>
-                </div>
-            </div>
-
-            <div id="cardHanseniase" class="accordion clinical-card" style="display:none;">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Hanseníase – Avaliação Neurológica (1º ao 12º mês)</div>
-                <div class="acc-body">
-                    <script>
-                        for (let i = 1; i <= 12; i++) {
-                            document.write(`
-                                <div class="accordion sub-accordion">
-                                    <div class="acc-header" onclick="toggleAcc(this)">▸ Avaliação – ${i}º mês</div>
-                                    <div class="acc-body">
-                                        <label>Motora <input id="hanMotora${i}"></label>
-                                        <label>Vibratória <input id="hanVibratoria${i}"></label>
-                                        <label>Térmica <input id="hanTermo${i}"></label>
-                                        <label>Outras <input id="hanOutras${i}"></label>
-                                        <label>Data da avaliação <input id="hanDataAvaliacao${i}" type="date"></label>
-                                    </div>
-                                </div>
-                            `);
-                        }
-                    </script>
-                </div>
-            </div>
-
-            <div id="cardTB" class="accordion clinical-card" style="display:none;">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Tuberculose – Acompanhamento (1º ao 6º mês)</div>
-                <div class="acc-body">
-                    <script>
-                        for (let i = 1; i <= 6; i++) {
-                            document.write(`
-                                <div class="accordion sub-accordion">
-                                    <div class="acc-header" onclick="toggleAcc(this)">▸ Acompanhamento – ${i}º mês</div>
-                                    <div class="acc-body">
-                                        <label>Sintomas respiratórios <input id="tbSintomas${i}"></label>
-                                        <label>Baciloscopia <input id="tbBac${i}"></label>
-                                        <label>RX de tórax <input id="tbRx${i}"></label>
-                                        <label>Data da avaliação <input id="tbDataControle${i}" type="date"></label>
-                                    </div>
-                                </div>
-                            `);
-                        }
-                    </script>
-                </div>
-            </div>
-
-            <div class="accordion">
-                <div class="acc-header" onclick="toggleAcc(this)">▸ Evoluções</div>
-                <div class="acc-body">
-                    <label>Data da evolução: <input id="evoData" type="date"></label>
-                    <label>Evolução clínica: <textarea id="evoTexto" class="editor"></textarea></label>
-                    <label>Diagnóstico (CID): <input id="evoCID" type="text" placeholder="Buscar CID..."></label>
-                    <label>Classificação CIPESC: <input id="evoCIPESC" type="text" placeholder="Buscar CIPESC..."></label>
-                    <button class="salvar-btn" onclick="adicionarEvolucao()">Adicionar Linha de Evolução</button>
+                <h2>Prontuário Clínico Integrado</h2>
+                
+                <div class="grid-layout" style="display: flex; flex-direction: column; gap: 20px;">
                     
-                    <div id="historicoEvolucoes" style="margin-top:20px;"></div>
+                    <div class="card">
+                        <h3>1. Registo de Identificação Civil</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Nome Completo *</label>
+                                <input type="text" id="nomePaciente" placeholder="Obrigatório">
+                            </div>
+                            <div>
+                                <label>CPF</label>
+                                <input type="text" id="cpfPaciente" oninput="mascaraCPF(this)" placeholder="000.000.000-00">
+                            </div>
+                            <div>
+                                <label>Data de Nascimento</label>
+                                <input type="date" id="nascPaciente" onchange="calcIdade()">
+                            </div>
+                            <div>
+                                <label>Idade Atual</label>
+                                <input type="text" id="idadePaciente" readonly style="background: #e2e8f0;">
+                            </div>
+                            <div>
+                                <label>Telemóvel / Contacto</label>
+                                <input type="text" id="telPaciente" placeholder="(00) 00000-0000">
+                            </div>
+                            <div>
+                                <label>Endereço Residencial</label>
+                                <input type="text" id="endPaciente" placeholder="Rua, Número, Bairro">
+                            </div>
+                            <div>
+                                <label>CEP</label>
+                                <input type="text" id="CEP" placeholder="00000-000">
+                            </div>
+                            <div>
+                                <label>Unidade de Saúde (UBS)</label>
+                                <input type="text" id="unidadePaciente" placeholder="Nome da Unidade">
+                            </div>
+                            <div>
+                                <label>Equipe de Saúde da Família</label>
+                                <input type="text" id="equipePaciente" placeholder="Nome/Código da Equipa">
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label>Observações / Alergias Críticas</label>
+                            <textarea id="obsPaciente" rows="2" placeholder="Descreva alergias medicamentosas, restrições ou alertas gerais do utente..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: #f8fafc;">
+                        <h3>Vincular às Linhas de Cuidados (Gatilhos do Prontuário)</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Hipertensão (HAS)?</label>
+                                <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Diabetes Mellitus (DM)?</label>
+                                <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Gestante Ativa?</label>
+                                <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Hanseníase?</label>
+                                <select id="hansenSN" onchange="mostrarCard('cardHanseniase', this.value)">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Tuberculose?</label>
+                                <select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="ampiBloco" style="display: none; border-left: 5px solid #7c3aed; background: #faf5ff;">
+                        <h3>👴 Avaliação Multidimensional da Pessoa Idosa (AMPI)</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Data da Última AMPI</label>
+                                <input type="date" id="ampiData">
+                            </div>
+                            <div>
+                                <label>Estrutura de Classificação</label>
+                                <select id="ampiPaciente">
+                                    <option value="">Selecione...</option>
+                                    <option value="Robusto">Idoso Robusto (Independente)</option>
+                                    <option value="Vulnerável">Idoso em Risco / Vulnerável</option>
+                                    <option value="Frágil">Idoso Frágil (Dependente)</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; padding-top: 25px;">
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="ampiViolencia"> Suspeita / Sinalização de Violência
+                                </label>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <label>Notas de Fragilidade / Cognição / Mobilidade</label>
+                            <textarea id="ampiObs" rows="2" placeholder="Anotar resultados do MEEM, EDG, Index de Katz ou escala de Lawton..."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="cardHAS" class="card" style="display: none; border-left: 5px solid #2563eb;">
+                        <h3>🩺 Monitorização Linha de Cuidados - Hipertensão</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>PAS (Sistólica)</label>
+                                <input type="number" id="hasPAS" oninput="classificarHAS()" placeholder="ex: 120">
+                            </div>
+                            <div>
+                                <label>PAD (Diastólica)</label>
+                                <input type="number" id="hasPAD" oninput="classificarHAS()" placeholder="ex: 80">
+                            </div>
+                            <div>
+                                <label>Estratificação de Risco</label>
+                                <input type="text" id="hasClassif" readonly style="background: #f1f5f9;">
+                            </div>
+                            <div>
+                                <label>Última Consulta Clínica</label>
+                                <input type="date" id="hasUltimaConsulta">
+                            </div>
+                            <div>
+                                <label>Exame Fundo Olho (OD)</label>
+                                <select id="hasFundoOD">
+                                    <option value="Normal">Normal</option>
+                                    <option value="Retinopatia Grau I">Retinopatia Grau I</option>
+                                    <option value="Retinopatia Grau II">Retinopatia Grau II</option>
+                                    <option value="Retinopatia Avançada">Retinopatia Avançada</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Exame Fundo Olho (OE)</label>
+                                <select id="hasFundoOE">
+                                    <option value="Normal">Normal</option>
+                                    <option value="Retinopatia Grau I">Retinopatia Grau I</option>
+                                    <option value="Retinopatia Grau II">Retinopatia Grau II</option>
+                                    <option value="Retinopatia Avançada">Retinopatia Avançada</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cardDM" class="card" style="display: none; border-left: 5px solid #16a34a;">
+                        <h3>🩸 Monitorização Linha de Cuidados - Diabetes Mellitus</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Última HbA1c (%)</label>
+                                <input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()" placeholder="ex: 6.5">
+                            </div>
+                            <div>
+                                <label>Controlo Glicémico</label>
+                                <input type="text" id="dmClassif" readonly style="background: #f1f5f9;">
+                            </div>
+                            <div>
+                                <label>Microalbuminúria</label>
+                                <input type="number" id="dmMicro" placeholder="mg/24h">
+                            </div>
+                            <div>
+                                <label>Categoria de Risco Renal</label>
+                                <select id="dmMicroCat">
+                                    <option value="A1">A1: Normal (<30 mg/g)</option>
+                                    <option value="A2">A2: Microalbuminúria (30-300 mg/g)</option>
+                                    <option value="A3">A3: Macroalbuminúria (>300 mg/g)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Exame do Pé Diabético (OD)</label>
+                                <select id="dmPeDir">
+                                    <option value="Sem alterações">Sem alterações</option>
+                                    <option value="Perda de Sensibilidade">Perda de Sensibilidade Protetora</option>
+                                    <option value="Pulso Ausente">Pulso Ausente</option>
+                                    <option value="Úlcera Ativa">Úlcera Ativa</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Exame do Pé Diabético (OE)</label>
+                                <select id="dmPeEsq">
+                                    <option value="Sem alterações">Sem alterações</option>
+                                    <option value="Perda de Sensibilidade">Perda de Sensibilidade Protetora</option>
+                                    <option value="Pulso Ausente">Pulso Ausente</option>
+                                    <option value="Úlcera Ativa">Úlcera Ativa</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Avaliação do Fundo Olho (OD)</label>
+                                <input type="text" id="dmFundoOD" placeholder="Laudo fundoscopia OD">
+                            </div>
+                            <div>
+                                <label>Avaliação do Fundo Olho (OE)</label>
+                                <input type="text" id="dmFundoOE" placeholder="Laudo fundoscopia OE">
+                            </div>
+                            <div>
+                                <label>Data do Exame Olho</label>
+                                <input type="date" id="dmFundoData">
+                            </div>
+                            <div>
+                                <label>Última Consulta de Enfermagem/Médica</label>
+                                <input type="date" id="dmUltimaConsulta">
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 20px;">
+                            <label><input type="checkbox" id="dmAmpMID"> Amputação prévia em Membro Inferior Direito</label>
+                            <label><input type="checkbox" id="dmAmpMIE"> Amputação prévia em Membro Inferior Esquerdo</label>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <label>Notas de Orientação do Pé Diabético / Calçado</label>
+                            <textarea id="dmPeObs" rows="2" placeholder="Descrever deformidades, calosidades ou orientações de autocuidado realizadas..."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="cardGestante" class="card" style="display: none; border-left: 5px solid #ec4899;">
+                        <h3>🤰 Monitorização Linha de Cuidados - Saúde Materno-Infantil</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Gravidezes (G)</label>
+                                <input type="number" id="gestG" min="0">
+                            </div>
+                            <div>
+                                <label>Partos (P)</label>
+                                <input type="number" id="gestP" min="0">
+                            </div>
+                            <div>
+                                <label>Abortos (A)</label>
+                                <input type="number" id="gestA" min="0">
+                            </div>
+                            <div>
+                                <label>DUM (Data Última Menstruação)</label>
+                                <input type="date" id="gestDUM" onchange="calcIG()">
+                            </div>
+                            <div>
+                                <label>Idade Gestacional Atual</label>
+                                <input type="text" id="gestIG" readonly style="background: #f1f5f9;">
+                            </div>
+                            <div>
+                                <label>DPP (Data Provável do Parto)</label>
+                                <input type="date" id="gestDPP" readonly style="background: #f1f5f9;">
+                            </div>
+                            <div>
+                                <label>1ª Consulta Pré-Natal (Data)</label>
+                                <input type="date" id="gestPrimeiraConsulta">
+                            </div>
+                            <div>
+                                <label>Última Consulta Realizada</label>
+                                <input type="date" id="gestUltimaConsulta">
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin-top:15px; color:#b11d6b;">Exames Laboratoriais e Imagiológicos (Datas)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div><label>Teste Rápido Sífilis/HIV 1º Tri</label><input type="date" id="gestTR1"></div>
+                            <div><label>Teste Rápido Sífilis/HIV 2º Tri</label><input type="date" id="gestTR2"></div>
+                            <div><label>Teste Rápido Sífilis/HIV 3º Tri</label><input type="date" id="gestTR3"></div>
+                            <div><label>Exames Sangue/Urina 1º Tri</label><input type="date" id="gestEX1"></div>
+                            <div><label>Exames Sangue/Urina 2º Tri</label><input type="date" id="gestEX2"></div>
+                            <div><label>Exames Sangue/Urina 3º Tri</label><input type="date" id="gestEX3"></div>
+                            <div><label>Ecografia Obstetriz 1º Tri</label><input type="date" id="gestUSG1"></div>
+                            <div><label>Ecografia Morfológica 2º Tri</label><input type="date" id="gestUSGMorf"></div>
+                            <div><label>Ecografia Obstetriz 3º Tri</label><input type="date" id="gestUSG3"></div>
+                        </div>
+                    </div>
+
+                    <div id="cardHanseniase" class="card" style="display: none; border-left: 5px solid #7c3aed;">
+                        <h3>🧬 Módulo Hanseníase - Acompanhamento Operacional</h3>
+                        <p style="color: #64748b;">Módulo em estruturação regulatória. Utilize o campo de evoluções clínicas abaixo para registo temporário de lesões e graus de incapacidade física.</p>
+                    </div>
+
+                    <div id="cardTB" class="card" style="display: none; border-left: 5px solid #f59e0b;">
+                        <h3>🦠 Módulo Tuberculose - Controlo de Tratamento Supervisionado</h3>
+                        <p style="color: #64748b;">Módulo em estruturação regulatória. Utilize as evoluções clínicas para mapear as tomas do TDO e resultados de baciloscopias de controlo.</p>
+                    </div>
+
+                    <div class="card" style="border-top: 4px solid #10b981;">
+                        <h3>📝 Registo de Evolução Clínica Corrente</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                            <div>
+                                <label>Data do Atendimento / Evolução</label>
+                                <input type="date" id="evoData">
+                            </div>
+                            <div>
+                                <label style="font-weight: bold; color: #0b6efd;">Diagnóstico Provisório / Definitivo (CIAPS-2):</label>
+                                <input type="text" id="inputBuscaCIAPS" oninput="sugerirCIAPS2(this.value)" placeholder="Escreva ex: Diabetes, K86, Tosse, Ansiedade..." autocomplete="off">
+                                <div id="listaSugestoesCIAPS" class="sugestoes-container"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                            <div>
+                                <label>Diagnóstico Secundário / Código Internacional (CID)</label>
+                                <input type="text" id="evoCID" placeholder="Introduza o CID-10 se necessário...">
+                            </div>
+                            <div>
+                                <label>Plano de Cuidados de Enfermagem (CIPE / CIPESC)</label>
+                                <input type="text" id="evoCIPESC" placeholder="Introduza diagnósticos/intervenções CIPE...">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label>Evolução Clínica Estruturada (SOAP / Anamnese e Exame Físico)</label>
+                            <textarea id="evoTexto" rows="4" placeholder="Registe de forma clara os dados Subjetivos, Objetivos, Avaliação e Plano do utente..."></textarea>
+                        </div>
+                        
+                        <button class="btn-primary" style="background: #10b981;" onclick="adicionarEvolucao()">Anexar Evolução ao Histórico</button>
+
+                        <div id="historicoEvolucoes" style="margin-top: 25px; max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 10px;">
+                        <button class="btn-primary" style="background: #64748b;" onclick="limparFormularioProntuario(); navigate('inicio');">Cancelar</button>
+                        <button class="btn-primary" style="background: #2563eb; padding: 12px 30px; font-size: 16px;" onclick="salvarProntuario()">Salvar Prontuário Clínico</button>
+                    </div>
+
                 </div>
-            </div>
+            </section>
 
-            <button class="salvar-btn" style="background:#16a34a;" onclick="salvarProntuario()">Salvar Prontuário</button>
-        </section>
-
-        <section id="view-admin" class="view" style="display:none;">
-            <h2>Painel Administrativo</h2>
-            <div class="card">
-                <h3>Criar Novo Usuário</h3>
-                <label>Nome do Usuário: <input id="newAdminUser" type="text"></label>
-                <label>Senha: <input id="newAdminPass" type="password"></label>
-                <label>Tipo de Conta:
-                    <select id="newAdminType">
-                        <option value="user">Usuário Comum</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </label>
-                <button class="btn-primary" onclick="criarUsuarioAdmin()">Criar Usuário</button>
-            </div>
-            <div class="card">
-                <h3>Usuários Cadastrados</h3>
-                <div id="listaUsuariosAdmin"></div>
-            </div>
-        </section>
-
-        <section id="view-auditoria" class="view" style="display:none;">
-            <h2>Logs de Auditoria do Sistema</h2>
-            <div class="card filtros-auditoria">
-                <div class="filtro-linha">
-                    <label>Ação: <input id="filtroAuditoriaAcao" type="text" placeholder="Ex: Login, Criar" oninput="listarAuditoria()"></label>
-                    <label>Usuário: <input id="filtroAuditoriaUser" type="text" placeholder="Ex: admin" oninput="listarAuditoria()"></label>
-                    <button class="btn-primary" style="background:#dc2626;" onclick="limparAuditoria()">Limpar Logs</button>
-                </div>
-            </div>
-            <div class="card">
-                <div id="logAuditoriaContainer"></div>
-                <div class="paginacao-auditoria">
-                    <button class="btn-primary" onclick="auditoriaMudarPagina(-1)">Anterior</button>
-                    <span id="auditoriaPaginaAtual">Página 1</span>
-                    <button class="btn-primary" onclick="auditoriaMudarPagina(1)">Próxima</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="view-linhas" class="view" style="display:none;">
-            <h2>Linhas de Cuidado e Diretrizes Clínicas</h2>
-            <div class="card">
-                <label>Selecione uma Linha de Cuidado:
-                    <select id="linhaSelect" onchange="renderizarGraficosLinhas(this.value)">
-                        <option value="HAS">Hipertensão Arterial Sistêmica</option>
-                        <option value="DM">Diabetes Mellitus</option>
-                        <option value="GEST">Gestantes (Pré-Natal)</option>
-                        <option value="TB">Tuberculose</option>
-                        <option value="HANS">Hanseníase</option>
-                    </select>
-                </label>
-                <button class="btn-primary" onclick="gerarCartilhaDiretriz()">Gerar e Baixar Cartilha PDF</button>
-            </div>
-            
-            <div id="graficosLinhasContainer" class="card graficos-grid">
-                </div>
-        </section>
-
-        <section id="view-reunioes" class="view" style="display:none;">
-            <h2>Atas de Reuniões de Equipe e PTS Coletivo</h2>
-            <div class="card tiles-profissional">
-                <div class="dashboard">
-                    <div class="dash-card">
-                        <h3>Total de Atas</h3>
-                        <span id="dashReunioesTotal">0</span>
+            <section id="view-banco" class="view" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Consola Consolidada da Base de Dados</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-primary" style="background: #16a34a;" onclick="exportarBackupJSON()">Exportar Backup (.JSON)</button>
+                        <label class="btn-primary" style="background: #2563eb; cursor: pointer; display: inline-block;">
+                            Importar Backup (.JSON)
+                            <input type="file" id="fileImportBackup" style="display: none;" onchange="importarBackupJSON(this)">
+                        </label>
                     </div>
                 </div>
-            </div>
-            <div class="card">
-                <h3>Registrar Nova Reunião</h3>
-                <label>Data: <input id="rData" type="date"></label>
-                <label>Pauta Principal: <input id="rPauta" type="text" placeholder="Ex: Discussão de Casos Complexos"></label>
-                <label>Casos Discutidos (Nomes/CPFs): <textarea id="rCasos" placeholder="Insira os pacientes discutidos..."></textarea></label>
-                <label>Ações Coletivas / Deliberações: <textarea id="rAcoes" placeholder="Ações e resoluções..."></textarea></label>
-                <button class="btn-primary" onclick="salvarReuniao()">Registrar Ata de Reunião</button>
-            </div>
-            <div class="card">
-                <h3>Histórico de Reuniões</h3>
-                <div id="listaReunioesContainer"></div>
-            </div>
-        </section>
 
-        <section id="view-banco" class="view" style="display:none;">
-            <h2>Banco de Dados Consolidado do Território</h2>
-            <div class="card" style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn-primary" style="background:#4b5563;" onclick="exportarBackupJSON()">Exportar Backup (JSON)</button>
-                <label class="btn-primary" style="background:#0b6efd; cursor:pointer; margin-bottom:0;">
-                    Importar Backup (JSON)
-                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarBackupJSON(this)">
-                </label>
-            </div>
-            <div class="card" style="overflow-x:auto;">
-                <div id="tabelaBancoContainer"></div>
-            </div>
-        </section>
+                <div class="card" style="margin-bottom: 20px; background: #f8fafc;">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <label style="margin: 0; font-weight: bold;">Filtrar Vista por Condição Crónica:</label>
+                        <select id="filtroCondicaoBanco" onchange="listarBanco()" style="max-width: 250px;">
+                            <option value="TODOS">Todos os registos</option>
+                            <option value="HAS">Apenas Hipertensos (HAS)</option>
+                            <option value="DM">Apenas Diabéticos (DM)</option>
+                            <option value="Gestante">Apenas Gestantes</option>
+                        </select>
+                    </div>
+                </div>
 
-    </div> <div id="drawerOverlay" class="drawer-overlay" style="display:none;" onclick="fecharDrawer()"></div>
-    <div id="drawer" class="drawer" style="display:none;">
-        <div class="drawer-header">
-            <h2 id="drawerTitulo">Detalhes do Prontuário</h2>
-            <button class="logout" style="border:none; font-size:20px;" onclick="fecharDrawer()">✕</button>
-        </div>
-        <div id="drawerConteudo" class="drawer-content"></div>
+                <div class="card">
+                    <div id="tabelaBancoContainer" style="overflow-x: auto;">
+                        </div>
+                </div>
+            </section>
+
+            <section id="view-reunioes" class="view" style="display: none;">
+                <h2>Atas de Reuniões Clínicas e PTS Coletivo</h2>
+                <div class="grid-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                    <div class="card">
+                        <h3>Nova Ata / Deliberação</h3>
+                        <div style="margin-bottom: 12px;">
+                            <label>Data da Reunião</label>
+                            <input type="date" id="rData">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>Pauta Central *</label>
+                            <input type="text" id="rPauta" placeholder="Ex: Discussão de Casos Complexos / Microárea 3">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>Utentes / Casos Discutidos</label>
+                            <textarea id="rCasos" rows="3" placeholder="Nome dos utentes e principais impasses clínicos encontrados..."></textarea>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label>Plano de Ação / Encaminhamentos (PTS)</label>
+                            <textarea id="rAcoes" rows="3" placeholder="Deliberações da equipa, responsáveis pelas visitas e metas..."></textarea>
+                        </div>
+                        <button class="btn-primary" style="width: 100%;" onclick="salvarReuniao()">Gravar Ata de Reunião</button>
+                    </div>
+
+                    <div class="card">
+                        <h3>Histórico de Atas de Reunião de Equipa</h3>
+                        <div id="listaReunioesContainer" style="max-height: 500px; overflow-y: auto;">
+                            </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-linhas" class="view" style="display: none;">
+                <h2>Indicadores Analíticos de Cobertura</h2>
+                <div class="card" style="margin-bottom: 20px;">
+                    <label>Selecione a Linha de Cuidado para Análise Epidemiológica:</label>
+                    <select id="linhaSelect" onchange="renderizarGraficosLinhas(this.value)" style="max-width: 300px;">
+                        <option value="HAS">Hipertensão Arterial (HAS)</option>
+                        <option value="DM">Diabetes Mellitus (DM)</option>
+                        <option value="GEST">Saúde da Mulher (Gestantes Ativas)</option>
+                    </select>
+                </div>
+                <div class="card" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div id="graficosLinhasContainer">
+                        </div>
+                </div>
+            </section>
+
+            <section id="view-auditoria" class="view" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Trilhas de Auditoria e Segurança de Dados (LGPD)</h2>
+                    <button class="btn-primary" style="background: #dc2626;" onclick="limparAuditoria()">Expurgar Logs do Sistema</button>
+                </div>
+                <div class="card">
+                    <div id="logAuditoriaContainer" style="overflow-x: auto;">
+                        </div>
+                </div>
+            </section>
+
+        </main>
     </div>
 
-</div> <script src="cipe.js"></script>
-<script src="app.js"></script>
-<script src="login.js"></script>
+    <div id="drawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 3000;" onclick="fecharDrawer()"></div>
+    <div id="drawer" style="display: none; position: fixed; top: 0; right: 0; width: 450px; height: 100%; background: #ffffff; box-shadow: -4px 0 15px rgba(0,0,0,0.2); padding: 30px; z-index: 3100; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
+            <h3 id="drawerTitulo" style="margin: 0; color: #0b6efd;">Detalhes do Utente</h3>
+            <button onclick="fecharDrawer()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+        </div>
+        <div id="drawerConteudo">
+            </div>
+    </div>
+
+    <script src="app.js"></script>
 
 </body>
 </html>
