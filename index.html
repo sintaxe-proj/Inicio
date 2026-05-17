@@ -6,20 +6,20 @@
     <title>SintaxeHub - APS Digital</title>
     <style>
         /* ==========================================================================
-           🎨 SISTEMA DE DESIGN: PALETA CONFORTO CLÍNICO (Ergonomia Visual)
+           🎨 SISTEMA DE DESIGN: PALETA ORIGINAL (Verde Escuro & Verde Claro)
            ========================================================================== */
         :root {
-            --primary: #2d6a4f;        /* Verde Sálvia Escuro (Garante leitura sem agredir) */
-            --primary-hover: #1b4332;
-            --secondary-mint: #e8f5e9; /* Menta Pastel Suave (Fundo de Destaques e Ativos) */
-            --bg-page: #f4f6f4;        /* Off-White acinzentado (Evita o efeito ofuscante do branco puro) */
-            --bg-window: #ffffff;      /* Branco para blocos isolados */
-            --text-main: #2d3748;      /* Grafite suave para leitura confortável */
-            --text-muted: #718096;     /* Cinza neutro para labels */
-            --border: #e2e8f0;         /* Divisores sutis */
-            --success: #40916c;        /* Verde Controle */
-            --warning: #d97706;        /* Amarelo Ouro (Menos vibrante que o comum) */
-            --danger: #ch3434;         /* Vermelho Sóbrio para Alertas */
+            --primary: #059669;        /* Verde Escuro Clínico / Esmeralda */
+            --primary-hover: #047857;
+            --secondary-mint: #d1fae5; /* Verde Claro / Menta Pastel */
+            --bg-page: #f3f4f6;        /* Fundo de página original */
+            --bg-window: #ffffff;      /* Branco para blocos e janelas */
+            --text-main: #111827;      /* Texto principal escuro */
+            --text-muted: #4b5563;     /* Texto secundário */
+            --border: #d1d5db;         /* Bordas originais */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
 
         * {
@@ -33,14 +33,13 @@
             background-color: var(--bg-page);
             color: var(--text-main);
             padding-bottom: 60px;
-            -webkit-font-smoothing: antialiased;
         }
 
         /* 🔐 Tela de Login */
         #loginScreen {
             position: fixed;
             top:0; left:0; width:100%; height:100%;
-            background: var(--bg-page);
+            background: var(--secondary-mint);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -55,7 +54,7 @@
             width: 100%;
             max-width: 400px;
             text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .login-box h2 { color: var(--primary); margin-bottom: 5px; }
@@ -74,7 +73,7 @@
             background: var(--bg-window);
             padding: 10px 20px;
             display: flex;
-            gap: 12px;
+            gap: 15px;
             align-items: center;
             border-bottom: 1px solid var(--border);
         }
@@ -86,7 +85,6 @@
             padding: 8px 14px;
             border-radius: 6px;
             transition: all 0.2s;
-            font-size: 14px;
         }
 
         .nav-link.active, .nav-link:hover {
@@ -115,22 +113,22 @@
             border: 1px solid var(--border);
             border-left: 5px solid var(--primary);
             cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .card-dash:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .card-dash h3 { font-size: 26px; margin-top: 5px; color: var(--text-main); }
-        .card-dash p { color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-dash h3 { font-size: 28px; margin-top: 5px; color: var(--text-main); }
+        .card-dash p { color: var(--text-muted); font-size: 13px; font-weight: 600; text-transform: uppercase; }
 
         /* 🔍 Resultados Busca Ativa Territorial */
         #view-inicio {
-            background-color: transparent;
-            padding: 0;
-            border: none;
-            box-shadow: none;
+            background-color: var(--secondary-mint);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
         #resultadoInicio {
             background-color: var(--bg-window);
@@ -148,19 +146,16 @@
         }
 
         .busca-ativa-card {
-            background: var(--bg-page);
+            background: var(--bg-window);
             padding: 15px;
             border-radius: 6px;
             border: 1px solid var(--border);
             cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
+            transition: background-color 0.2s;
         }
-        .busca-ativa-card:hover { 
-            background: var(--secondary-mint); 
-            border-color: var(--primary);
-        }
+        .busca-ativa-card:hover { background: #f0fdf4; }
         .busca-ativa-card h4 { margin-bottom: 5px; color: var(--primary); }
-        .busca-ativa-card p { font-size: 13px; color: var(--text-main); margin-bottom: 4px; }
+        .busca-ativa-card p { font-size: 13px; color: var(--text-main); margin-bottom: 5px; }
         
         .tag-clinica {
             display: inline-block;
@@ -172,14 +167,14 @@
             margin-right: 5px;
         }
 
-        /* 📋 Janelas Principais, Formulários e Tabelas */
+        /* 📋 Janelas, Formulários e Tabelas */
         .view {
             display: none;
             background: var(--bg-window);
             padding: 25px;
             border-radius: 8px;
             border: 1px solid var(--border);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .form-row {
@@ -201,16 +196,11 @@
             width: 100%;
             padding: 10px;
             background: var(--bg-window);
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--border);
             color: var(--text-main);
             border-radius: 4px;
-            font-size: 14px;
         }
-        input:focus, select:focus, textarea:focus { 
-            border-color: var(--primary); 
-            outline: none; 
-            box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15); 
-        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px var(--secondary-mint); }
 
         button {
             padding: 10px 20px;
@@ -220,7 +210,7 @@
             border-radius: 4px;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.15s;
+            transition: background-color 0.2s;
         }
 
         button:hover { background: var(--primary-hover); }
@@ -239,11 +229,10 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid var(--border);
-            font-size: 14px;
         }
 
-        th { background: #f8fafc; color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        tr:hover { background: #f8fafc; }
+        th { background: #f3f4f6; color: var(--text-muted); font-size: 13px; font-weight: 700; text-transform: uppercase; }
+        tr:hover { background: #f9fafb; }
 
         /* 🔔 Notificação Toast e Sininho */
         #toastNotification {
@@ -252,11 +241,11 @@
             background: var(--text-main); color: white;
             border-right: 4px solid var(--primary);
             padding: 15px 25px; border-radius: 4px;
-            display: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
         #centralAvisosContainer {
-            padding: 6px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 700;
@@ -269,22 +258,21 @@
         /* 🧱 Modais e Linha de tempo */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); display: none; z-index: 5000;
-            backdrop-filter: blur(2px);
+            background: rgba(0,0,0,0.5); display: none; z-index: 5000;
         }
         .modal-content {
             background: var(--bg-window); max-width: 900px; margin: 5% auto;
             padding: 25px; border-radius: 8px; max-height: 85vh; overflow-y: auto;
             border: 1px solid var(--border);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
         .timeline { margin-top: 15px; border-left: 2px solid var(--primary); padding-left: 15px; }
-        .timeline-item { margin-bottom: 15px; background: var(--bg-page); padding: 12px; border-radius: 4px; border: 1px solid var(--border); }
+        .timeline-item { margin-bottom: 15px; background: #f9fafb; padding: 10px; border-radius: 4px; border: 1px solid var(--border); }
 
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.03); }
+            50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
     </style>
@@ -294,7 +282,7 @@
     <div id="loginScreen">
         <div class="login-box">
             <h2>SintaxeHub APS</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Ecossistema de Saúde da Família</p>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Ecossistema de Saúde da Família</p>
             <div style="text-align: left; margin-bottom: 15px;">
                 <label>Matrícula / Identificador</label>
                 <input type="text" id="loginUser" value="440129">
@@ -303,7 +291,7 @@
                 <label>Senha de Rede Municipal</label>
                 <input type="password" id="loginSenha" value="senha123">
             </div>
-            <div id="loginErro" style="color: #ef4444; display: none; margin-bottom: 15px; font-size: 13px;"></div>
+            <div id="loginErro" style="color: var(--danger); display: none; margin-bottom: 15px; font-size: 13px;"></div>
             <button style="width: 100%;" onclick="autenticarUsuario()">Autenticar Profissional</button>
         </div>
     </div>
@@ -311,14 +299,14 @@
     <div id="app" style="display: none;">
         
         <header>
-            <h2>SintaxeHub <span style="font-size: 14px; color: var(--primary); font-weight: 600;">v3.3 - SUS Digital</span></h2>
+            <h2>SintaxeHub <span style="font-size: 14px; color: var(--primary);">v3.4 - SUS Digital</span></h2>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <span id="nomeUsuarioLogado" style="font-size: 14px; font-weight: 600;">👤 Carregando...</span>
-                <select id="seletorNivelAcesso" style="width: auto; padding: 5px; font-size: 13px;" onchange="alternarVisaoGestor(this.value)">
+                <span id="nomeUsuarioLogado">👤 Carregando...</span>
+                <select id="seletorNivelAcesso" style="width: auto; padding: 5px;" onchange="alternarVisaoGestor(this.value)">
                     <option value="admin">Perfil Gestor</option>
                     <option value="user">Perfil Assistencial</option>
                 </select>
-                <button style="background: #e11d48; padding: 5px 12px; font-size: 12px;" onclick="efetuarLogout()">Sair</button>
+                <button style="background: var(--danger); padding: 5px 10px; font-size: 12px;" onclick="efetuarLogout()">Sair</button>
             </div>
         </header>
 
@@ -327,7 +315,7 @@
             <a href="#" class="nav-link" onclick="navigate('prontuario')">Novo Atendimento (SOAP)</a>
             <a href="#" class="nav-link" onclick="navigate('banco')">Base Territorial</a>
             <a href="#" class="nav-link" onclick="navigate('discador')">Central de Busca Ativa</a>
-            <button id="btnAuditoria" style="background:#f1f5f9; color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; font-size:12px; margin-left:auto; display: flex; align-items: center; gap: 4px;" onclick="navigate('config')">
+            <button id="btnAuditoria" style="background:#f3f4f6; color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; font-size:12px; margin-left:auto; display: flex; align-items: center; gap: 4px;" onclick="navigate('config')">
                 ⚙️ Configurações
             </button>
             
@@ -341,7 +329,7 @@
             <div id="view-inicio" style="display: block;">
                 
                 <div class="dashboard-grid">
-                    <div class="card-dash" style="border-left-color: #cd3434;" onclick="abrirPainelEpidemiologico('has')">
+                    <div class="card-dash" style="border-left-color: var(--danger);" onclick="abrirPainelEpidemiologico('has')">
                         <p>Hipertensão (HAS)</p>
                         <h3 id="dashHAS">0</h3>
                     </div>
@@ -353,24 +341,24 @@
                         <p>Gestantes (Pré-Natal)</p>
                         <h3 id="dashGest">0</h3>
                     </div>
-                    <div class="card-dash" style="border-left-color: #0d9488;" onclick="abrirPainelEpidemiologico('tuberculose')">
+                    <div class="card-dash" style="border-left-color: #06b6d4;" onclick="abrirPainelEpidemiologico('tuberculose')">
                         <p>Tuberculose</p>
                         <h3 id="dashTB">0</h3>
                     </div>
-                    <div class="card-dash" style="border-left-color: #8b5cf6;" onclick="abrirPainelEpidemiologico('hanseniase')">
+                    <div class="card-dash" style="border-left-color: #a855f7;" onclick="abrirPainelEpidemiologico('hanseniase')">
                         <p>Hanseníase</p>
                         <h3 id="dashHansen">0</h3>
                     </div>
                 </div>
 
                 <div id="resultadoInicio">
-                    <h3 style="color: var(--primary); margin-bottom: 5px;">Busca Ativa Territorial</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Digite o nome ou CPF do cidadão para abrir o prontuário.</p>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <h3>Busca Ativa Territorial</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 15px;">Localize prontuários locais digitando o nome ou CPF do cidadão.</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <input type="text" id="buscaNomeInicio" placeholder="Ex: Nome do Paciente ou CPF" onkeyup="buscarInicio()">
                     </div>
                     <div id="divInjecaoCaixinhas">
-                        <em style="color: var(--text-muted); font-size: 13px;">Introduza um critério acima para pesquisar.</em>
+                        <em style="color: #94a3b8;">Introduza um critério acima para pesquisar.</em>
                     </div>
                 </div>
             </div>
@@ -388,7 +376,7 @@
                         <div><label>Nome Completo *</label><input type="text" id="nomePaciente"></div>
                         <div><label>CPF *</label><input type="text" id="cpfPaciente" oninput="mascaraCPF(this)"></div>
                         <div><label>Data de Nascimento</label><input type="date" id="nascPaciente" onchange="calcIdade()"></div>
-                        <div><label>Idade Calculada</label><input type="text" id="idadePaciente" readonly style="background:#f1f5f9;"></div>
+                        <div><label>Idade Calculada</label><input type="text" id="idadePaciente" readonly style="background:#f3f4f6;"></div>
                         <div><label>Telefone / WhatsApp</label><input type="text" id="telPaciente" placeholder="(XX) XXXXX-XXXX"></div>
                     </div>
                     <div class="form-row">
@@ -422,13 +410,13 @@
 
                     <h4 style="color: var(--primary); margin-top: 25px; margin-bottom:10px;">B. Registro Clínico S.O.A.P.</h4>
                     <div style="margin-bottom: 15px;">
-                        <label>Subjetivo (Queixa Principal, Histórico Atual, Queixas)</label>
+                        <label>Subjetivo (Queixa Principal, Histórico Atual, Linha do Tempo Relatada)</label>
                         <textarea id="soapSubjetivo" rows="3" placeholder="Paciente relata..."></textarea>
                     </div>
 
-                    <div style="background: var(--bg-page); padding:15px; border-radius:4px; margin-bottom:15px; border: 1px solid var(--border);">
-                        <label style="color: var(--text-main); font-weight:700; margin-bottom: 10px;">Objetivo: Sinais Vitais (SSVV) & Antropometria</label>
-                        <div class="form-row">
+                    <div style="background:#f9fafb; padding:15px; border-radius:4px; margin-bottom:15px; border: 1px solid var(--border);">
+                        <label style="color: var(--text-main); font-weight:700;">Objetivo: Sinais Vitais (SSVV) & Antropometria</label>
+                        <div class="form-row" style="margin-top:10px;">
                             <div><label>PA (Ex: 120x80)</label><input type="text" id="objPA"></div>
                             <div><label>FC (bpm)</label><input type="number" id="objFC"></div>
                             <div><label>FR (irpm)</label><input type="number" id="objFR"></div>
@@ -446,17 +434,17 @@
                         </div>
                         <div style="margin-top:10px;">
                             <label>Exame Físico Geral</label>
-                            <input type="radio" name="exameFisicoStatus" value="Normal" checked onclick="alternarExameFisico('Normal')"> <span style="font-size:14px;">Normal</span>
-                            <input type="radio" name="exameFisicoStatus" value="Alterado" onclick="alternarExameFisico('Alterado')" style="margin-left:15px;"> <span style="font-size:14px;">Alterado</span>
+                            <input type="radio" name="exameFisicoStatus" value="Normal" checked onclick="alternarExameFisico('Normal')"> Normal 
+                            <input type="radio" name="exameFisicoStatus" value="Alterado" onclick="alternarExameFisico('Alterado')" style="margin-left:15px;"> Alterado
                             <div id="blocoExameAlterado" style="display:none; margin-top:10px;">
                                 <label>Descrição das Alterações Encontradas</label>
-                                <textarea id="soapObjetivoAlterado" rows="2" placeholder="Descreva os achados..."></textarea>
+                                <textarea id="soapObjetivoAlterado" rows="2" placeholder="Descreva os achados patológicos..."></textarea>
                             </div>
                         </div>
                     </div>
 
                     <h4 style="color: var(--primary); margin-top: 25px; margin-bottom:10px;">C. Mapeamento de Agravos Territorial</h4>
-                    <div class="form-row" style="background: var(--secondary-mint); padding:12px; border-radius:4px; border: 1px solid var(--border);">
+                    <div class="form-row" style="background: var(--secondary-mint); padding:10px; border-radius:4px; border: 1px solid var(--border);">
                         <div>
                             <label>Hipertensão?</label>
                             <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
@@ -479,47 +467,47 @@
                             </select>
                         </div>
                         <div style="display:flex; align-items:center; gap:5px; padding-top:15px;">
-                            <input type="checkbox" id="tbSN" style="width:auto;"> <label for="tbSN" style="color: var(--text-main); margin:0;">Tuberculose</label>
+                            <input type="checkbox" id="tbSN" style="width:auto;"> <label for="tbSN" style="color: var(--text-main); text-transform: none;">Tuberculose</label>
                         </div>
                         <div style="display:flex; align-items:center; gap:5px; padding-top:15px;">
-                            <input type="checkbox" id="hansenSN" style="width:auto;"> <label for="hansenSN" style="color: var(--text-main); margin:0;">Hanseníase</label>
+                            <input type="checkbox" id="hansenSN" style="width:auto;"> <label for="hansenSN" style="color: var(--text-main); text-transform: none;">Hanseníase</label>
                         </div>
                     </div>
 
-                    <div id="cardHAS" style="display:none; background:#fef2f2; border: 1px solid #fca5a5; padding:15px; border-radius:4px; margin-top:10px;">
-                        <h5 style="color: #b91c1c; margin-bottom: 5px;">Acompanhamento HAS</h5>
-                        <div class="form-row">
+                    <div id="cardHAS" style="display:none; background:#fee2e2; border: 1px solid var(--danger); padding:15px; border-radius:4px; margin-top:10px;">
+                        <h5 style="color: var(--danger); margin-bottom: 5px;">Acompanhamento HAS</h5>
+                        <div class="form-row" style="margin-top:5px;">
                             <div><label>PAS Máxima Atual</label><input type="number" id="hasPAS" oninput="classificarHAS()"></div>
                             <div><label>PAD Máxima Atual</label><input type="number" id="hasPAD" oninput="classificarHAS()"></div>
-                            <div style="grid-column:span 2;"><label>Classificação de Risco</label><input type="text" id="hasClassif" readonly style="background:#fff;"></div>
+                            <div style="grid-column:span 2;"><label>Classificação de Risco Cardiovascular</label><input type="text" id="hasClassif" readonly style="background:#fff1f2; font-weight:700;"></div>
                         </div>
                     </div>
 
-                    <div id="cardDM" style="display:none; background:#f0fdf4; border: 1px solid #86efac; padding:15px; border-radius:4px; margin-top:10px;">
+                    <div id="cardDM" style="display:none; background: var(--secondary-mint); border: 1px solid var(--primary); padding:15px; border-radius:4px; margin-top:10px;">
                         <h5 style="color: var(--primary); margin-bottom: 5px;">Acompanhamento Diabetes Mellitus</h5>
-                        <div class="form-row">
+                        <div class="form-row" style="margin-top:5px;">
                             <div><label>Última HbA1c (%)</label><input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()"></div>
-                            <div style="grid-column:span 3;"><label>Controle Glicêmico</label><input type="text" id="dmClassif" readonly style="background:#fff;"></div>
+                            <div style="grid-column:span 3;"><label>Estratificação de Controle Glicêmico</label><input type="text" id="dmClassif" readonly style="background:#ecfdf5; font-weight:700;"></div>
                         </div>
                     </div>
 
-                    <div id="cardGestante" style="display:none; background:#fffbeb; border: 1px solid #fde68a; padding:15px; border-radius:4px; margin-top:10px;">
-                        <h5 style="color: #b45309; margin-bottom: 5px;">Acompanhamento de Pré-Natal</h5>
-                        <div class="form-row">
-                            <div><label>Data da DUM</label><input type="date" id="gestDUM" onchange="calcIG()"></div>
-                            <div><label>Idade Gestacional (IG)</label><input type="text" id="gestIG" readonly style="background:#fff;"></div>
-                            <div><label>Data Provável do Parto (DPP)</label><input type="text" id="gestDPP" readonly style="background:#fff;"></div>
+                    <div id="cardGestante" style="display:none; background:#fef3c7; border: 1px solid var(--warning); padding:15px; border-radius:4px; margin-top:10px;">
+                        <h5 style="color: #92400e; margin-bottom: 5px;">Acompanhamento de Pré-Natal (Rede Cegonha)</h5>
+                        <div class="form-row" style="margin-top:5px;">
+                            <div><label>Data da DUM (Última Menstruação)</label><input type="date" id="gestDUM" onchange="calcIG()"></div>
+                            <div><label>Idade Gestacional (IG)</label><input type="text" id="gestIG" readonly style="background:#fffbeb;"></div>
+                            <div><label>Data Provável do Parto (DPP)</label><input type="text" id="gestDPP" readonly style="background:#fffbeb;"></div>
                         </div>
                     </div>
 
-                    <div id="ampiBloco" style="display:none; background:var(--bg-page); border: 1px solid var(--border); padding:15px; border-radius:4px; margin-top:10px;">
+                    <div id="ampiBloco" style="display:none; background:#f3f4f6; border: 1px solid var(--border); padding:15px; border-radius:4px; margin-top:10px;">
                         <h5 style="color: var(--text-main); margin-bottom: 5px;">Avaliação Multidimensional do Idoso (AMPI-SUS)</h5>
                         <div style="margin-top:5px;">
                             <label>Vulnerabilidade Clínico-Funcional</label>
                             <select id="ampiPaciente">
                                 <option value="Idoso Robusto">Idoso Robusto (Independente)</option>
                                 <option value="Idoso em Risco de Fragilização">Idoso em Risco de Fragilização</option>
-                                <option value="Idoso Fragilizado">Idoso Fragilizado</option>
+                                <option value="Idoso Fragilizado">Idoso Fragilizado (Dependente Crônico)</option>
                             </select>
                         </div>
                     </div>
@@ -527,31 +515,31 @@
                     <h4 style="color: var(--primary); margin-top: 25px; margin-bottom:10px;">D. Avaliação & Plano de Cuidados</h4>
                     <div class="form-row">
                         <div style="grid-column: span 2;">
-                            <label>Busca de Problema/Demanda (CIAP-2)</label>
-                            <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Digite código ou descrição...">
+                            <label>Busca de Problema/Demanda Baseado no CIAP-2</label>
+                            <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Digite código ou descrição do problema...">
                             <datalist id="listaCIAP"></datalist>
                         </div>
                         <div>
-                            <label>Aprazamento / Retorno (Dias)</label>
+                            <label>Prazo de Reavaliação / Aprazamento (Dias)</label>
                             <select id="soapReavaliacaoDias">
                                 <option value="0">0 Dias (Crítico / Reavaliação Imediata)</option>
                                 <option value="7">7 Dias (Prioridade Alta)</option>
                                 <option value="15">15 Dias</option>
                                 <option value="30" selected>30 Dias (Padrão APS)</option>
                                 <option value="90">90 Dias (Crônico Estável)</option>
-                                <option value="180">180 Dias</option>
+                                <option value="180">180 Dias (Acompanhamento Longo)</option>
                             </select>
                         </div>
                     </div>
                     <div style="margin-bottom: 20px;">
-                        <label>Plano de Conduta (Prescrições, Encaminhamentos, Orientações)</label>
-                        <textarea id="soapPlanoConduta" rows="3" placeholder="Descreva a conduta..."></textarea>
+                        <label>Plano de Conduta (Prescrições, Encaminhamentos, Condutas Gerais)</label>
+                        <textarea id="soapPlanoConduta" rows="3" placeholder="Descreva a conduta terapêutica..."></textarea>
                     </div>
 
                     <div id="linhaTempoEvolucoes" style="margin-top:20px; margin-bottom:20px;"></div>
 
                     <div style="text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
-                        <button type="button" style="background:#64748b;" onclick="limparFormularioProntuario()">Limpar</button>
+                        <button type="button" style="background:#475569;" onclick="limparFormularioProntuario()">Limpar</button>
                         <button type="button" onclick="salvarProntuario()">Salvar Prontuário Territorial</button>
                     </div>
                 </div>
@@ -559,16 +547,16 @@
 
             <div id="view-banco" class="view">
                 <div>
-                    <h3 style="color: var(--primary); margin-bottom: 5px;">Base de Dados Territorial (Cidadãos Cadastrados)</h3>
-                    <p style="color: var(--text-muted); margin-bottom:15px; font-size: 14px;">Listagem direta dos residentes salvos no navegador.</p>
+                    <h3>Base de Dados Territorial (Cidadãos Cadastrados)</h3>
+                    <p style="color: var(--text-muted); margin-bottom:15px;">Listagem direta dos dados locais residentes na ObjectStore do navegador.</p>
                     <div id="tabelaBancoContainer" style="overflow-x: auto;"></div>
                 </div>
             </div>
 
             <div id="view-discador" class="view">
                 <div>
-                    <h3 style="color: var(--primary); margin-bottom: 5px;">📞 Central de Busca Ativa Territorial</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Monitoramento inteligente de prazos estourados ou abandono clínico (>90 dias).</p>
+                    <h3 style="color: var(--primary);">📞 Central de Busca Ativa Territorial</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 15px;">Monitoramento inteligente: exibe utentes com prazos estourados (0 dias) ou em abandono de monitoramento clínico há mais de 3 meses (> 90 dias).</p>
                     <div id="tabelaDiscadorContainer" style="overflow-x: auto;"></div>
                 </div>
             </div>
@@ -576,17 +564,17 @@
             <div id="view-config" class="view">
                 <div>
                     <h3 style="color: var(--warning); margin-bottom: 10px;">Painel Avançado de Configurações e Interoperabilidade</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Ferramentas do Perfil Administrativo/Gestor.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Ferramentas exclusivas do Perfil Administrativo/Gestor.</p>
                     
-                    <div style="background: var(--bg-page); padding:20px; border-radius:4px; margin-bottom:20px; border: 1px solid var(--border);">
-                        <h4>🚨 Teste de Stress de Memória</h4>
-                        <p style="color: var(--text-muted); font-size:13px; margin-bottom:15px;">Injeta instantaneamente 8.000 cadastros para análise de performance.</p>
-                        <button style="background: #dc2626;" onclick="gerarCargaMassaOitoMil()">Injetar Matriz Acadêmica (8.000 Prontuários)</button>
+                    <div style="background:#f9fafb; padding:20px; border-radius:4px; margin-bottom:20px; border: 1px solid var(--border);">
+                        <h4>🚨 Teste de Stress de Memória (Matriz Epidemiológica)</h4>
+                        <p style="color: var(--text-muted); font-size:13px; margin-bottom:15px;">Injeta instantaneamente 8.000 cadastros contendo strings SOAP complexas.</p>
+                        <button style="background: var(--danger);" onclick="gerarCargaMassaOitoMil()">Injetar Matriz Acadêmica (8.000 Prontuários)</button>
                     </div>
 
-                    <div style="background: var(--bg-page); padding:20px; border-radius:4px; border: 1px solid var(--border);">
+                    <div style="background:#f9fafb; padding:20px; border-radius:4px; border: 1px solid var(--border);">
                         <h4>📥 Interoperabilidade JSON (Integração e-SUS)</h4>
-                        <p style="color: var(--text-muted); font-size:13px; margin-bottom:15px;">Selecione um lote exportado no formato JSON.</p>
+                        <p style="color: var(--text-muted); font-size:13px; margin-bottom:15px;">Selecione um arquivo de prontuário digital exportado no formato JSON.</p>
                         <input type="file" id="arquivoEsus" accept=".json" onchange="processarArquivoEsus(this)" style="padding:5px; width:auto; background: #fff;">
                     </div>
                 </div>
@@ -599,10 +587,10 @@
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid var(--border);">
                 <h3 id="tituloPainelEpidemiologico" style="color:var(--primary)">Vigilância em Saúde</h3>
-                <button style="background:#dc2626; padding:4px 10px;" onclick="fecharPainelEpidemiologico()">X</button>
+                <button style="background:var(--danger); padding:4px 10px;" onclick="fecharPainelEpidemiologico()">X</button>
             </div>
 
-            <div class="form-row" style="margin-bottom:20px; background:var(--bg-page); padding:10px; border-radius:4px; border: 1px solid var(--border);">
+            <div class="form-row" style="margin-bottom:20px; background:#f9fafb; padding:10px; border-radius:4px; border: 1px solid var(--border);">
                 <div><label>Filtro por Unidade</label><select id="filtroUBS" onchange="aplicarFiltrosRelatorio()"></select></div>
                 <div><label>Filtro por Equipe</label><select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()"></select></div>
                 <div>
@@ -615,14 +603,14 @@
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; margin-bottom:20px; background:var(--bg-page); padding:15px; border-radius:4px; border:1px solid var(--border);">
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; margin-bottom:20px; background:#f9fafb; padding:15px; border-radius:4px; border:1px solid var(--border);">
                 <div style="text-align:center;">
                     <label style="margin-bottom:10px; display:block; color: var(--text-main);">Percentual de Críticos</label>
-                    <div id="containerGraficoDonut" style="height:120px; display:flex; justify-content:center; align-items:center; color: #dc2626; font-weight: 700; font-size: 20px;"></div>
+                    <div id="containerGraficoDonut" style="height:120px; display:flex; justify-content:center; align-items:center; color: var(--danger); font-weight: 700; font-size: 20px;"></div>
                 </div>
                 <div>
                     <label style="margin-bottom:10px; display:block; color: var(--text-main);">Distribuição de Casos Territoriais</label>
-                    <div id="containerGraficoBarras" style="padding-top:15px; color: var(--text-muted); font-size: 14px;"></div>
+                    <div id="containerGraficoBarras" style="padding-top:15px; color: var(--text-muted);"></div>
                 </div>
             </div>
 
