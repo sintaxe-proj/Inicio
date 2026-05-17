@@ -80,7 +80,7 @@ function registrarLogAuditoria(acao, detalhes) {
 }
 
 /* ============================================================
-   🔑 FUNÇÃO PRINCIPAL DE AUTENTICAÇÃO SECURA
+   🚀 FUNÇÃO PRINCIPAL DE AUTENTICAÇÃO SECURA
 ============================================================ */
 function autenticarUsuario() {
     const matriculaInput = document.getElementById("loginUser").value.trim();
@@ -627,7 +627,7 @@ function aplicarFiltrosRelatorio() {
         }
 
         htmlTabela += `
-            <tr style="border-bottom:1px solid #e2e8f0;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+            <tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px;">
                     <div style="font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</div>
                     <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'} | Idade: ${p.idade || 'N/A'}</small>
@@ -648,7 +648,7 @@ function aplicarFiltrosRelatorio() {
 }
 
 /* ============================================================
-   🎨 MOTORES GRÁFICOS CRIATIVOS NATIVOS (BI VECTOR ENGINE)
+   🎨 MOTORES GRAFICOS NATIVOS (BI VECTOR ENGINE)
 ============================================================ */
 function renderizarGraficoDonutNativo(ok, bad, out, total) {
     const div = document.getElementById("containerGraficoDonut");
@@ -741,7 +741,7 @@ function buscarInicio() {
     request.onsuccess = function(event) {
         const prontuarios = event.target.result;
         
-        // Filtragem por Nome ou CPF (limpando caracteres não numéricos para o cruzamento de dados)
+        // Filtragem estendida para abranger Nome ou CPF (removendo pontos e traços para busca limpa)
         const filtrados = prontuarios.filter(p => {
             const nomeMatch = p.nome.toLowerCase().includes(termoBusca);
             const cpfLimpo = p.cpf ? p.cpf.replace(/\D/g, "") : "";
@@ -758,15 +758,16 @@ function buscarInicio() {
             return;
         }
 
-        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:14px;">
-            <tr style="background:#f1f5f9; color:var(--dark); text-align:left; border-bottom:2px solid #cbd5e1;">
-                <th style="padding:12px;">Identificação / Cadastro</th>
-                <th style="padding:12px;">Data de Nasc.</th>
-                <th style="padding:12px; text-align:center;">Ações</th>
+        // Tabela limpa no padrão visual original
+        let html = `<table style="width:100%; border-collapse:collapse; margin-top:10px;">
+            <tr style="background:#f1f5f9; text-align:left;">
+                <th style="padding:10px;">Nome / CPF</th>
+                <th>Nascimento (Idade)</th>
+                <th>Ações</th>
             </tr>`;
         
         filtrados.forEach(p => {
-            // Tratamento visual e formatação de data (ISO para pt-BR)
+            // Tratamento visual para converter datas ISO (AAAA-MM-DD) para padrão pt-BR se necessário
             let dataNascFormatada = "---";
             if (p.nascimento) {
                 if (p.nascimento.includes("-")) {
@@ -777,21 +778,18 @@ function buscarInicio() {
                 }
             }
 
-            html += `
-            <tr style="border-bottom:1px solid #e2e8f0;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                <td style="padding:12px;">
-                    <div style="font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</div>
-                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'} | Idade: ${p.idade || 'N/A'}</small>
+            html += `<tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:10px; font-weight:500;">
+                    <div style="color:#0f172a;">${escapeHTML(p.nome)}</div>
+                    <small style="color:#64748b; font-size:11px;">CPF: ${p.cpf || '---'}</small>
                 </td>
-                <td style="padding:12px; color:#475569; font-size:13px;">
-                    ${dataNascFormatada}
+                <td style="color:#334155;">
+                    <div>${dataNascFormatada}</div>
+                    <small style="color:#94a3b8; font-size:11px;">(${p.idade || 'Não calculada'})</small>
                 </td>
-                <td style="padding:12px; text-align:center;">
-                    <button class="btn-primary" style="padding:5px 12px; font-size:12px; background:var(--primary);" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button>
-                </td>
+                <td><button class="btn-primary" style="padding:4px 10px; font-size:13px;" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir</button></td>
             </tr>`;
         });
-        
         html += `</table>`;
         container.innerHTML = html;
     };
@@ -950,7 +948,7 @@ function processarArquivoEsus(inputElement) {
                     gestante: esusData.stGestante === 1 ? "Sim" : "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        profissional: "Sistema Integrador e-SUS APS",
+                        professional: "Sistema Integrador e-SUS APS",
                         matricula: "INTEGRA_SUS",
                         texto: `Ficha clínica integrada via barramento de dados. Nome do arquivo: ${arquivo.name}.`
                     }]
@@ -963,7 +961,7 @@ function processarArquivoEsus(inputElement) {
                     has: "Não", dm: "Não", gestante: "Não",
                     evolucoes: [{
                         dataHora: new Date().toLocaleString('pt-BR'),
-                        profissional: "Conversor de Documentos",
+                        professional: "Conversor de Documentos",
                         matricula: "PDF_PARSER",
                         texto: `Texto bruto extraído com sucesso.`
                     }]
@@ -975,7 +973,7 @@ function processarArquivoEsus(inputElement) {
             store.put(dadosMapeados);
 
             transaction.oncomplete = function() {
-                registrarLogAuditoria("INTEGRACAO_ESUS_SUCESSO", `Arquivo ${arquivo.name} integrated.`);
+                registrarLogAuditoria("INTEGRACAO_ESUS_SUCESSO", `Arquivo ${arquivo.name} integrado.`);
                 alert(`✅ Sucesso! Dados sincronizados. Ficha de "${dadosMapeados.nome}" injetada na base.`);
                 atualizarDashboardInicio();
                 inputElement.value = "";
@@ -990,188 +988,173 @@ function processarArquivoEsus(inputElement) {
 }
 
 /* ============================================================
-   📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS)
+   📊 GERADOR EPIDEMIOLÓGICO EM MASSA (8.000 PRONTUÁRIOS) - PARTE 2
 ============================================================ */
 function gerarCargaMassaOitoMil() {
     if (!db) return alert("❌ Banco de dados offline.");
     if (!confirm("⚠️ Deseja gerar os 8.000 prontuários fictícios para simular estresse populacional na APS?")) return;
 
-    console.time("⏱️ Tempo de inserção");
-    alert("Iniciando carga de estresse demográfico... O navegador processará em segundo plano.");
+    console.time("⏱️ Tempo de Carga de Estresse");
+    
+    // Nomes base para geração combinatória
+    const nomesFemininos = ["Maria", "Ana", "Francisca", "Antônia", "Adriana", "Juliana", "Márcia", "Fernanda", "Patrícia", "Aline"];
+    const nomesMasculinos = ["José", "João", "Antônio", "Francisco", "Carlos", "Paulo", "Pedro", "Lucas", "Luiz", "Marcos"];
+    const sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima", "Gomes"];
+    
+    const ubsLista = ["UBS Centro Territorial", "UBS Laranjais da APS"];
+    const equipesLista = ["eSF Aliança - 01", "eSF Harmonia - 02", "eSF Esperança - 03", "eSF Progresso - 04"];
 
-    const nomesFemininos = ["Maria", "Ana", "Francisca", "Antônia", "Adriana", "Juliana", "Márcia", "Fernanda", "Patrícia", "Letícia", "Camila", "Luciana"];
-    const nomesMasculinos = ["José", "João", "Antônio", "Francisco", "Carlos", "Paulo", "Pedro", "Lucas", "Luiz", "Marcos", "Fabio", "Rafael"];
-    const sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima", "Gomes", "Costa", "Carvalho", "Martins"];
-    const ruas = ["Av. Brasil", "Rua da Matriz", "Rua São Jorge", "Av. das Palmeiras", "Rua XV de Novembro", "Travessa da Paz"];
-    const equipes = ["eSF Aliança - 01", "eSF Harmonia - 02", "eSF Esperança - 03", "eSF Progresso - 04"];
-
+    // Abre uma única transação em lote (Bulk Insert) para alta performance
     const transaction = db.transaction(["prontuarios"], "readwrite");
     const store = transaction.objectStore("prontuarios");
 
     for (let i = 1; i <= 8000; i++) {
-        const ehMulher = Math.random() > 0.45;
-        const nomeSemente = ehMulher ? nomesFemininos[Math.floor(Math.random() * nomesFemininos.length)] : nomesMasculinos[Math.floor(Math.random() * nomesMasculinos.length)];
+        const sexoMasculino = Math.random() > 0.5;
+        const nomeSorteado = sexoMasculino ? 
+            nomesMasculinos[Math.floor(Math.random() * nomesMasculinos.length)] : 
+            nomesFemininos[Math.floor(Math.random() * nomesFemininos.length)];
+        
         const sobrenome1 = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
         const sobrenome2 = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
-        const nomeCompleto = `${nomeSemente} ${sobrenome1} ${sobrenome2}`;
+        const nomeCompleto = `${nomeSorteado} ${sobrenome1} ${sobrenome2} (Simulação ${i})`;
 
-        const randomDado = Math.random();
-        let idadeAnos = 25;
-        if (randomDado < 0.20) idadeAnos = Math.floor(Math.random() * 19);
-        else if (randomDado < 0.70) idadeAnos = Math.floor(Math.random() * 40) + 20;
-        else if (randomDado < 0.95) idadeAnos = Math.floor(Math.random() * 20) + 60;
-        else idadeAnos = Math.floor(Math.random() * 23) + 80;
+        // Determinação epidemiológica randômica baseada em prevalência real na APS
+        const temHAS = Math.random() < 0.28 ? "Sim" : "Não"; // ~28% de hipertensos
+        const temDM = Math.random() < 0.12 ? "Sim" : "Não";  // ~12% de diabéticos
+        const ehGestante = (!sexoMasculino && Math.random() < 0.05) ? "Sim" : "Não"; // ~5% das mulheres em idade fértil
 
+        // Dados clínicos flutuantes (Metas do Previne Brasil/Monitoramento)
+        let pas = ""; let pad = ""; let hba1c = ""; let dum = "";
+        
+        if (temHAS === "Sim") {
+            pas = Math.floor(Math.random() * (180 - 110 + 1)) + 110;
+            pad = Math.floor(Math.random() * (110 - 70 + 1)) + 70;
+        }
+        if (temDM === "Sim") {
+            hba1c = (Math.random() * (12.0 - 5.5) + 5.5).toFixed(1);
+        }
+        if (ehGestante === "Sim") {
+            // Sorteia uma data nos últimos 8 meses
+            const dataDUM = new Date();
+            dataDUM.setDate(dataDUM.getDate() - Math.floor(Math.random() * 240));
+            dum = dataDUM.toISOString().split('T')[0];
+        }
+
+        // Distribuição de idade realista
+        const idadeAnos = Math.floor(Math.random() * (88 - 18 + 1)) + 18;
         const anoNasc = 2026 - idadeAnos;
         const mesNasc = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
         const diaNasc = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
         const dataNascimentoString = `${anoNasc}-${mesNasc}-${diaNasc}`;
 
-        const temHAS = (idadeAnos > 30 && Math.random() < 0.32) ? "Sim" : "Não";
-        const pas = temHAS === "Sim" ? String(Math.floor(Math.random() * 61) + 115) : "";
-        const pad = temHAS === "Sim" ? String(Math.floor(Math.random() * 36) + 70) : "";
+        // Geração fictícia de CPF estruturado
+        const cpfFicticio = `${Math.floor(Math.random()*899+100)}.${Math.floor(Math.random()*899+100)}.${Math.floor(Math.random()*899+100)}-${Math.floor(Math.random()*89+10)}`;
 
-        const temDM = (idadeAnos > 35 && Math.random() < 0.14) ? "Sim" : "Não";
-        const hba1c = temDM === "Sim" ? String((Math.random() * 5.5 + 5.5).toFixed(1)) : "";
-
-        const ehGestante = (ehMulher && idadeAnos >= 14 && idadeAnos <= 45 && Math.random() < 0.06) ? "Sim" : "Não";
-        const dataDum = ehGestante === "Sim" ? "2026-01-10" : "";
-
-        let ampi = "";
-        if (idadeAnos >= 60) {
-            const rAmpi = Math.random();
-            ampi = rAmpi < 0.50 ? "Idoso Robusto" : (rAmpi < 0.85 ? "Em Risco de Fragilização" : "Estruturalmente Frágil");
-        }
-
-        const temTB = (Math.random() < 0.005) ? "Sim" : "Não";
-        const temHansen = (Math.random() < 0.003) ? "Sim" : "Não";
-
-        const pacienteSimulado = {
-            id: `MUNICIPAL_8K_${i}`,
+        const pacienteFicticio = {
+            id: "SIM_" + i + "_" + Date.now(),
             nome: nomeCompleto,
-            cpf: `${Math.floor(Math.random()*900+100)}.${Math.floor(Math.random()*900+100)}.${Math.floor(Math.random()*900+100)}-${Math.floor(Math.random()*90+10)}`,
+            cpf: cpfFicticio,
             nascimento: dataNascimentoString,
-            idade: `${idadeAnos} anos`,
-            telefone: `(21) 9${Math.floor(Math.random()*9000+1000)}-${Math.floor(Math.random()*9000+1000)}`,
-            endereco: `${ruas[Math.floor(Math.random() * ruas.length)]}, Nº ${Math.floor(Math.random()*1000)}`,
-            cep: `24000-000`,
-            unidade: i % 2 === 0 ? "UBS Centro Territorial" : "UBS Laranjais da APS",
-            equipe: equipes[Math.floor(Math.random() * equipes.length)],
-            obs: "",
-            has: temHAS, hasPAS: pas, hasPAD: pad,
-            dm: temDM, dmHbA1c: hba1c,
-            gestante: ehGestante, gestDUM: dataDum,
-            hanseniase: temHansen, tuberculose: temTB,
-            ampiClassif: ampi,
+            idade: idadeAnos + " anos",
+            telefone: `(21) 9${Math.floor(Math.random()*8999+1000)}-${Math.floor(Math.random()*8999+1000)}`,
+            endereco: `Rua Territorial da APS, Nº ${i}`,
+            cep: "20000-000",
+            unidade: ubsLista[Math.floor(Math.random() * ubsLista.length)],
+            equipe: equipesLista[Math.floor(Math.random() * equipesLista.length)],
+            obs: "Registro inserido automaticamente via gerador de testes epidemiológicos de alta volumetria.",
+            has: temHAS,
+            hasPAS: pas,
+            hasPAD: pad,
+            dm: temDM,
+            dmHbA1c: hba1c,
+            gestante: ehGestante,
+            gestDUM: dum,
+            hanseniase: Math.random() < 0.005 ? "Sim" : "Não",
+            tuberculose: Math.random() < 0.01 ? "Sim" : "Não",
+            ampiClassif: idadeAnos >= 60 ? (Math.random() > 0.5 ? "Idoso Robusto" : "Em Risco de Fragilização") : "",
             ciaps2: temHAS === "Sim" ? "K86" : "",
-            dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
-            evolucoes: [
-                {
-                    dataHora: new Date().toLocaleString('pt-BR'),
-                    profissional: "Algoritmo Seed Territorial",
-                    matricula: "SIS_SEED",
-                    texto: "Prontuário estruturado para testes de performance e cruzamento de relatórios."
-                }
-            ]
+            evolucoes: [{
+                dataHora: new Date().toLocaleString('pt-BR'),
+                professional: "Gerador de Carga Populacional",
+                matricula: "SYSTEM_BENCH",
+                texto: "Abertura de Prontuário em lote para validação de performance do painel de monitoramento e BI local."
+            }],
+            dataUltimoRegistro: new Date().toLocaleDateString('pt-BR')
         };
 
-        store.add(pacienteSimulado);
+        store.put(pacienteFicticio);
     }
 
     transaction.oncomplete = function() {
-        console.timeEnd("⏱️ Tempo de inserção");
-        registrarLogAuditoria("CARGA_ESTRESSE_8K", "Gerados 8.000 prontuários na base local.");
-        alert("📊 Sucesso! Base territorial populada com 8.000 registros ativos.");
+        console.timeEnd("⏱️ Tempo de Carga de Estresse");
+        registrarLogAuditoria("CARGA_ESTRESSE_CONCLUIDA", "Injeção em massa de 8.000 prontuários executada com sucesso.");
+        alert("⚡ Carga populacional de 8.000 prontuários integrada com sucesso ao IndexedDB! Painel atualizado.");
         atualizarDashboardInicio();
     };
-}
 
-/* ============================================================
-   💾 CARGA DE DADOS DE EXEMPLO (SEED DATA)
-============================================================ */
-function carregarMassaDadosExemplo() {
-    if (!db) return;
-
-    const transactionCheck = db.transaction(["prontuarios"], "readonly");
-    const storeCheck = transactionCheck.objectStore("prontuarios");
-    const requestCheck = storeCheck.count();
-
-    requestCheck.onsuccess = function(event) {
-        if (event.target.result > 0) return;
-
-        const pacientesExemplo = [
-            {
-                id: "seed_1",
-                nome: "Maria Severina dos Santos",
-                cpf: "111.222.333-44",
-                nascimento: "1954-08-15",
-                idade: "71 anos",
-                telefone: "(21) 98888-7777",
-                endereco: "Rua das Camélias, 102",
-                cep: "20000-000",
-                unidade: "UBS Centro Territorial",
-                equipe: "eSF Aliança - 01",
-                obs: "Alergia grave a Penicilina.",
-                has: "Sim", hasPAS: "165", hasPAD: "105",
-                dm: "Sim", dmHbA1c: "8.9", gestante: "Não",
-                hanseniase: "Não", tuberculose: "Não",
-                ampiClassif: "Em Risco de Fragilização",
-                ciaps2: "K86; T90",
-                dataUltimoRegistro: new Date().toLocaleDateString('pt-BR'),
-                evolucoes: [
-                    {
-                        dataHora: "14/05/2026 14:22",
-                        profissional: "Dr. Josimar Kapps (Gestor)",
-                        matricula: "440129",
-                        texto: "S: Paciente refere picos hipertensivos. O: PA: 165x105 mmHg. HbA1c recente de 8.9%.\nA: Hipertensa e diabética descompensada de alto risco.\nP: Ajuste farmacológico imediato e inclusão no monitoramento de busca ativa."
-                    }
-                ]
-            }
-        ];
-
-        const transactionEscrita = db.transaction(["prontuarios"], "readwrite");
-        const storeEscrita = transactionEscrita.objectStore("prontuarios");
-        pacientesExemplo.forEach(p => storeEscrita.put(p));
-
-        transactionEscrita.oncomplete = function() {
-            atualizarDashboardInicio();
-        };
+    transaction.onerror = function() {
+        alert("❌ Erro crítico no barramento durante inserção em massa.");
     };
 }
 
 /* ============================================================
-   ⚙️ EXTRA E UTILS: MODAL DRAWER, ESCAPES E MÁSCARAS
+   🛡️ CAMADA SEGURA DE ESCAPE SANITIZATION (ANTI-XSS)
 ============================================================ */
-function mascaraCPF(i) {
-    let v = i.value;
-    if (isNaN(v.charAt(v.length - 1))) { i.value = v.substring(0, v.length - 1); return; }
-    i.setAttribute("maxlength", "14");
-    if (v.length == 3 || v.length == 7) i.value += ".";
-    if (v.length == 11) i.value += "-";
+function escapeHTML(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
 }
 
-function escapeHTML(text) {
-    return String(text)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+/* ============================================================
+   📞 MÁSCARAS DE UI E FORMATAÇÕES DE ENTRADA
+============================================================ */
+function mascaraCPF(input) {
+    let v = input.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.substring(0, 11);
+    
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    
+    input.value = v;
 }
 
-function initSistema() {
+/* ============================================================
+   🏁 INICIALIZAÇÃO AUTOMÁTICA DA APLICAÇÃO (BOOTSTRAP)
+=========================================================== */
+window.onload = function() {
     iniciarBancoDados(function() {
-        atualizarDashboardInicio();
-        carregarMassaDadosExemplo();
+        const sessaoAtiva = localStorage.getItem("usuarioLogado");
         
-        const sessao = JSON.parse(localStorage.getItem("usuarioLogado"));
-        if (sessao) {
-            document.getElementById("loginScreen").style.display = "none";
-            document.getElementById("app").style.display = "block";
-            const campoNome = document.getElementById("nomeUsuarioLogado");
-            if (campoNome) campoNome.innerText = sessao.nome;
-            
-            aplicarPermissoesPerfil(sessao.tipo);
-            navigate("inicio");
+        if (sessaoAtiva) {
+            try {
+                const usuario = JSON.parse(sessaoAtiva);
+                document.getElementById("loginScreen").style.display = "none";
+                document.getElementById("app").style.display = "block";
+                
+                const campoNome = document.getElementById("nomeUsuarioLogado");
+                if (campoNome) campoNome.innerText = usuario.nome;
+                
+                const seletorAcesso = document.getElementById("seletorNivelAcesso");
+                if (usuario.tipo === "admin" && seletorAcesso) {
+                    seletorAcesso.style.display = "inline-block";
+                    seletorAcesso.value = usuario.tipo;
+                }
+                
+                aplicarPermissoesPerfil(usuario.tipo);
+                atualizarDashboardInicio();
+                navigate("inicio");
+            } catch (e) {
+                console.error("Sessão corrompida. Redirecionando para login.");
+                efetuarLogout();
+            }
+        } else {
+            document.getElementById("app").style.display = "none";
+            document.getElementById("loginScreen").style.display = "flex";
         }
     });
-}
-
-window.onload = initSistema;
+};
