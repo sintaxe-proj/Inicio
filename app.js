@@ -70,6 +70,10 @@ function exibirAplicacao(user) {
     setTimeout(atualizarDashboard, 300);
 }
 
+function facebookLogout() {
+    efetuarLogout();
+}
+
 function efetuarLogout() {
     localStorage.removeItem("sintaxe_session");
     window.location.reload();
@@ -83,6 +87,13 @@ function alternarVisaoGestor(perfil) {
    🗄️ CONFIGURAÇÃO DA CAMADA DE PERSISTÊNCIA LOCAL (INDEXEDDB)
    ========================================================================== */
 function configurarIndexedDB() {
+    // Solicita armazenamento persistente ao navegador para evitar autolimpeza
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().then(granted => {
+            if (granted) console.log("Armazenamento definido como PERSISTENTE pelo navegador.");
+        });
+    }
+
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = (event) => {
@@ -92,6 +103,7 @@ function configurarIndexedDB() {
     request.onsuccess = (event) => {
         db = event.target.result;
         console.log("Banco de dados IndexedDB sincronizado com sucesso.");
+        atualizarDashboard();
     };
 
     request.onupgradeneeded = (event) => {
@@ -114,7 +126,7 @@ function configurarIndexedDB() {
    ========================================================================== */
 
 /**
- * Avalia criticidade baseada no absenteísmo gestacional conforme regras de negócio solicitadas
+ * Avalia criticidade baseada no absenteísmo gestacional conforme regras solicitadas
  */
 function avaliarCriticoPreNatal(dataDUM, dataUltimaConsulta) {
     if (!dataDUM || !dataUltimaConsulta) {
@@ -166,8 +178,13 @@ function processarRiscoPaciente(paciente) {
     let riscoCalculado = "CONTROLADO";
     let alertas = [];
 
+    const checarValor = (campo) => {
+        if (!campo) return false;
+        return String(campo).trim().toLowerCase() === "sim" || String(campo).trim().toLowerCase() === "true";
+    };
+
     // Regra Pré-Natal
-    if (paciente.gestanteSN === "Sim") {
+    if (checarValor(paciente.gestanteSN)) {
         const checkPN = avaliarCriticoPreNatal(paciente.gestDUM, paciente.dataUltimaConsulta);
         if (checkPN.critico) {
             riscoCalculado = "CRITICO";
@@ -176,19 +193,19 @@ function processarRiscoPaciente(paciente) {
     }
 
     // Regra Tuberculose
-    if (paciente.tbSN === "Sim" && avaliarAbsenteismoTrintaDias(paciente.dataUltimaConsulta)) {
+    if (checarValor(paciente.tbSN) && avaliarAbsenteismoTrintaDias(paciente.dataUltimaConsulta)) {
         riscoCalculado = "CRITICO";
         alertas.push("Falta de acompanhamento na Tuberculose há mais de 30 dias.");
     }
 
     // Regra Hanseníase
-    if (paciente.hansenSN === "Sim" && avaliarAbsenteismoTrintaDias(paciente.dataUltimaConsulta)) {
+    if (checarValor(paciente.hansenSN) && avaliarAbsenteismoTrintaDias(paciente.dataUltimaConsulta)) {
         riscoCalculado = "CRITICO";
         alertas.push("Falta de acompanhamento na Hanseníase há mais de 30 dias.");
     }
 
-    // Regra HAS Clínico (Pressão Arterial Física)
-    if (paciente.hasSN === "Sim") {
+    // Regra HAS Clínico
+    if (checarValor(paciente.hasSN)) {
         const pas = parseInt(paciente.hasPAS) || 0;
         const pad = parseInt(paciente.hasPAD) || 0;
         if (pas >= 180 || pad >= 110) {
@@ -199,8 +216,8 @@ function processarRiscoPaciente(paciente) {
         }
     }
 
-    // Regra DM Clínico (Hemoglobina Glicada)
-    if (paciente.dmSN === "Sim") {
+    // Regra DM Clínico
+    if (checarValor(paciente.dmSN)) {
         const hba1c = parseFloat(paciente.dmHbA1c) || 0;
         if (hba1c >= 9.0) {
             riscoCalculado = "CRITICO";
@@ -244,17 +261,21 @@ function carregarFiltrosSelectsEDados() {
     request.onsuccess = (event) => {
         const todos = event.target.result;
         
+        const checarValor = (campo) => {
+            if (!campo) return false;
+            return String(campo).trim().toLowerCase() === "sim" || String(campo).trim().toLowerCase() === "true";
+        };
+
         // Isolar dados conforme o agravo clicado
         dadosFiltradosAtuais = todos.filter(p => {
-            if (filtroAgravoAtual === "has") return p.hasSN === "Sim";
-            if (filtroAgravoAtual === "dm") return p.dmSN === "Sim";
-            if (filtroAgravoAtual === "gestante") return p.gestanteSN === "Sim";
-            if (filtroAgravoAtual === "tuberculose") return p.tbSN === "Sim";
-            if (filtroAgravoAtual === "hanseniase") return p.hansenSN === "Sim";
+            if (filtroAgravoAtual === "has") return checarValor(p.hasSN);
+            if (filtroAgravoAtual === "dm") return checarValor(p.dmSN);
+            if (filtroAgravoAtual === "gestante") return checarValor(p.gestanteSN);
+            if (filtroAgravoAtual === "tuberculose") return checarValor(p.tbSN);
+            if (filtroAgravoAtual === "hanseniase") return checarValor(p.hansenSN);
             return false;
         });
 
-        // Alimentar os selects dinamicamente com as UBS/Equipes encontradas na massa
         const ubsSet = new Set(["TODAS"]);
         const equipeSet = new Set(["TODAS"]);
         
@@ -293,7 +314,6 @@ function aplicarFiltrosRelatorio() {
         return true;
     });
 
-    // Contadores analíticos
     let totalCriticos = 0;
     let totalAlertas = 0;
     let totalControlados = 0;
@@ -316,21 +336,14 @@ function renderizarGraficoDonut(c, a, ctrl) {
     const pctAlerta = ((a / total) * 100).toFixed(0);
     const pctCtrl = ((ctrl / total) * 100).toFixed(0);
 
-    // Circunferência do círculo com r=15.91549430918954 é exatamente 100
     const container = document.getElementById("containerGraficoDonut");
     container.innerHTML = `
         <div class="donut-wrapper">
             <svg width="140" height="140" viewBox="0 0 40 40" class="donut-svg">
                 <circle class="donut-bg" cx="20" cy="20" r="15.91549430918954"></circle>
-                
-                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" 
-                        stroke="#ef4444" stroke-dasharray="${pctCritico} ${100 - pctCritico}" stroke-dashoffset="0"></circle>
-                        
-                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" 
-                        stroke="#f59e0b" stroke-dasharray="${pctAlerta} ${100 - pctAlerta}" stroke-dashoffset="-${pctCritico}"></circle>
-                        
-                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" 
-                        stroke="#10b981" stroke-dasharray="${pctCtrl} ${100 - pctCtrl}" stroke-dashoffset="-${parseInt(pctCritico) + parseInt(pctAlerta)}"></circle>
+                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" stroke="#ef4444" stroke-dasharray="${pctCritico} ${100 - pctCritico}" stroke-dashoffset="0"></circle>
+                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" stroke="#f59e0b" stroke-dasharray="${pctAlerta} ${100 - pctAlerta}" stroke-dashoffset="-${pctCritico}"></circle>
+                <circle class="donut-segment" cx="20" cy="20" r="15.91549430918954" stroke="#10b981" stroke-dasharray="${pctCtrl} ${100 - pctCtrl}" stroke-dashoffset="-${parseInt(pctCritico) + parseInt(pctAlerta)}"></circle>
             </svg>
             <div class="donut-center-text">
                 <span class="donut-number">${c}</span>
@@ -350,7 +363,7 @@ function renderizarGraficoBarras(c, a, ctrl) {
     container.innerHTML = `
         <div class="bar-chart-container">
             <div class="bar-row">
-                <div class="bar-label"><span>Críticos (Prazo Vencido / Descompensados)</span><span>${c} (${pC.toFixed(1)}%)</span></div>
+                <div class="bar-label"><span>Críticos (Atrasados / Descompensados)</span><span>${c} (${pC.toFixed(1)}%)</span></div>
                 <div class="bar-track"><div class="bar-fill" style="width: ${pC}%; background: #ef4444;"></div></div>
             </div>
             <div class="bar-row">
@@ -384,7 +397,7 @@ function renderizarTabelaPainel(lista) {
         </thead>
         <tbody>`;
 
-    lista.slice(0, 15).forEach(p => { // Limita a 15 itens na pré-visualização por performance
+    lista.slice(0, 15).forEach(p => {
         const diag = processarRiscoPaciente(p);
         let corBadge = diag.statusRisco === "CRITICO" ? "#ef4444" : (diag.statusRisco === "ALERTA" ? "#f59e0b" : "#10b981");
         
@@ -406,8 +419,16 @@ function renderizarTabelaPainel(lista) {
     container.innerHTML = html;
 }
 
+/**
+ * 🔒 ATUALIZAR DASHBOARD (Versão Sanitizada e Blindada contra Falhas)
+ */
 function atualizarDashboard() {
-    if (!db) return;
+    if (!db) {
+        console.warn("Aviso: Tentativa de atualizar dashboard antes da abertura do IndexedDB. Retentando em 200ms...");
+        setTimeout(atualizarDashboard, 200);
+        return;
+    }
+
     const transaction = db.transaction([STORE_NAME], "readonly");
     const store = transaction.objectStore(STORE_NAME);
     const request = store.getAll();
@@ -416,19 +437,32 @@ function atualizarDashboard() {
         const dados = event.target.result;
         let cHas = 0, cDm = 0, cGest = 0, cTb = 0, cHansen = 0;
 
+        // Normalização flexível independente de maiúsculas/minúsculas ou booleanos salvos
+        const checarCondicao = (campo) => {
+            if (!campo) return false;
+            const valor = String(campo).trim().toLowerCase();
+            return valor === "sim" || valor === "true";
+        };
+
         dados.forEach(p => {
-            if (p.hasSN === "Sim") cHas++;
-            if (p.dmSN === "Sim") cDm++;
-            if (p.gestanteSN === "Sim") cGest++;
-            if (p.tbSN === "Sim") cTb++;
-            if (p.hansenSN === "Sim") cHansen++;
+            if (checarCondicao(p.hasSN)) cHas++;
+            if (checarCondicao(p.dmSN)) cDm++;
+            if (checarCondicao(p.gestanteSN)) cGest++;
+            if (checarCondicao(p.tbSN)) cTb++;
+            if (checarCondicao(p.hansenSN)) cHansen++;
         });
 
-        document.getElementById("dashHAS").innerText = cHas;
-        document.getElementById("dashDM").innerText = cDm;
-        document.getElementById("dashGest").innerText = cGest;
-        document.getElementById("dashTB").innerText = cTb;
-        document.getElementById("dashHansen").innerText = cHansen;
+        console.log(`[Dashboard Sync] Processados ${dados.length} registros. HAS: ${cHas}, DM: ${cDm}, Gestantes: ${cGest}, TB: ${cTb}, Hansen: ${cHansen}`);
+
+        if(document.getElementById("dashHAS")) document.getElementById("dashHAS").innerText = cHas;
+        if(document.getElementById("dashDM")) document.getElementById("dashDM").innerText = cDm;
+        if(document.getElementById("dashGest")) document.getElementById("dashGest").innerText = cGest;
+        if(document.getElementById("dashTB")) document.getElementById("dashTB").innerText = cTb;
+        if(document.getElementById("dashHansen")) document.getElementById("dashHansen").innerText = cHansen;
+    };
+
+    request.onerror = (event) => {
+        console.error("Erro ao ler registros para o Dashboard:", event.target.error);
     };
 }
 
@@ -470,9 +504,6 @@ function buscarInicio() {
                     ${diag.alerta ? `<p style="color:#b91c1c; font-size:11px; margin-top:4px;">⚠️ ${diag.alerta}</p>` : ''}
                     <div class="badges-container">
                         <span class="tag-clinica" style="background:${corRisco}">${diag.statusRisco}</span>
-                        ${p.hasSN==='Sim'?'<span class="tag-clinica" style="background:#ef4444">HAS</span>':''}
-                        ${p.dmSN==='Sim'?'<span class="tag-clinica" style="background:#f59e0b">DM</span>':''}
-                        ${p.gestanteSN==='Sim'?'<span class="tag-clinica" style="background:#ec4899">PRE-NATAL</span>':''}
                     </div>
                 </div>`;
         });
@@ -492,10 +523,9 @@ function abrirParaEdicao(cpf) {
 
         navigate("prontuario");
         
-        // Mapeamento dos campos estruturais
         document.getElementById("nomePaciente").value = p.nome;
         document.getElementById("cpfPaciente").value = p.cpf;
-        document.getElementById("cpfPaciente").disabled = true; // Chave primária travada
+        document.getElementById("cpfPaciente").disabled = true;
         document.getElementById("nascPaciente").value = p.nascPaciente || "";
         document.getElementById("idadePaciente").value = p.idadePaciente || "";
         document.getElementById("telPaciente").value = p.telPaciente || "";
@@ -504,14 +534,12 @@ function abrirParaEdicao(cpf) {
         document.getElementById("unidadePaciente").value = p.unidadePaciente || "";
         document.getElementById("equipePaciente").value = p.equipePaciente || "";
         
-        // Flags Clínicas
         document.getElementById("hasSN").value = p.hasSN || "Não";
         document.getElementById("dmSN").value = p.dmSN || "Não";
         document.getElementById("gestanteSN").value = p.gestanteSN || "Não";
         document.getElementById("tbSN").checked = p.tbSN === "Sim";
         document.getElementById("hansenSN").checked = p.hansenSN === "Sim";
 
-        // Campos específicos
         document.getElementById("hasPAS").value = p.hasPAS || "";
         document.getElementById("hasPAD").value = p.hasPAD || "";
         document.getElementById("dmHbA1c").value = p.dmHbA1c || "";
@@ -519,9 +547,8 @@ function abrirParaEdicao(cpf) {
         document.getElementById("ampiPaciente").value = p.ampiPaciente || "Idoso Robusto";
         document.getElementById("inputBuscaCIAPS").value = p.inputBuscaCIAPS || "";
         document.getElementById("obsPaciente").value = p.obsPaciente || "";
-        document.getElementById("evoTexto").value = ""; // Limpa campo de digitação do dia
+        document.getElementById("evoTexto").value = "";
 
-        // Disparar gatilhos visuais de visibilidade dos blocos
         mostrarCard("cardHAS", p.hasSN);
         mostrarCard("cardDM", p.dmSN);
         mostrarCard("cardGestante", p.gestanteSN);
@@ -530,7 +557,6 @@ function abrirParaEdicao(cpf) {
         classificarDM();
         calcIG();
 
-        // Cabeçalho e Linha do Tempo de evolução
         document.getElementById("cabecalhoProntuario").style.display = "block";
         document.getElementById("cabecalhoNome").innerText = `📋 Prontuário Aberto: ${p.nome.toUpperCase()} (CPF: ${p.cpf})`;
 
@@ -550,13 +576,11 @@ function salvarProntuario() {
     const transaction = db.transaction([STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
 
-    // Primeiro busca o registro antigo para preservar o histórico anterior
     const getReq = store.get(cpf);
     getReq.onsuccess = (e) => {
         const registroExistente = e.target.result || {};
         let historico = registroExistente.historicoEvolucoes || [];
 
-        // Captura a evolução do dia inserida na tela atual
         const novaEvoTexto = document.getElementById("evoTexto").value.trim();
         if (novaEvoTexto) {
             historico.unshift({
@@ -588,13 +612,13 @@ function salvarProntuario() {
             ampiPaciente: document.getElementById("ampiPaciente").value,
             inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS").value,
             obsPaciente: document.getElementById("obsPaciente").value,
-            dataUltimaConsulta: new Date().toISOString().split('T')[0], // Atualiza para hoje ao assinar
+            dataUltimaConsulta: new Date().toISOString().split('T')[0],
             historicoEvolucoes: historico
         };
 
         const putReq = store.put(dadosSalvar);
         putReq.onsuccess = () => {
-            showToast(`Atendimento de ${nome} salvo e assinado com ICP-Brasil.`);
+            showToast(`Atendimento de ${nome} salvo com sucesso.`);
             limparFormularioProntuario();
             atualizarDashboard();
             navigate("inicio");
@@ -677,7 +701,6 @@ function gerarCargaMassaOitoMil() {
     const transaction = db.transaction([STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
 
-    // Gerador de datas randômicas para simular absenteísmo real
     function gerarDataPassada(diasMaximos) {
         const d = new Date();
         d.setDate(d.getDate() - Math.floor(Math.random() * diasMaximos));
@@ -690,12 +713,11 @@ function gerarCargaMassaOitoMil() {
         const nomeCompleto = `${nomeSorteado} ${sobrenomes[Math.floor(Math.random() * 10)]} ${sobrenomes[Math.floor(Math.random() * 10)]} ${i}`;
         const cpfFicticio = `999${String(i).padStart(8, '0')}`;
 
-        // Distribuição Epidemiológica Controlada
-        const has = Math.random() < 0.25 ? "Sim" : "Não";      // 25% Hipertensos
-        const dm = Math.random() < 0.12 ? "Sim" : "Não";       // 12% Diabéticos
-        const gest = (isFeminino && Math.random() < 0.08) ? "Sim" : "Não"; // 8% das mulheres gestantes
-        const tb = Math.random() < 0.02 ? "Sim" : "Não";       // 2% Tuberculose
-        const hansen = Math.random() < 0.015 ? "Sim" : "Não";   // 1.5% Hanseníase
+        const has = Math.random() < 0.25 ? "Sim" : "Não";
+        const dm = Math.random() < 0.12 ? "Sim" : "Não";
+        const gest = (isFeminino && Math.random() < 0.08) ? "Sim" : "Não";
+        const tb = Math.random() < 0.02 ? "Sim" : "Não";
+        const hansen = Math.random() < 0.015 ? "Sim" : "Não";
 
         const prontuario = {
             cpf: cpfFicticio,
@@ -715,11 +737,11 @@ function gerarCargaMassaOitoMil() {
             hasPAS: has === "Sim" ? (Math.random() > 0.85 ? "185" : "130") : "",
             hasPAD: has === "Sim" ? (Math.random() > 0.85 ? "115" : "85") : "",
             dmHbA1c: dm === "Sim" ? (Math.random() > 0.80 ? "9.8" : "6.2") : "",
-            gestDUM: gest === "Sim" ? gerarDataPassada(250) : "", // DUM simulada até ~35 semanas
+            gestDUM: gest === "Sim" ? gerarDataPassada(250) : "",
             ampiPaciente: "Idoso Robusto",
             inputBuscaCIAPS: "",
             obsPaciente: "Carga automatizada via motor de estresse.",
-            dataUltimaConsulta: gerarDataPassada(45), // Consultas variando de hoje a 45 dias atrás
+            dataUltimaConsulta: gerarDataPassada(45),
             historicoEvolucoes: [
                 { data: "2026-01-10", profissional: "Sistema", texto: "Carga Inicial e Sincronização e-SUS APS." }
             ]
@@ -745,7 +767,6 @@ function processarArquivoEsus(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            // Suporta arquivos JSON estruturados do barramento PEC/e-SUS
             const json = JSON.parse(e.target.result);
             if (json.cpf && json.nome) {
                 const transaction = db.transaction([STORE_NAME], "readwrite");
@@ -756,7 +777,6 @@ function processarArquivoEsus(input) {
                 };
             }
         } catch (err) {
-            // Mock de leitura estruturada para arquivos TXT/XML regulamentares
             showToast("Leitura de metadados e-SUS concluída com sucesso.");
         }
     };
@@ -772,7 +792,6 @@ function navigate(targetView) {
     
     document.getElementById(`view-${targetView}`).style.display = "block";
     
-    // Vincula a aba ativa
     const linkAtivo = Array.from(document.querySelectorAll(".nav-link")).find(l => l.getAttribute("onclick").includes(targetView));
     if(linkAtivo) linkAtivo.classList.add("active");
 
@@ -783,7 +802,6 @@ function navigate(targetView) {
 function mostrarCard(id, valor) {
     document.getElementById(id).style.display = (valor === "Sim" || valor === "true") ? "block" : "none";
     if(id === 'cardGestante' && valor === 'Sim') {
-        // Se for gestante, avalia gatilho de idade para exibir AMPI (Idoso) concorrente
         calcIdade();
     }
 }
@@ -811,7 +829,6 @@ function limparFormularioProntuario() {
     document.getElementById("cabecalhoProntuario").style.display = "none";
     document.getElementById("cpfPaciente").disabled = false;
     
-    // Reseta todos os inputs comuns e caixas ocultas
     document.querySelectorAll("#view-prontuario input, #view-prontuario select, #view-prontuario textarea").forEach(input => {
         if(input.type === 'checkbox') input.checked = false;
         else input.value = "";
@@ -844,7 +861,6 @@ function calcIdade() {
     const idade = Math.floor((new Date() - new Date(nasc)) / (1000 * 60 * 60 * 24 * 365.25));
     document.getElementById("idadePaciente").value = idade;
     
-    // Gatilho do Ministério da Saúde: Idosa Gestante ou Protocolo AMPI para Idosos (>=60 anos)
     document.getElementById("ampiBloco").style.display = (idade >= 60) ? "block" : "none";
 }
 
@@ -861,7 +877,6 @@ function calcIG() {
 
     document.getElementById("gestIG").value = `${semanas} Semanas e ${diasRestantes} Dias`;
 
-    // Regra de Nagele (DPP = DUM + 7 dias - 3 meses + 1 ano)
     let dppDate = new Date(dum);
     dppDate.setDate(dppDate.getDate() + 7);
     dppDate.setMonth(dppDate.getMonth() + 9); 
