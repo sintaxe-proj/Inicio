@@ -199,7 +199,7 @@ function desbloquearFormularios(permitirEscrita) {
 function exibirErroLogin(mensagem) {
     const erroDiv = document.getElementById("loginErro");
     if (erroDiv) {
-        erroDiv.innerText = mensagem; // 🔥 Corrigido de message para mensagem
+        erroDiv.innerText = mensagem;
         erroDiv.style.display = "block";
     } else {
         alert(mensagem);
@@ -229,7 +229,12 @@ function navigate(screenId) {
         activePage.style.display = "block";
     }
     
-    if (screenId.includes("inicio")) atualizarDashboardInicio();
+    if (screenId.includes("inicio")) {
+        atualizarDashboardInicio();
+        // Oculta o painel epidemiológico ao retornar para o início limpo
+        const containerEpidemio = document.getElementById("painelEpidemiologicoContainer");
+        if (containerEpidemio) containerEpidemio.style.display = "none";
+    }
     if (screenId.includes("banco")) listarBanco();
 }
 
@@ -457,6 +462,81 @@ function atualizarDashboardInicio() {
     };
 }
 
+/* ============================================================
+   📊 PAINEL EPIDEMIOLÓGICO DINÂMICO DE BUSCA ATIVA
+============================================================ */
+function abrirPainelEpidemiologico(linhaCuidado) {
+    if (!db) return;
+
+    const container = document.getElementById("painelEpidemiologicoContainer");
+    const titulo = document.getElementById("tituloPainelEpidemiologico");
+    const tabelaDiv = document.getElementById("tabelaPainelEpidemiologico");
+
+    if (!container || !titulo || !tabelaDiv) return;
+
+    const mapaTitulos = {
+        has: "❤️ Linha de Cuidado: Hipertensão Arterial Sistêmica (HAS)",
+        dm: "🩸 Linha de Cuidado: Diabetes Mellitus (DM)",
+        gestante: "🤰 Monitoramento de Gestantes (Pré-Natal)",
+        tuberculose: "🦠 Busca Ativa: Casos/Rastreios de Tuberculose",
+        hanseniase: "🛡️ Monitoramento Populacional: Hanseníase"
+    };
+
+    titulo.innerText = mapaTitulos[linhaCuidado] || "Monitoramento Epidemiológico";
+
+    const transaction = db.transaction(["prontuarios"], "readonly");
+    const store = transaction.objectStore("prontuarios");
+    const request = store.getAll();
+
+    request.onsuccess = function(event) {
+        const prontuarios = event.target.result;
+        const filtrados = prontuarios.filter(p => p[linhaCuidado] === "Sim");
+
+        registrarLogAuditoria("PAINEL_EPIDEMIOLOGICO_VISUALIZADO", `Abriu painel da linha de cuidado: ${linhaCuidado}. Encontrados ${filtrados.length} utentes.`);
+
+        if (filtrados.length === 0) {
+            tabelaDiv.innerHTML = `<p style="color:#64748b; padding:10px 0;">Nenhum paciente com esta condição cadastrado ou injetado na base municipal até o momento.</p>`;
+            container.style.display = "block";
+            return;
+        }
+
+        let html = `
+            <table style="width:100%; border-collapse:collapse; margin-top:5px; font-size:14px;">
+                <tr style="background:#f1f5f9; color:var(--dark); text-align:left; border-bottom:2px solid #cbd5e1;">
+                    <th style="padding:10px;">Nome do Utente</th>
+                    <th style="padding:10px;">Idade</th>
+                    <th style="padding:10px;">Última Evolução Clínica Registrada</th>
+                    <th style="padding:10px; text-align:center;">Ações</th>
+                </tr>`;
+
+        filtrados.forEach(p => {
+            let ultimaEvolucao = "<em>Nenhum registro clínico em linha do tempo.</em>";
+            if (p.evolucoes && p.evolucoes.length > 0) {
+                const ultima = p.evolucoes[p.evolucoes.length - 1];
+                const textoCortado = ultima.texto.length > 110 ? ultima.texto.substring(0, 110) + "..." : ultima.texto;
+                ultimaEvolucao = `<span style="color:#475569; font-style:italic;">"${escapeHTML(textoCortado)}"</span><br>
+                                  <small style="color:#94a3b8; font-size:11px;">Por: ${escapeHTML(ultima.profissional)} em ${ultima.dataHora}</small>`;
+            }
+
+            html += `
+                <tr style="border-bottom:1px solid #e2e8f0; vertical-align: middle;">
+                    <td style="padding:10px; font-weight:600; color:#0f172a; min-width:200px;">${escapeHTML(p.nome)}</td>
+                    <td style="padding:10px; white-space:nowrap;">${p.idade || 'Não calculada'}</td>
+                    <td style="padding:10px; max-width:500px;">${ultimaEvolucao}</td>
+                    <td style="padding:10px; text-align:center; white-space:nowrap;">
+                        <button class="btn-primary" style="padding:5px 12px; font-size:12px; background:var(--primary);" onclick="carregarPacienteParaEdicao('${p.id}')">Abrir Prontuário</button>
+                    </td>
+                </tr>`;
+        });
+
+        html += `</table>`;
+        tabelaDiv.innerHTML = html;
+        container.style.display = "block";
+        
+        container.scrollIntoView({ behavior: 'smooth' });
+    };
+}
+
 function buscarInicio() {
     const nomeBusca = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
     const container = document.getElementById("resultadoInicio");
@@ -597,7 +677,7 @@ function listarBanco() {
             let linhas = [];
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("Gestante"); // 🔥 Corrigido de lines.push para linhas.push
+            if (p.gestante === "Sim") linhas.push("Gestante");
 
             html += `<tr style="border-bottom:1px solid #e2e8f0;">
                 <td style="padding:12px; font-weight:600; color:#0f172a;">${escapeHTML(p.nome)}</td>
@@ -776,7 +856,7 @@ function gerarCargaMassaOitoMil() {
     transaction.oncomplete = function() {
         console.timeEnd("⏱️ Tempo de inserção de 8.000 registros");
         registrarLogAuditoria("CARGA_ESTRESSE_8K", "Injetado com sucesso lote em massa de 8.000 prontuários populacionais no banco local.");
-        alert("📊 Sucesso absoluto! O banco local agora conta com 8.000 usuários ativos.");
+        alert("📊 Sucesso absoluto! O banco local agora conta com 8.000 usuários activos.");
         atualizarDashboardInicio();
     };
 
