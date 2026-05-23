@@ -551,24 +551,59 @@
                         <textarea id="soapSubjetivo" rows="3" placeholder="Paciente relata..."></textarea>
                     </div>
 
-                    <div style="margin-bottom:15px; background: #111c2e; padding: 15px; border: 1px solid var(--border); border-radius: 6px;">
-                        <label style="color: var(--primary-neon); margin-bottom: 12px; font-size:14px; text-transform:uppercase;">O - Objetivo: Triagem de Sinais Vitais (SSVV)</label>
-                        <div class="form-grid">
-                            <div><label>PA (Sistólica x Diastólica)</label><input type="text" id="objPA" placeholder="Ex: 120x80 mmHg"></div>
-                            <div><label>FC (Frequência Cardíaca)</label><input type="number" id="objFC" placeholder="bpm"></div>
-                            <div><label>FR (Freq. Respiratória)</label><input type="number" id="objFR" placeholder="irpm"></div>
-                            <div><label>SatO₂ (Saturação de Oxigênio)</label><input type="number" id="objSatO2" placeholder="%"></div>
-                           <div>
-    <label>Escala Visual Analógica da Dor</label>
-    <select id="objDor">
-        <option value="0">0 - Ausência total de Dor</option>
-        <option value="2">2 - Dor de Intensidade Leve</option>
-        <option value="5">5 - Dor de Intensidade Moderada</option>
-        <option value="8">8 - Dor de Intensidade Severa</option>
-        <option value="10">10 - Dor Máxima Insuportável</option>
-    </select>
-</div>
+                    <label style="color: var(--primary-neon); margin-bottom: 12px; font-size:14px; text-transform:uppercase;">
+    O - Objetivo: Triagem de Sinais Vitais (SSVV)
+</label>
 
+<div class="form-grid">
+
+    <div>
+        <label>PA (Sistólica x Diastólica)</label>
+        <input type="text" id="objPA" placeholder="Ex: 120x80 mmHg">
+    </div>
+
+    <div>
+        <label>FC (Frequência Cardíaca)</label>
+        <input type="number" id="objFC" placeholder="bpm">
+    </div>
+
+    <div>
+        <label>FR (Freq. Respiratória)</label>
+        <input type="number" id="objFR" placeholder="irpm">
+    </div>
+
+    <div>
+        <label>SatO₂ (Saturação de Oxigênio)</label>
+        <input type="number" id="objSatO2" placeholder="%">
+    </div>
+
+    <div>
+        <label>Escala Visual Analógica da Dor</label>
+        <select id="objDor">
+            <option value="0">0 - Ausência total de Dor</option>
+            <option value="2">2 - Dor de Intensidade Leve</option>
+            <option value="5">5 - Dor de Intensidade Moderada</option>
+            <option value="8">8 - Dor de Intensidade Severa</option>
+            <option value="10">10 - Dor Máxima Insuportável</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Peso (kg)</label>
+        <input type="number" id="objpeso" placeholder="Kg" step="0.1" oninput="calcularIMC()">
+    </div>
+
+    <div>
+        <label>Altura (cm)</label>
+        <input type="number" id="objaltura" placeholder="cm" step="1" oninput="calcularIMC()">
+    </div>
+
+    <div>
+        <label>IMC</label>
+        <input type="text" id="objIMC" readonly>
+    </div>
+
+</div>
 <div>
     <label>Peso (kg)</label>
 
