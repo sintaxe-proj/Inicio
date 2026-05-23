@@ -13,7 +13,7 @@ const SCRIPTS_WHATSAPP_APS = {
         "Olá! Estamos aguardando você para a sua próxima consulta programada de Pré-Natal. Não falte, o acompanhamento é fundamental para você e para o bebê!",
 
     busca_ativa:
-        "Olá! Tentamos contato recente para acompanhamento de saúde, mas não conseguimos. Por favor, responda a esta mensagem ou passe na Unidade para podermos atualizar o seu cadasro."
+        "Olá! Tentamos contato recente para acompanhamento de saúde, mas não conseguimos. Por favor, responda a esta mensagem ou passe na Unidade para podermos atualizar o seu cadastro."
 };
 
 function carregarMensagensEditadas() {
@@ -105,4 +105,24 @@ function restaurarMensagemPadrao() {
     );
 
     mostrarToast("🔄 Mensagem restaurada ao padrão original.");
+}
+
+function atualizarTextoMensagem(index) {
+    const seletor = document.getElementById(`selectMsg_${index}`);
+    const areaTexto = document.getElementById(`textMsg_${index}`);
+
+    if (!seletor || !areaTexto) return;
+
+    const chave = seletor.value;
+
+    if (chave && chave !== "custom") {
+        areaTexto.value = obterMensagemPadrao(chave);
+        return;
+    }
+
+    areaTexto.value = "";
+
+    if (chave === "custom") {
+        areaTexto.focus();
+    }
 }
