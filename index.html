@@ -608,95 +608,67 @@
 
             <div id="view-banco" class="view">
                 <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">🗄️ Base de Cidadãos Monitorados na Área Operacional</h3>
-                    <div id="tabelaBancoContainer" style="overflow-x:auto;">
-                        <p style="color:var(--text-muted);">Carregando instâncias do IndexedDB local...</p>
-                    </div>
+                    <h3 style="margin-top:0; color:var(--text-main);">🗄️ Base de Dados Territorial</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin:-10px 0 15px 0;">Lista consolidada de usuários mapeados na microárea.</p>
+                    <div id="tabelaPacientesContainer"></div>
                 </div>
             </div>
 
             <div id="view-config" class="view">
                 <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">⚡ Painel Avançado de Interoperabilidade e Testes</h3>
-                    <p style="font-size:13px; color:var(--text-muted);">Ferramentas analíticas voltadas para testes de carga em memória latente e cruzamento e-SUS.</p>
+                    <h3 style="margin-top:0; color:var(--text-main);">⚙️ Configurações Gerais do Sistema</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin:-10px 0 15px 0;">Gestão de dados locais e parâmetros de infraestrutura.</p>
                     
-                    <div style="display:flex; flex-direction:column; gap:20px; margin-top:20px;">
-                        <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
-                            <h4 style="margin:0 0 10px 0; color:var(--danger);">🚀 Teste de Latência e Estresse (8.000 Prontuários)</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Injeta imediatamente um bloco massivo de 8.000 registros contendo strings SOAP complexas no IndexedDB do navegador.</p>
-                            <button onclick="gerarCargaMassaOitoMil()" style="background:var(--danger); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Injetar Matriz de Dados</button>
+                    <div id="blocoConfigAdmin" style="display: none; background: #1e293b; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border);">
+                        <h3 style="color: var(--primary-neon); margin-top: 0;">🛠️ Painel do Gestor: Cadastro de Operadores Municipais</h3>
+                        <p style="color: var(--text-muted); font-size: 14px;">Inclusão de profissionais com vinculação estrita de escopo territorial (Equipe) e níveis funcionais (RBAC).</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                            <div>
+                                <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 5px;">Matrícula / Usuário:</label>
+                                <input type="text" id="adminMatricula" placeholder="Ex: 554321" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 5px;">Nome Completo do Profissional:</label>
+                                <input type="text" id="adminNome" placeholder="Ex: Enf. Pedro Rocha" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 5px;">Perfil Funcional:</label>
+                                <select id="adminPerfil" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff;">
+                                    <option value="assistencial">Assistencial (Acesso Completo à Equipe)</option>
+                                    <option value="visualizador">Visualizador (Sem Acesso Clínico / Apenas Estatística)</option>
+                                    <option value="admin">Administrador Geral (Visão Total do Município)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 5px;">Equipe de Lotação:</label>
+                                <select id="adminEquipe" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff;">
+                                    <option value="Equipe Verde">Equipe Verde</option>
+                                    <option value="Equipe Azul">Equipe Azul</option>
+                                    <option value="Equipe Esmeralda">Equipe Esmeralda</option>
+                                    <option value="Equipe Rubi">Equipe Rubi</option>
+                                    <option value="Todas">Todas (Recomendado apenas para Administradores)</option>
+                                </select>
+                            </div>
                         </div>
-
-                        <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
-                            <h4 style="margin:0 0 10px 0; color:var(--primary-neon);">📥 Interoperabilidade de Arquivos e-SUS PEC</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Importar arquivo de dados de cadastros estruturados individuais (formato JSON) direto para o ecossistema.</p>
-                            <input type="file" id="arquivoEsus" accept=".json" onchange="processarArquivoEsus(this)" style="background:var(--bg-input); padding:5px; color:var(--text-main);">
-                        </div>
+                        <button onclick="criarNovoUsuarioPainel()" style="margin-top: 20px; background: var(--primary-neon); color: #fff; padding: 10px 20px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">💾 Registrar Operador</button>
                     </div>
-                </div>
+                    </div>
             </div>
 
-        </div>
-    </div>
-
-    <button class="btn-flutuante-discador" onclick="alternarCentralDiscagem()" title="Abrir Central Operacional de Contatos">📞</button>
-
+        </div> </div> <button class="btn-flutuante-discador" onclick="document.getElementById('painelDiscagemContainer').style.display='block'">📞</button>
     <div id="painelDiscagemContainer">
         <div class="discador-header">
-            <span>📞 Central Operational de Contatos</span>
-            <span onclick="alternarCentralDiscagem()" style="cursor:pointer; font-size:16px; color:var(--text-muted);">✕</span>
+            <span>Central de Contato Territorial</span>
+            <span style="cursor:pointer;" onclick="document.getElementById('painelDiscagemContainer').style.display='none'">✕</span>
         </div>
-        <div style="padding:12px; text-align:center;">
-            
-            <div id="statusDiscadorPaciente" style="margin-bottom:12px; min-height:50px; font-size:12px; text-align:left;">
-                <em style="color:var(--text-muted);">Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.</em>
-            </div>
-
-            <input type="text" id="inputNumeroDiscador" placeholder="Busque por Nome, Linha ou número..." style="width:100%; text-align:center; font-size:14px; padding:10px; font-weight:600; letter-spacing:0.5px; border:1px solid var(--border); background:var(--bg-main); color:var(--text-main); border-radius:6px;">
-            
-            <p style="font-size:10px; color:var(--text-muted); margin:8px 0 0 0;">Dica: Digite <b>has</b>, <b>dm</b> ou <b>critico</b> para carregar listas Rápidas.</p>
-        </div>
-    </div>
-
-    <div id="painelEpidemiologicoContainer" class="modal">
-        <div class="modal-content">
-            <h3 id="tituloPainelEpidemiologico" style="margin-top:0; color:var(--text-main);">Vigilância em Saúde</h3>
-            
-            <div class="form-grid" style="background:#111c2e; padding:12px; border-radius:8px; margin-bottom:20px; border: 1px solid var(--border);">
-                <div>
-                    <label style="font-size:12px;">Unidade (UBS)</label>
-                    <select id="filtroUBS" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);"></select>
-                </div>
-                <div>
-                    <label style="font-size:12px;">Filtro de Equipe</label>
-                    <select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);"></select>
-                </div>
-                <div>
-                    <label style="font-size:12px;">Status de Prazo</label>
-                    <select id="filtroRisco" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);">
-                        <option value="TODOS">Todos os Controles</option>
-                        <option value="CRITICO">Apenas Críticos (0 Dias)</option>
-                        <option value="CONTROLADO">Apenas Monitorados</option>
-                    </select>
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; align-items:center; background:#111c2e; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border);">
-                <div id="containerGraficoDonut"></div>
-                <div id="containerGraficoBarras"></div>
-            </div>
-
-            <div id="tabelaPainelEpidemiologico" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; background:#0b0f19;"></div>
-
-            <div style="margin-top:20px; text-align:right;">
-                <button onclick="fecharPainelEpidemiologico()" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Fechar Painel</button>
-            </div>
+        <div style="padding:15px; text-align:center;">
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Integração VoIP / WhatsApp Web</p>
         </div>
     </div>
 
     <div id="toastNotification"></div>
 
-    <script src="ciap2.js"></script> 
     <script src="app.js"></script>
 </body>
 </html>
