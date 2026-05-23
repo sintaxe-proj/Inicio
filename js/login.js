@@ -1,91 +1,386 @@
+/* ==========================================================================
+   🔐 LOGIN / SESSÃO / PERFIS
+   ========================================================================== */
+
+/* ==========================================================
+   USUÁRIOS MUNICIPAIS
+   ========================================================== */
+
 const USUARIOS_MUNICIPAIS = {
+
+    /* ======================================================
+       ADMINISTRADORES
+       ====================================================== */
+
     "5132": {
-        nome: "Enf. Josimar Kapps",
+        senha: "123",
+        nome: "Josimar Kapps",
         perfil: "admin"
     },
 
-    "123456": {
-        nome: "Dr. Alexandre Silva",
+    "9999": {
+        senha: "admin",
+        nome: "Administrador Master",
+        perfil: "admin"
+    },
+
+    /* ======================================================
+       ASSISTENCIAL
+       ====================================================== */
+
+    "2001": {
+        senha: "123",
+        nome: "Enfermeira APS",
         perfil: "user"
+    },
+
+    "2002": {
+        senha: "123",
+        nome: "Médico APS",
+        perfil: "user"
+    },
+
+    /* ======================================================
+       RECEPÇÃO
+       ====================================================== */
+
+    "3001": {
+        senha: "123",
+        nome: "Recepção UBS",
+        perfil: "recepcao"
     }
 };
 
+/* ==========================================================================
+   🔐 AUTENTICAÇÃO
+   ========================================================================== */
+
 function autenticarUsuario() {
 
-    const matricula =
-        document.getElementById("loginUser").value;
+    const login =
+        document.getElementById("loginUser")
+            .value
+            .trim();
 
     const senha =
-        document.getElementById("loginSenha").value;
+        document.getElementById("loginSenha")
+            .value
+            .trim();
 
-    const erroDiv =
+    const erro =
         document.getElementById("loginErro");
 
-    if (
-        USUARIOS_MUNICIPAIS[matricula] &&
-        senha === "senha123"
-    ) {
+    erro.style.display = "none";
 
-        const user =
-            USUARIOS_MUNICIPAIS[matricula];
+    if (!login || !senha) {
 
-        localStorage.setItem(
-            "pep_sessao_ativa",
-            JSON.stringify(user)
-        );
+        erro.innerText =
+            "⚠️ Informe usuário e senha.";
 
-        erroDiv.style.display = "none";
+        erro.style.display = "block";
 
-        verificarSessao();
-
-    } else {
-
-        erroDiv.innerText =
-            "Matrícula ou senha inválida.";
-
-        erroDiv.style.display = "block";
+        return;
     }
+
+    const usuario =
+        USUARIOS_MUNICIPAIS[login];
+
+    if (!usuario) {
+
+        erro.innerText =
+            "❌ Usuário não encontrado.";
+
+        erro.style.display = "block";
+
+        return;
+    }
+
+    if (usuario.senha !== senha) {
+
+        erro.innerText =
+            "❌ Senha inválida.";
+
+        erro.style.display = "block";
+
+        return;
+    }
+
+    /* ======================================================
+       SALVA SESSÃO
+       ====================================================== */
+
+    localStorage.setItem(
+        "pep_sessao_ativa",
+        JSON.stringify({
+            login,
+            nome: usuario.nome,
+            perfil: usuario.perfil
+        })
+    );
+
+    mostrarToast(
+        `✅ Bem-vindo(a), ${usuario.nome}`
+    );
+
+    verificarSessao();
 }
+
+/* ==========================================================================
+   🔄 VERIFICAR SESSÃO
+   ========================================================================== */
 
 function verificarSessao() {
-    const sessao = localStorage.getItem("pep_sessao_ativa");
 
-    if (sessao) {
-        const user = JSON.parse(sessao);
+    const sessao =
+        localStorage.getItem(
+            "pep_sessao_ativa"
+        );
 
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "block";
+    if (!sessao) {
 
-        const nomeUsuario = document.getElementById("nomeUsuarioLogado");
-        if (nomeUsuario) {
-            nomeUsuario.innerText = `👤 ${user.nome}`;
-        }
+        document.getElementById(
+            "loginScreen"
+        ).style.display = "flex";
 
-        const seletorAcesso = document.getElementById("seletorNivelAcesso");
-        const btnAuditoria = document.getElementById("btnAuditoria");
+        document.getElementById(
+            "app"
+        ).style.display = "none";
 
-        if (seletorAcesso) {
-            seletorAcesso.style.display =
-                user.perfil === "admin" ? "inline-block" : "none";
-        }
-
-        if (btnAuditoria) {
-            btnAuditoria.style.display =
-                user.perfil === "admin" ? "inline-block" : "none";
-        }
-
-        navigate("inicio");
-    } else {
-        document.getElementById("loginScreen").style.display = "flex";
-        document.getElementById("app").style.display = "none";
+        return;
     }
+
+    const user = JSON.parse(sessao);
+
+    /* ======================================================
+       MOSTRA APP
+       ====================================================== */
+
+    document.getElementById(
+        "loginScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "app"
+    ).style.display = "block";
+
+    /* ======================================================
+       NOME USUÁRIO
+       ====================================================== */
+
+    const nomeUsuario =
+        document.getElementById(
+            "nomeUsuarioLogado"
+        );
+
+    if (nomeUsuario) {
+
+        nomeUsuario.innerText =
+            user.nome || "Usuário";
+    }
+
+    /* ======================================================
+       CARGO / PERFIL
+       ====================================================== */
+
+    const cargoUsuario =
+        document.getElementById(
+            "cargoUsuarioLogado"
+        );
+
+    if (cargoUsuario) {
+
+        if (user.perfil === "admin") {
+
+            cargoUsuario.innerText =
+                "Coordenador UBS";
+        }
+
+        else if (
+            user.perfil === "recepcao"
+        ) {
+
+            cargoUsuario.innerText =
+                "Recepção";
+        }
+
+        else {
+
+            cargoUsuario.innerText =
+                "Assistencialista";
+        }
+    }
+
+    /* ======================================================
+       CONFIGURAÇÕES SOMENTE ADMIN
+       ====================================================== */
+
+    const btnAuditoria =
+        document.getElementById(
+            "btnAuditoria"
+        );
+
+    if (btnAuditoria) {
+
+        btnAuditoria.style.display =
+            user.perfil === "admin"
+                ? "inline-block"
+                : "none";
+    }
+
+    /* ======================================================
+       BLOQUEIOS RECEPÇÃO
+       ====================================================== */
+
+    const abaProntuario =
+        document.querySelector(
+            '[onclick="navigate(\'prontuario\')"]'
+        );
+
+    if (
+        abaProntuario &&
+        user.perfil === "recepcao"
+    ) {
+
+        abaProntuario.style.opacity = ".5";
+
+        abaProntuario.style.pointerEvents =
+            "none";
+
+        abaProntuario.title =
+            "Recepção sem acesso SOAP";
+    }
+
+    /* ======================================================
+       INICIA DASHBOARD
+       ====================================================== */
+
+    navigate("inicio");
+
+    atualizarIndicatorsDashboard?.();
+
+    atualizarCentralAvisosSininho?.();
 }
 
+/* ==========================================================================
+   🚪 LOGOUT
+   ========================================================================== */
+
 function efetuarLogout() {
+
+    if (
+        !confirm(
+            "Deseja realmente sair do sistema?"
+        )
+    ) {
+        return;
+    }
 
     localStorage.removeItem(
         "pep_sessao_ativa"
     );
 
-    window.location.reload();
+    mostrarToast(
+        "👋 Sessão encerrada."
+    );
+
+    location.reload();
 }
+
+/* ==========================================================================
+   ➕ CRIAR NOVO ADMINISTRADOR
+   ========================================================================== */
+
+function criarNovoAdministrador() {
+
+    const matricula =
+        prompt(
+            "Nova matrícula do administrador:"
+        );
+
+    if (!matricula) return;
+
+    const senha =
+        prompt(
+            "Senha inicial:"
+        );
+
+    if (!senha) return;
+
+    const nome =
+        prompt(
+            "Nome do administrador:"
+        );
+
+    if (!nome) return;
+
+    const admins =
+        JSON.parse(
+            localStorage.getItem(
+                "adminsPersonalizados"
+            )
+        ) || {};
+
+    admins[matricula] = {
+        senha,
+        nome,
+        perfil: "admin"
+    };
+
+    localStorage.setItem(
+        "adminsPersonalizados",
+        JSON.stringify(admins)
+    );
+
+    mostrarToast(
+        "✅ Administrador criado."
+    );
+}
+
+/* ==========================================================================
+   🔄 CARREGA ADMINS CUSTOMIZADOS
+   ========================================================================== */
+
+(function carregarAdminsPersonalizados() {
+
+    const admins =
+        JSON.parse(
+            localStorage.getItem(
+                "adminsPersonalizados"
+            )
+        ) || {};
+
+    Object.assign(
+        USUARIOS_MUNICIPAIS,
+        admins
+    );
+
+})();
+
+/* ==========================================================================
+   ⌨️ ENTER LOGIN
+   ========================================================================== */
+
+document.addEventListener(
+    "keydown",
+    function (e) {
+
+        if (
+            e.key === "Enter" &&
+            document.getElementById(
+                "loginScreen"
+            ).style.display !== "none"
+        ) {
+
+            autenticarUsuario();
+        }
+    }
+);
+
+/* ==========================================================================
+   🚀 AUTO VERIFICA SESSÃO
+   ========================================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    verificarSessao
+);
