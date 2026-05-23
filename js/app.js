@@ -669,7 +669,6 @@ function gerarCargaMassaOitoMil() {
 
     transaction.oncomplete = function() {
         mostrarToast("🚀 Injeção de 8.000 cadastros concluída com sucesso!");
-        atualizarIndicatorsDashboard();
         atualizarCentralAvisosSininho();
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
     };
