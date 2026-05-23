@@ -33,6 +33,7 @@ function configurarIndexedDB() {
 
     request.onsuccess = function (event) {
         db = event.target.result;
+       window.db = db;
 
         console.log("🗄️ IndexedDB conectado.");
 
