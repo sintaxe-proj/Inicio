@@ -172,3 +172,95 @@ function buscarInicio() {
         console.error("Erro ao executar busca no IndexedDB");
     };
 }
+
+function abrirAtendimentoExistente(cpf) {
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.get(cpf);
+
+    request.onsuccess = function() {
+        const p = request.result;
+        if (!p) return;
+
+        navigate("prontuario");
+        limparFormularioProntuario();
+
+        document.getElementById("nomePaciente").value = p.nome || "";
+        document.getElementById("cpfPaciente").value = p.cpf || "";
+        document.getElementById("nascPaciente").value = p.nasc || "";
+        document.getElementById("idadePaciente").value = p.idade || "";
+        document.getElementById("telPaciente").value = p.tel || "";
+        document.getElementById("CEP").value = p.cep || "";
+        document.getElementById("endPaciente").value = p.endereco || "";
+        document.getElementById("endNumero").value = p.numero || "";
+        document.getElementById("endComplemento").value = p.complemento || "";
+        document.getElementById("unidadePaciente").value = p.ubs || "";
+        document.getElementById("equipePaciente").value = p.equipe || "";
+
+        document.getElementById("objPA").value = p.objPA || "";
+        document.getElementById("objFC").value = p.objFC || "";
+        document.getElementById("objFR").value = p.objFR || "";
+        document.getElementById("objSatO2").value = p.objSatO2 || "";
+        document.getElementById("objDor").value = p.objDor || "0";
+
+        document.getElementById("hasSN").value = p.has || "Não";
+        mostrarCard("cardHAS", p.has);
+        document.getElementById("hasPAS").value = p.pas || "";
+        document.getElementById("hasPAD").value = p.pad || "";
+        document.getElementById("hasClassif").value = p.classifHas || "";
+
+        document.getElementById("dmSN").value = p.dm || "Não";
+        mostrarCard("cardDM", p.dm);
+        document.getElementById("dmHbA1c").value = p.hba1c || "";
+        document.getElementById("dmClassif").value = p.classifDm || "";
+
+        document.getElementById("gestanteSN").value = p.gestante || "Não";
+        mostrarCard("cardGestante", p.gestante);
+        document.getElementById("gestDUM").value = p.dum || "";
+        document.getElementById("gestIG").value = p.ig || "";
+        document.getElementById("gestDPP").value = p.dpp || "";
+
+        document.getElementById("tbSN").checked = p.tb === "Sim";
+        document.getElementById("hansenSN").checked = p.hansen === "Sim";
+        document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
+
+        if (parseInt(p.idade) >= 60) {
+            document.getElementById("ampiBloco").style.display = "block";
+        }
+
+        if (p.exameFisicoStatus === "Alterado") {
+            document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "block";
+            document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
+        } else {
+            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "none";
+        }
+
+        if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
+            let htmlTimeline = `
+                <label style="font-weight:700;">
+                    ⏳ Histórico Clínico Digital:
+                </label>
+                <div class="timeline">
+            `;
+
+            p.historicoEvolucoes.forEach(evo => {
+                htmlTimeline += `
+                    <div class="timeline-item">
+                        <div class="timeline-body">${evo}</div>
+                    </div>
+                `;
+            });
+
+            htmlTimeline += `</div>`;
+
+            document.getElementById("linhaTempoEvolucoes").innerHTML = htmlTimeline;
+        }
+
+        document.getElementById("cabecalhoNome").innerText =
+            `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
+
+        document.getElementById("cabecalhoProntuario").style.display = "block";
+    };
+}
