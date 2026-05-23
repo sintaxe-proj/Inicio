@@ -295,3 +295,40 @@ function classificarAMPI() {
         campo.value = "Idoso Fragilizado";
     }
 }
+
+function buscarCEP() {
+    const cepInput = document.getElementById("CEP");
+    const endInput = document.getElementById("endPaciente");
+    const numeroInput = document.getElementById("endNumero");
+
+    if (!cepInput || !endInput) return;
+
+    const cep = cepInput.value.replace(/\D/g, "");
+
+    if (cep.length !== 8) {
+        mostrarToast("⚠️ CEP deve ter 8 números.");
+        return;
+    }
+
+    endInput.value = "Buscando endereço...";
+
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => response.json())
+        .then(dados => {
+            if (dados.erro) {
+                endInput.value = "";
+                mostrarToast("❌ CEP não encontrado.");
+                return;
+            }
+
+            endInput.value = `${dados.logradouro}, ${dados.bairro}, ${dados.localidade} - ${dados.uf}`;
+
+            if (numeroInput) {
+                numeroInput.focus();
+            }
+        })
+        .catch(() => {
+            endInput.value = "";
+            mostrarToast("❌ Erro ao buscar CEP.");
+        });
+}
