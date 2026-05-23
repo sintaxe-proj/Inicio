@@ -336,7 +336,7 @@ function salvarProntuario() {
     const dor = document.getElementById("objDor").value;
 
     const exameStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
-    const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
+    const exameDetalhe = document.getElementById("soapObjetivoAlterado");
     
     const ciap = document.getElementById("inputBuscaCIAPS").value;
     const plano = document.getElementById("soapPlanoConduta").value;
