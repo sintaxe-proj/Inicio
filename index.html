@@ -1,689 +1,1009 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SintaxeHub - Central Operacional de Busca Ativa</title>
-    <link rel="stylesheet" href="./css/styles.css">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        SintaxeHub APS
+    </title>
+
+    <link rel="stylesheet"
+          href="./css/styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
 
-<div id="loginScreen">
-    <div class="login-card">
-        <h2>SintaxeHub</h2>
-        <p>Prontuário de Busca Ativa Territorial</p>
+    <!-- ==========================================================
+         LOGIN
+         ========================================================== -->
 
-        <input type="text" id="loginUser" placeholder="Matrícula Municipal">
-        <input type="password" id="loginSenha" placeholder="Senha de Acesso">
+    <div id="loginScreen">
 
-        <div id="loginErro" style="display:none;"></div>
+        <div class="login-card">
 
-        <button class="btn-login" onclick="autenticarUsuario()">
-            Entrar no Sistema
-        </button>
-    </div>
-</div>
-
-<div id="app" style="display:none;">
-
-    <header class="topbar">
-            <div>
-                <h1>SintaxeHub APS</h1>
-                <p>Central Municipal de Monitoramento Territorial</p>
-            </div>
-        </div>
-
-        <div class="topbar-actions">
-            <span id="nomeUsuarioLogado" class="user-badge"></span>
-
-            <div id="centralAvisosContainer"
-                 class="alert-badge"
-                 onclick="abrirPainelEpidemiologico('criticos')">
-                🔔 <span id="contadorAvisosSininho">0</span>
+            <div class="login-logo">
+                🏥
             </div>
 
-            <select id="seletorNivelAcesso"
-                    onchange="alternarVisaoGestor(this.value)"
-                    class="select-topbar">
-                <option value="user">Assistencial</option>
-                <option value="admin" selected>Gestor</option>
-            </select>
+            <h1>
+                SintaxeHub APS
+            </h1>
 
-            <button onclick="efetuarLogout()" class="btn-logout">
-                Sair
+            <p>
+                Central Municipal de Busca Ativa Territorial
+            </p>
+
+            <input type="text"
+                   id="loginUser"
+                   placeholder="Matrícula">
+
+            <input type="password"
+                   id="loginSenha"
+                   placeholder="Senha">
+
+            <div id="loginErro"
+                 class="login-erro">
+            </div>
+
+            <button class="btn-login"
+                    onclick="autenticarUsuario()">
+
+                Entrar no Sistema
+
             </button>
+
         </div>
-    </header>
 
-    <nav class="main-tabs">
-        <a class="nav-link active" onclick="navigate('inicio')">Painel Inicial</a>
-        <a class="nav-link" onclick="navigate('prontuario')">Novo Atendimento (SOAP)</a>
-        <a class="nav-link" onclick="navigate('banco')">Base Territorial</a>
-        <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
-    </nav>
-
-    <div id="cabecalhoProntuario" style="background:#1e3a8a; padding:10px 20px; display:none;">
-        <span id="cabecalhoNome" style="color:white; font-weight:700;"></span>
     </div>
 
-    <div class="container">
+    <!-- ==========================================================
+         APP
+         ========================================================== -->
 
-        <div id="view-inicio" class="view active-view" style="display:block;">
-            <div class="dashboard-grid">
-                <div class="dash-card" onclick="abrirPainelEpidemiologico('has')">
-                    <h3 id="dashHAS">0</h3>
-                    <p>Hipertensos (HAS)</p>
+    <div id="app"
+         style="display:none;">
+
+        <!-- ======================================================
+             HEADER CORPORATIVO
+             ====================================================== -->
+
+        <header class="topbar">
+
+            <div class="brand-area">
+
+                <div class="brand-icon">
+                    🏥
                 </div>
 
-                <div class="dash-card" onclick="abrirPainelEpidemiologico('dm')">
-                    <h3 id="dashDM">0</h3>
-                    <p>Diabéticos (DM)</p>
-                </div>
+                <div class="brand-text">
 
-                <div class="dash-card" onclick="abrirPainelEpidemiologico('gestante')">
-                    <h3 id="dashGest">0</h3>
-                    <p>Pré-Natal Ativo</p>
-                </div>
+                    <h1>
+                        SintaxeHub APS
+                    </h1>
 
-                <div class="dash-card" onclick="abrirPainelEpidemiologico('tuberculose')">
-                    <h3 id="dashTB">0</h3>
-                    <p>Tuberculose</p>
-                </div>
+                    <p>
+                        Central Municipal de Monitoramento Territorial
+                    </p>
 
-                <div class="dash-card" onclick="abrirPainelEpidemiologico('hanseniase')">
-                    <h3 id="dashHansen">0</h3>
-                    <p>Hanseníase</p>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h3>📞 Central Operacional de Busca Ativa Territorial</h3>
-
-                <input type="text"
-                       id="buscaNomeInicio"
-                       onkeyup="buscarInicio()"
-                       placeholder="Busque por Nome, CPF, CNS, HAS, DM, PN, TB, Hansen ou crítico">
-
-                <div id="resultadoInicio" style="margin-top:20px;">
-                    <em style="color:var(--text-muted);">
-                        Introduza um critério acima para pesquisar.
-                    </em>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-prontuario" class="view">
-            <div class="form-section">
-
-                <h3>📝 Registro Clínico / SOAP Territorial</h3>
-
-                <h4>A. Identificação</h4>
-
-                <div class="form-grid">
-                    <div>
-                        <label>Nome Completo *</label>
-                        <input type="text" id="nomePaciente">
-                    </div>
-
-                    <div>
-                        <label>CPF</label>
-                        <input type="text" id="cpfPaciente" oninput="mascaraCPF(this)">
-                    </div>
-
-                    <div>
-                        <label>Cartão Nacional do SUS</label>
-                        <input type="text" id="cnsPaciente">
-                    </div>
-
-                    <div>
-                        <label>Data de Nascimento</label>
-                        <input type="date" id="nascPaciente" onchange="calcIdade()">
-                    </div>
-
-                    <div>
-                        <label>Idade</label>
-                        <input type="text" id="idadePaciente" readonly>
-                    </div>
-
-                    <div>
-                        <label>Telefone</label>
-                        <input type="text" id="telPaciente">
-                    </div>
-                </div>
-
-                <div class="form-grid" style="margin-top:15px;">
-                    <div>
-                        <label>CEP</label>
-                        <input type="text" id="CEP" onblur="buscarCEP()">
-                    </div>
-
-                    <div>
-                        <label>Endereço</label>
-                        <input type="text" id="endPaciente">
-                    </div>
-
-                    <div>
-                        <label>Número</label>
-                        <input type="text" id="endNumero">
-                    </div>
-
-                    <div>
-                        <label>Complemento</label>
-                        <input type="text" id="endComplemento">
-                    </div>
-                </div>
-
-                <div class="form-grid" style="margin-top:15px;">
-                    <div>
-                        <label>UBS</label>
-                        <select id="unidadePaciente">
-                            <option value="">Selecione</option>
-                            <option value="UBS Centro Médico">UBS Centro Médico</option>
-                            <option value="UBS Vila Nova">UBS Vila Nova</option>
-                            <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
-                            <option value="UBS Integrada Norte">UBS Integrada Norte</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>Equipe</label>
-                        <select id="equipePaciente">
-                            <option value="">Selecione</option>
-                            <option value="Equipe Verde">Equipe Verde</option>
-                            <option value="Equipe Azul">Equipe Azul</option>
-                            <option value="Equipe Esmeralda">Equipe Esmeralda</option>
-                            <option value="Equipe Rubi">Equipe Rubi</option>
-                        </select>
-                    </div>
-                </div>
-
-                <h4>B. Linhas de Cuidado</h4>
-
-                <div class="form-grid">
-                    <div>
-                        <label>HAS?</label>
-                        <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>DM?</label>
-                        <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>Pré-Natal?</label>
-                        <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>Tuberculose?</label>
-                        <select id="tbSelect" onchange="mostrarCard('cardTB', this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>Hanseníase?</label>
-                        <select id="hansenSelect" onchange="mostrarCard('cardHansen', this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="cardHAS" class="form-section" style="display:none; margin-top:20px;">
-                    <h4>🩺 Hipertensão Arterial</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>PAS</label>
-                            <input type="number" id="hasPAS" oninput="classificarHAS()">
-                        </div>
-
-                        <div>
-                            <label>PAD</label>
-                            <input type="number" id="hasPAD" oninput="classificarHAS()">
-                        </div>
-
-                        <div>
-                            <label>Classificação</label>
-                            <input type="text" id="hasClassif" readonly>
-                        </div>
-
-                        <div>
-                            <label>Microalbuminúria</label>
-                            <select id="hasMicroalbuminuria">
-                                <option value="">Selecione</option>
-                                <option value="Normal">Normal</option>
-                                <option value="Alterada">Alterada</option>
-                                <option value="Não realizada">Não realizada</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="cardDM" class="form-section" style="display:none; margin-top:20px;">
-                    <h4>🩸 Diabetes Mellitus</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>HbA1c</label>
-                            <input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()">
-                        </div>
-
-                        <div>
-                            <label>Classificação</label>
-                            <input type="text" id="dmClassif" readonly>
-                        </div>
-
-                        <div>
-                            <label>Fundoscopia</label>
-                            <select id="dmFundoscopia">
-                                <option value="">Selecione</option>
-                                <option value="Sim">Sim</option>
-                                <option value="Não">Não</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="cardGestante" class="form-section" style="display:none; margin-top:20px;">
-                    <h4>🤰 Pré-Natal</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>DUM</label>
-                            <input type="date" id="gestDUM" onchange="calcIG()">
-                        </div>
-
-                        <div>
-                            <label>IG</label>
-                            <input type="text" id="gestIG" readonly>
-                        </div>
-
-                        <div>
-                            <label>DPP</label>
-                            <input type="text" id="gestDPP" readonly>
-                        </div>
-                    </div>
-
-                    <h4>Exames</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>1º Trimestre</label>
-                            <input type="date" id="pnTri1Data">
-                        </div>
-
-                        <div>
-                            <label>2º Trimestre</label>
-                            <input type="date" id="pnTri2Data">
-                        </div>
-
-                        <div>
-                            <label>3º Trimestre</label>
-                            <input type="date" id="pnTri3Data">
-                        </div>
-
-                        <div>
-                            <label>Teste rápido</label>
-                            <select id="pnTesteRapido">
-                                <option value="">Selecione</option>
-                                <option value="Realizado">Realizado</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Curva glicêmica</label>
-                            <select id="pnCurvaGlicemica">
-                                <option value="">Selecione</option>
-                                <option value="Realizada">Realizada</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>USG Transvaginal</label>
-                            <select id="pnUsgTransvaginal">
-                                <option value="">Selecione</option>
-                                <option value="Realizada">Realizada</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>USG Morfológica</label>
-                            <select id="pnUsgMorfologica">
-                                <option value="">Selecione</option>
-                                <option value="Realizada">Realizada</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="cardTB" class="form-section" style="display:none; margin-top:20px;">
-                    <h4>🫁 Tuberculose</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>Tipo</label>
-                            <select id="tbTipo">
-                                <option value="">Selecione</option>
-                                <option value="Pulmonar">Pulmonar</option>
-                                <option value="Extrapulmonar">Extrapulmonar</option>
-                                <option value="Mista">Mista</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Radiografia</label>
-                            <select id="tbRadiografia" onchange="mostrarOutroMetodoTB()">
-                                <option value="">Selecione</option>
-                                <option value="Sim">Sim</option>
-                                <option value="Não">Não</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Baciloscopia mensal</label>
-                            <select id="tbBaciloscopia" onchange="mostrarOutroMetodoTB()">
-                                <option value="">Selecione</option>
-                                <option value="Sim">Sim</option>
-                                <option value="Não">Não</option>
-                            </select>
-                        </div>
-
-                        <div id="tbOutroMetodoBox">
-                            <label>Outro método</label>
-                            <input type="text" id="tbOutroMetodo">
-                        </div>
-                    </div>
-                </div>
-
-                <div id="cardHansen" class="form-section" style="display:none; margin-top:20px;">
-                    <h4>🦠 Hanseníase</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>Teste Sensibilidade</label>
-                            <select id="hansenSensibilidade">
-                                <option value="">Selecione</option>
-                                <option value="Realizado">Realizado</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Teste Vibratório</label>
-                            <select id="hansenVibratorio">
-                                <option value="">Selecione</option>
-                                <option value="Realizado">Realizado</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Teste de Calor</label>
-                            <select id="hansenCalor">
-                                <option value="">Selecione</option>
-                                <option value="Realizado">Realizado</option>
-                                <option value="Pendente">Pendente</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Acompanhamento até 1 ano</label>
-                            <select id="hansenAteUmAno">
-                                <option value="">Selecione</option>
-                                <option value="Em acompanhamento">Em acompanhamento</option>
-                                <option value="Concluído">Concluído</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="ampiBloco" class="form-section" style="margin-top:20px;">
-                    <h4>👴 AMPI</h4>
-
-                    <div class="form-grid">
-                        <div>
-                            <label>Pontuação</label>
-                            <input type="number" id="ampiPontuacao" oninput="classificarAMPI()">
-                        </div>
-
-                        <div>
-                            <label>Estratificação</label>
-                            <input type="text" id="ampiPaciente" readonly>
-                        </div>
-                    </div>
-                </div>
-
-                <h4>C. SOAP</h4>
-
-                <label>S - Subjetivo</label>
-                <textarea id="soapSubjetivo" rows="3"></textarea>
-
-                <h4>O - Objetivo</h4>
-
-                <div class="form-grid">
-                    <div>
-                        <label>PA</label>
-                        <input type="text" id="objPA">
-                    </div>
-
-                    <div>
-                        <label>FC</label>
-                        <input type="number" id="objFC">
-                    </div>
-
-                    <div>
-                        <label>FR</label>
-                        <input type="number" id="objFR">
-                    </div>
-
-                    <div>
-                        <label>SatO₂</label>
-                        <input type="number" id="objSatO2">
-                    </div>
-
-                    <div>
-                        <label>Dor</label>
-                        <select id="objDor">
-                            <option value="0">0 - Sem dor</option>
-                            <option value="2">2 - Leve</option>
-                            <option value="5">5 - Moderada</option>
-                            <option value="8">8 - Intensa</option>
-                            <option value="10">10 - Máxima</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label>Exame físico</label>
-                <textarea id="soapObjetivoAlterado" rows="2"></textarea>
-
-                <h4>A - Avaliação</h4>
-
-                <div class="form-grid">
-                    <div>
-                        <label>CIAP / CIPE</label>
-                        <select id="tipoClassificacao">
-                            <option value="CIAP-2">CIAP-2</option>
-                            <option value="CIPE">CIPE</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label>Código</label>
-                        <input type="text" id="inputBuscaCIAPS" list="listaCIAP">
-                        <datalist id="listaCIAP"></datalist>
-                    </div>
-                </div>
-
-                <h4>P - Plano</h4>
-                <textarea id="soapPlanoConduta" rows="3"></textarea>
-
-                <div class="form-grid">
-                    <div>
-                        <label>Retorno em dias</label>
-                        <input type="number" id="soapReavaliacaoDias" value="30">
-                    </div>
-
-                    <div>
-                        <label>Urgente?</label>
-                        <select id="alertaUrgente" onchange="mostrarMotivoUrgente(this.value)">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="motivoUrgenteBox" style="display:none; margin-top:15px;">
-                    <label>Motivo da urgência</label>
-                    <textarea id="motivoUrgente" rows="2"></textarea>
-                </div>
-
-                <div id="linhaTempoEvolucoes" style="margin-top:25px;"></div>
-
-                <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <button onclick="salvarProntuario()">💾 Gravar Atendimento</button>
-                    <button onclick="limparFormularioProntuario()">🧹 Limpar</button>
-                    <button onclick="navigate('inicio')">↩️ Voltar</button>
                 </div>
 
             </div>
-        </div>
 
-        <div id="view-banco" class="view">
-            <div class="form-section">
-                <h3>🗄️ Base Territorial</h3>
-                <div id="tabelaBancoContainer"></div>
-            </div>
-        </div>
+            <div class="topbar-actions">
 
-        <div id="view-config" class="view">
-            <div class="form-section">
-                <h3>⚡ Configurações & Carga</h3>
+                <span id="nomeUsuarioLogado"
+                      class="user-badge">
 
-                <button onclick="gerarCargaMassaOitoMil()">
-                    🚀 Injetar 8.000 Prontuários
+                    Usuário
+
+                </span>
+
+                <span id="cargoUsuarioLogado"
+                      class="role-badge">
+
+                    Assistencialista
+
+                </span>
+
+                <div id="centralAvisosContainer"
+                     class="alert-badge"
+                     onclick="abrirPainelEpidemiologico('criticos')">
+
+                    🔔
+
+                    <span id="contadorAvisosSininho">
+                        0
+                    </span>
+
+                </div>
+
+                <button onclick="efetuarLogout()"
+                        class="btn-logout">
+
+                    Sair
+
                 </button>
 
-                <br><br>
-
-                <input type="file"
-                       id="arquivoEsus"
-                       accept=".json,.xml,.pdf"
-                       onchange="processarArquivoEsus(this)">
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<button class="btn-flutuante-discador"
-        onclick="alternarCentralDiscagem()"
-        title="Abrir Central Operacional de Contatos">
-    📞
-</button>
-
-<div id="painelDiscagemContainer">
-    <div class="discador-header">
-        <span>📞 Central Operacional de Contatos</span>
-        <span onclick="alternarCentralDiscagem()" style="cursor:pointer;">✕</span>
-    </div>
-
-    <div style="padding:10px 12px 0 12px; display:flex; gap:6px; flex-wrap:wrap;">
-        <button onclick="editarMensagemPadrao()">✏️ Editar mensagens</button>
-        <button onclick="restaurarMensagemPadrao()">🔄 Restaurar padrão</button>
-        <button onclick="criarModeloPreSalvo()">➕ Criar modelo</button>
-    </div>
-
-    <div style="padding:12px; text-align:center;">
-        <div id="statusDiscadorPaciente"
-             style="margin-bottom:12px; min-height:50px; font-size:12px; text-align:left;">
-            <em>Nenhum paciente selecionado.</em>
-        </div>
-
-        <input type="text"
-               id="inputNumeroDiscador"
-               placeholder="Busque por Nome, Linha ou número...">
-
-        <p style="font-size:10px; color:var(--text-muted);">
-            Dica: digite <b>has</b>, <b>dm</b> ou <b>critico</b>.
-        </p>
-    </div>
-</div>
-
-<div id="painelEpidemiologicoContainer" class="modal">
-    <div class="modal-content">
-        <h3 id="tituloPainelEpidemiologico">Vigilância em Saúde</h3>
-
-        <div class="form-grid">
-            <div>
-                <label>Unidade</label>
-                <select id="filtroUBS" onchange="aplicarFiltrosRelatorio()"></select>
             </div>
 
-            <div>
-                <label>Equipe</label>
-                <select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()"></select>
-            </div>
+        </header>
 
-            <div>
-                <label>Status</label>
-                <select id="filtroRisco" onchange="aplicarFiltrosRelatorio()">
-                    <option value="TODOS">Todos</option>
-                    <option value="CRITICO">Críticos</option>
-                    <option value="ATENCAO">Próximos 30 Dias</option>
-                    <option value="CONTROLADO">Controlados</option>
-                </select>
-            </div>
-        </div>
+        <!-- ======================================================
+             MENU SUPERIOR
+             ====================================================== -->
 
-        <div style="display:grid; grid-template-columns:1fr 2fr; gap:20px; margin-top:20px;">
-            <div id="containerGraficoDonut"></div>
-            <div id="containerGraficoBarras"></div>
-        </div>
+        <nav class="main-tabs">
 
-        <div id="tabelaPainelEpidemiologico"
-             style="max-height:220px; overflow-y:auto; margin-top:20px;">
-        </div>
+            <a class="nav-link active"
+               onclick="navigate('inicio')">
 
-        <div style="margin-top:20px; text-align:right;">
-            <button onclick="fecharPainelEpidemiologico()">Fechar Painel</button>
-        </div>
+                📊 Painel Inicial
+
+            </a>
+
+            <a class="nav-link"
+               onclick="navigate('prontuario')">
+
+                📝 Novo Atendimento
+
+            </a>
+
+            <a class="nav-link"
+               onclick="navigate('banco')">
+
+                🗄️ Base Territorial
+
+            </a>
+
+            <a class="nav-link"
+               id="btnAuditoria"
+               onclick="navigate('config')">
+
+                ⚙️ Configurações & Carga
+
+            </a>
+
+        </nav>
+
+        <!-- ======================================================
+             CONTAINER PRINCIPAL
+             ====================================================== -->
+
+        <main class="container">
+
+            <!-- ==================================================
+                 DASHBOARD
+                 ================================================== -->
+
+            <section id="view-inicio"
+                     class="view active-view">
+
+                <!-- ==============================================
+                     CARDS
+                     ============================================== -->
+
+                <div class="dashboard-grid">
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('has')">
+
+                        <div class="dash-icon">
+                            ❤️
+                        </div>
+
+                        <div>
+
+                            <h3 id="dashHAS">
+                                0
+                            </h3>
+
+                            <p>
+                                Hipertensos
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('dm')">
+
+                        <div class="dash-icon">
+                            🩸
+                        </div>
+
+                        <div>
+
+                            <h3 id="dashDM">
+                                0
+                            </h3>
+
+                            <p>
+                                Diabetes
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('gestante')">
+
+                        <div class="dash-icon">
+                            🤰
+                        </div>
+
+                        <div>
+
+                            <h3 id="dashGest">
+                                0
+                            </h3>
+
+                            <p>
+                                Pré-Natal
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('tuberculose')">
+
+                        <div class="dash-icon">
+                            🫁
+                        </div>
+
+                        <div>
+
+                            <h3 id="dashTB">
+                                0
+                            </h3>
+
+                            <p>
+                                Tuberculose
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('hanseniase')">
+
+                        <div class="dash-icon">
+                            🦠
+                        </div>
+
+                        <div>
+
+                            <h3 id="dashHansen">
+                                0
+                            </h3>
+
+                            <p>
+                                Hanseníase
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- ==============================================
+                     BUSCA TERRITORIAL
+                     ============================================== -->
+
+                <div class="form-section">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <h2>
+                                📞 Central Operacional de Busca Ativa
+                            </h2>
+
+                            <p>
+                                Pesquisa territorial integrada
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <input type="text"
+                           id="buscaNomeInicio"
+                           class="input-busca"
+                           onkeyup="buscarInicio()"
+                           placeholder="Busque por Nome, CPF, CNS, HAS, DM, Gestante, TB, Hanseníase ou Crítico">
+
+                    <div id="resultadoInicio"
+                         class="resultado-busca">
+
+                        <em>
+                            Introduza um critério para pesquisar.
+                        </em>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ==================================================
+                 SOAP
+                 ================================================== -->
+
+            <section id="view-prontuario"
+                     class="view">
+
+                <div class="form-section">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <h2>
+                                📝 Registro Clínico SOAP
+                            </h2>
+
+                            <p>
+                                Atendimento territorial integrado APS
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ==========================================
+                         IDENTIFICAÇÃO
+                         ========================================== -->
+
+                    <div class="subsection">
+
+                        <h3>
+                            👤 Identificação
+                        </h3>
+
+                        <div class="form-grid">
+
+                            <div>
+                                <label>Nome Completo *</label>
+                                <input type="text"
+                                       id="nomePaciente">
+                            </div>
+
+                            <div>
+                                <label>CPF</label>
+                                <input type="text"
+                                       id="cpfPaciente"
+                                       oninput="mascaraCPF(this)">
+                            </div>
+
+                            <div>
+                                <label>Cartão SUS</label>
+                                <input type="text"
+                                       id="cnsPaciente">
+                            </div>
+
+                            <div>
+                                <label>Nascimento</label>
+                                <input type="date"
+                                       id="nascPaciente"
+                                       onchange="calcIdade()">
+                            </div>
+
+                            <div>
+                                <label>Idade</label>
+                                <input type="text"
+                                       id="idadePaciente"
+                                       readonly>
+                            </div>
+
+                            <div>
+                                <label>Telefone</label>
+                                <input type="text"
+                                       id="telPaciente">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ==========================================
+                         ENDEREÇO
+                         ========================================== -->
+
+                    <div class="subsection">
+
+                        <h3>
+                            📍 Endereço
+                        </h3>
+
+                        <div class="form-grid">
+
+                            <div>
+                                <label>CEP</label>
+                                <input type="text"
+                                       id="CEP"
+                                       onblur="buscarCEP()">
+                            </div>
+
+                            <div>
+                                <label>Endereço</label>
+                                <input type="text"
+                                       id="endPaciente">
+                            </div>
+
+                            <div>
+                                <label>Número</label>
+                                <input type="text"
+                                       id="endNumero">
+                            </div>
+
+                            <div>
+                                <label>Complemento</label>
+                                <input type="text"
+                                       id="endComplemento">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ==========================================
+                         UBS
+                         ========================================== -->
+
+                    <div class="subsection">
+
+                        <h3>
+                            🏥 Unidade
+                        </h3>
+
+                        <div class="form-grid">
+
+                            <div>
+
+                                <label>UBS</label>
+
+                                <select id="unidadePaciente">
+
+                                    <option value="">
+                                        Selecione
+                                    </option>
+
+                                    <option>
+                                        UBS Centro Médico
+                                    </option>
+
+                                    <option>
+                                        UBS Vila Nova
+                                    </option>
+
+                                    <option>
+                                        Clínica da Família Zona Sul
+                                    </option>
+
+                                    <option>
+                                        UBS Integrada Norte
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div>
+
+                                <label>Equipe</label>
+
+                                <select id="equipePaciente">
+
+                                    <option value="">
+                                        Selecione
+                                    </option>
+
+                                    <option>
+                                        Equipe Verde
+                                    </option>
+
+                                    <option>
+                                        Equipe Azul
+                                    </option>
+
+                                    <option>
+                                        Equipe Esmeralda
+                                    </option>
+
+                                    <option>
+                                        Equipe Rubi
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ==========================================
+                         SOAP
+                         ========================================== -->
+
+                    <div class="subsection">
+
+                        <h3>
+                            📋 SOAP
+                        </h3>
+
+                        <label>
+                            S - Subjetivo
+                        </label>
+
+                        <textarea id="soapSubjetivo"
+                                  rows="3"></textarea>
+
+                        <div class="form-grid">
+
+                            <div>
+                                <label>PA</label>
+                                <input type="text"
+                                       id="objPA">
+                            </div>
+
+                            <div>
+                                <label>FC</label>
+                                <input type="number"
+                                       id="objFC">
+                            </div>
+
+                            <div>
+                                <label>FR</label>
+                                <input type="number"
+                                       id="objFR">
+                            </div>
+
+                            <div>
+                                <label>SatO₂</label>
+                                <input type="number"
+                                       id="objSatO2">
+                            </div>
+
+                        </div>
+
+                        <label>
+                            O - Objetivo
+                        </label>
+
+                        <textarea id="soapObjetivoAlterado"
+                                  rows="2"></textarea>
+
+                        <div class="form-grid">
+
+                            <div>
+
+                                <label>
+                                    CIAP / CIPE
+                                </label>
+
+                                <select id="tipoClassificacao">
+
+                                    <option value="CIAP-2">
+                                        CIAP-2
+                                    </option>
+
+                                    <option value="CIPE">
+                                        CIPE
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div>
+
+                                <label>
+                                    Código
+                                </label>
+
+                                <input type="text"
+                                       id="inputBuscaCIAPS"
+                                       list="listaCIAP">
+
+                                <datalist id="listaCIAP"></datalist>
+
+                            </div>
+
+                        </div>
+
+                        <label>
+                            P - Plano
+                        </label>
+
+                        <textarea id="soapPlanoConduta"
+                                  rows="3"></textarea>
+
+                        <div class="form-grid">
+
+                            <div>
+
+                                <label>
+                                    Retorno em dias
+                                </label>
+
+                                <input type="number"
+                                       id="soapReavaliacaoDias"
+                                       value="30">
+
+                            </div>
+
+                            <div>
+
+                                <label>
+                                    Urgente?
+                                </label>
+
+                                <select id="alertaUrgente"
+                                        onchange="mostrarMotivoUrgente(this.value)">
+
+                                    <option value="Não">
+                                        Não
+                                    </option>
+
+                                    <option value="Sim">
+                                        Sim
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div id="motivoUrgenteBox"
+                             style="display:none; margin-top:15px;">
+
+                            <label>
+                                Motivo urgência
+                            </label>
+
+                            <textarea id="motivoUrgente"
+                                      rows="2"></textarea>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ==========================================
+                         BOTÕES
+                         ========================================== -->
+
+                    <div class="button-row">
+
+                        <button onclick="salvarProntuario()"
+                                class="btn-primary">
+
+                            💾 Gravar Atendimento
+
+                        </button>
+
+                        <button onclick="limparFormularioProntuario()"
+                                class="btn-secondary">
+
+                            🧹 Limpar
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ==================================================
+                 BASE TERRITORIAL
+                 ================================================== -->
+
+            <section id="view-banco"
+                     class="view">
+
+                <div class="form-section">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <h2>
+                                🗄️ Base Territorial
+                            </h2>
+
+                            <p>
+                                Gestão populacional APS
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div id="tabelaBancoContainer">
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ==================================================
+                 CONFIGURAÇÕES
+                 ================================================== -->
+
+            <section id="view-config"
+                     class="view">
+
+                <div class="form-section">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <h2>
+                                ⚙️ Configurações & Administração
+                            </h2>
+
+                            <p>
+                                Gestão avançada do sistema
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <button onclick="gerarCargaMassaOitoMil()"
+                            class="btn-primary">
+
+                        🚀 Injetar 8.000 Prontuários
+
+                    </button>
+
+                    <br><br>
+
+                    <input type="file"
+                           id="arquivoEsus"
+                           accept=".json,.xml,.pdf"
+                           onchange="processarArquivoEsus(this)">
+
+                    <hr class="divider">
+
+                    <!-- ==========================================
+                         USUÁRIOS
+                         ========================================== -->
+
+                    <h3>
+                        👥 Gestão de Usuários
+                    </h3>
+
+                    <div class="form-grid">
+
+                        <div>
+
+                            <label>
+                                Matrícula
+                            </label>
+
+                            <input type="text"
+                                   id="novoUsuarioMatricula">
+
+                        </div>
+
+                        <div>
+
+                            <label>
+                                Nome
+                            </label>
+
+                            <input type="text"
+                                   id="novoUsuarioNome">
+
+                        </div>
+
+                        <div>
+
+                            <label>
+                                Senha
+                            </label>
+
+                            <input type="password"
+                                   id="novoUsuarioSenha">
+
+                        </div>
+
+                        <div>
+
+                            <label>
+                                Perfil
+                            </label>
+
+                            <select id="novoUsuarioPerfil">
+
+                                <option value="admin">
+                                    Coordenador UBS
+                                </option>
+
+                                <option value="user">
+                                    Assistencialista
+                                </option>
+
+                                <option value="recepcao">
+                                    Recepção
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <br>
+
+                    <button onclick="criarUsuarioPeloSistema()"
+                            class="btn-primary">
+
+                        ➕ Criar Login
+
+                    </button>
+
+                    <div id="listaUsuariosSistema"
+                         style="margin-top:20px;">
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
     </div>
-</div>
 
-<div id="toastNotification"></div>
+    <!-- ==========================================================
+         BOTÃO FLUTUANTE
+         ========================================================== -->
 
-<script src="./data/ciap2.js"></script>
-<script src="./data/cipe.js"></script>
+    <button class="btn-flutuante-discador"
+            onclick="alternarCentralDiscagem()">
 
-<script src="./js/database.js"></script>
-<script src="./js/login.js"></script>
-<script src="./js/dashboard.js"></script>
-<script src="./js/soap.js"></script>
-<script src="./js/busca.js"></script>
-<script src="./js/importador.js"></script>
-<script src="./js/monitoramento.js"></script>
-<script src="./js/whatsapp.js"></script>
-<script src="./js/configuracoes.js"></script>
-<script src="./js/utils.js"></script>
-<script src="./js/app.js"></script>
+        📞
+
+    </button>
+
+    <!-- ==========================================================
+         DISCADOR
+         ========================================================== -->
+
+    <div id="painelDiscagemContainer">
+
+        <div class="discador-header">
+
+            <span>
+                📞 Central Operacional de Contatos
+            </span>
+
+            <span onclick="alternarCentralDiscagem()"
+                  style="cursor:pointer;">
+
+                ✕
+
+            </span>
+
+        </div>
+
+        <div class="discador-actions">
+
+            <button onclick="editarMensagemPadrao()">
+                ✏️ Editar mensagens
+            </button>
+
+            <button onclick="restaurarMensagemPadrao()">
+                🔄 Restaurar padrão
+            </button>
+
+            <button onclick="criarModeloPreSalvo()">
+                ➕ Criar modelo
+            </button>
+
+        </div>
+
+        <div class="discador-body">
+
+            <div id="statusDiscadorPaciente">
+
+                <em>
+                    Nenhum paciente selecionado.
+                </em>
+
+            </div>
+
+            <input type="text"
+                   id="inputNumeroDiscador"
+                   placeholder="Busque por Nome, Linha ou número...">
+
+        </div>
+
+    </div>
+
+    <!-- ==========================================================
+         MODAL EPIDEMIOLÓGICO
+         ========================================================== -->
+
+    <div id="painelEpidemiologicoContainer"
+         class="modal">
+
+        <div class="modal-content">
+
+            <h3 id="tituloPainelEpidemiologico">
+
+                Vigilância em Saúde
+
+            </h3>
+
+            <div id="tabelaPainelEpidemiologico"
+                 class="tabela-modal">
+            </div>
+
+            <div class="modal-footer">
+
+                <button onclick="fecharPainelEpidemiologico()"
+                        class="btn-secondary">
+
+                    Fechar Painel
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ==========================================================
+         TOAST
+         ========================================================== -->
+
+    <div id="toastNotification">
+    </div>
+
+    <!-- ==========================================================
+         DADOS
+         ========================================================== -->
+
+    <script src="./data/ciap2.js"></script>
+    <script src="./data/cipe.js"></script>
+
+    <!-- ==========================================================
+         MÓDULOS
+         ========================================================== -->
+
+    <script src="./js/database.js"></script>
+    <script src="./js/login.js"></script>
+    <script src="./js/dashboard.js"></script>
+    <script src="./js/soap.js"></script>
+    <script src="./js/busca.js"></script>
+    <script src="./js/importador.js"></script>
+    <script src="./js/monitoramento.js"></script>
+    <script src="./js/whatsapp.js"></script>
+    <script src="./js/configuracoes.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/app.js"></script>
 
 </body>
+
 </html>
