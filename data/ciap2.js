@@ -184,4 +184,4 @@ window.CIAP2 = [
     "T99": "Outra patologia endócrina / metabólica"
 ];
 
-window.CATALOGO_CIAPS2 = CATALOGO_CIAPS2;
+console.log("✅ ciap2.js carregado", window.CIAP2.length);
