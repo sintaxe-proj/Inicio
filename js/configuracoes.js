@@ -1,11 +1,13 @@
-/* ==========================================================================
-   ⚙️ CONFIGURAÇÕES E CARGA DE TESTE
-   ========================================================================== */
-
 function gerarCargaMassaOitoMil() {
-    if (!confirm("Esta ação injetará 8.000 cadastros simulados. Continuar?")) return;
+    if (!db) {
+        mostrarToast("⚠️ Banco ainda não conectado. Recarregue a página.");
+        console.error("db está vazio ou não inicializado.");
+        return;
+    }
 
-    mostrarToast("⏳ Gerando 8.000 prontuários...");
+    if (!confirm("Injetar 8.000 prontuários simulados?")) return;
+
+    mostrarToast("⏳ Inserindo 8.000 prontuários...");
 
     const nomes = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana"];
     const sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa"];
@@ -14,6 +16,30 @@ function gerarCargaMassaOitoMil() {
 
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
+
+    transaction.onerror = function(event) {
+        console.error("Erro na transação:", event.target.error);
+        mostrarToast("❌ Erro ao inserir prontuários.");
+    };
+
+    transaction.oncomplete = function() {
+        mostrarToast("🚀 8.000 prontuários inseridos!");
+
+        if (typeof atualizarIndicatorsDashboard === "function") {
+            atualizarIndicatorsDashboard();
+        }
+
+        if (typeof atualizarCentralAvisosSininho === "function") {
+            atualizarCentralAvisosSininho();
+        }
+
+        if (
+            document.getElementById("view-banco")?.style.display === "block" &&
+            typeof listarTodosBanco === "function"
+        ) {
+            listarTodosBanco();
+        }
+    };
 
     for (let i = 0; i < 8000; i++) {
         const prazo = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1;
@@ -38,8 +64,8 @@ function gerarCargaMassaOitoMil() {
             hba1c: i % 3 === 0 ? "7.5" : "",
             classifDm: i % 3 === 0 ? "Controle Limítrofe" : "",
             gestante: "Não",
-            tb: "Não",
-            hansen: "Não",
+            tb: i % 20 === 0 ? "Sim" : "Não",
+            hansen: i % 25 === 0 ? "Sim" : "Não",
             ampi: "Idoso Robusto",
             objPA: i % 2 === 0 ? "140x90" : "120x80",
             objFC: "76",
@@ -54,14 +80,4 @@ function gerarCargaMassaOitoMil() {
             ]
         });
     }
-
-    transaction.oncomplete = function() {
-        mostrarToast("🚀 8.000 prontuários inseridos!");
-        atualizarIndicatorsDashboard();
-        atualizarCentralAvisosSininho();
-
-        if (document.getElementById("view-banco").style.display === "block") {
-            listarTodosBanco();
-        }
-    };
 }
