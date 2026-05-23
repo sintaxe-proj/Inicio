@@ -879,6 +879,18 @@ function alimentarBancoDadosMock() {
         carregarDadosIniciaisEServicos();
     };
 }
+function alternarVisaoGestor(perfil) {
+    const painelAdm = document.getElementById("blocoConfigAdmin");
+    const btnCargaMassa = document.getElementById("btnInjetarMassa"); // Certifique-se que o ID existe no HTML
+    
+    if (perfil === "admin") {
+        if (painelAdm) painelAdm.style.display = "block";
+        if (btnCargaMassa) btnCargaMassa.style.display = "inline-block"; // Força a exibição
+        console.log("🛡️ [RBAC] Privilégios de Admin restaurados.");
+    } else {
+        if (btnCargaMassa) btnCargaMassa.style.display = "none";
+    }
+}
 
 /* ==========================================================================
    🎬 SEÇÃO XIII: ACRISTALAMENTO E DISPARO DE INICIALIZAÇÃO
