@@ -65,6 +65,10 @@ function navigate(view) {
         carregarTabelaBanco();
     }
 
+    if (view === 'reuniao') {
+    abrirModuloReuniao();
+}
+
     if (view === 'prontuario') {
         carregarDatalistCIAP();
     }
