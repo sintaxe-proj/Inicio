@@ -416,21 +416,6 @@ function limparFormularioProntuario() {
 /* ==========================================================================
    📊 VIGILÂNCIA EPIDEMIOLÓGICA & ATUALIZAÇÃO DO DASHBOARD CENTRAL
    ========================================================================== */
-function atualizarIndicatorsDashboard() {
-    if (!db) return;
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.getAll();
-
-    request.onsuccess = function() {
-        const dados = request.result;
-        document.getElementById("dashHAS").innerText = dados.filter(p => p.has === "Sim").length;
-        document.getElementById("dashDM").innerText = dados.filter(p => p.dm === "Sim").length;
-        document.getElementById("dashGest").innerText = dados.filter(p => p.gestante === "Sim").length;
-        document.getElementById("dashTB").innerText = dados.filter(p => p.tb === "Sim").length;
-        document.getElementById("dashHansen").innerText = dados.filter(p => p.hansen === "Sim").length;
-    };
-}
 
 function listarTodosBanco() {
     if (!db) return;
