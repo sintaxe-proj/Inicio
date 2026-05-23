@@ -114,3 +114,145 @@ function limparFormularioProntuario() {
         "linhaTempoEvolucoes"
     ).innerHTML = "";
 }
+
+/* ==========================================================================
+   🩺 CLASSIFICAÇÕES E CÁLCULOS CLÍNICOS
+   ========================================================================== */
+
+function calcIdade() {
+    const nasc = document.getElementById("nascPaciente").value;
+
+    if (!nasc) return;
+
+    const hoje = new Date();
+    const dataNasc = new Date(nasc);
+
+    let idade = hoje.getFullYear() - dataNasc.getFullYear();
+
+    const m = hoje.getMonth() - dataNasc.getMonth();
+
+    if (
+        m < 0 ||
+        (m === 0 && hoje.getDate() < dataNasc.getDate())
+    ) {
+        idade--;
+    }
+
+    document.getElementById(
+        "idadePaciente"
+    ).value = idade;
+
+    document.getElementById(
+        "ampiBloco"
+    ).style.display =
+        idade >= 60 ? "block" : "none";
+}
+
+function classificarHAS() {
+    const pas = parseInt(
+        document.getElementById("hasPAS").value
+    );
+
+    const pad = parseInt(
+        document.getElementById("hasPAD").value
+    );
+
+    const campo =
+        document.getElementById("hasClassif");
+
+    if (!pas || !pad) {
+        campo.value = "";
+        return;
+    }
+
+    if (pas >= 180 || pad >= 110) {
+        campo.value =
+            "Crise Hipertensiva (Prioridade Máxima)";
+        campo.style.color = "var(--danger)";
+    }
+
+    else if (pas >= 140 || pad >= 90) {
+        campo.value =
+            "Hipertensão Estágio 1 ou 2";
+        campo.style.color = "var(--warning)";
+    }
+
+    else {
+        campo.value =
+            "Pressão Controlada";
+        campo.style.color = "var(--success)";
+    }
+}
+
+function classificarDM() {
+    const hba1c = parseFloat(
+        document.getElementById("dmHbA1c").value
+    );
+
+    const campo =
+        document.getElementById("dmClassif");
+
+    if (!hba1c) {
+        campo.value = "";
+        return;
+    }
+
+    if (hba1c >= 8) {
+        campo.value =
+            "Controle Metabólico Ruim";
+        campo.style.color = "var(--danger)";
+    }
+
+    else if (hba1c >= 7) {
+        campo.value =
+            "Controle Limítrofe";
+        campo.style.color = "var(--warning)";
+    }
+
+    else {
+        campo.value =
+            "Excelente Controle";
+        campo.style.color = "var(--success)";
+    }
+}
+
+function calcIG() {
+    const dum =
+        document.getElementById("gestDUM").value;
+
+    if (!dum) return;
+
+    const dataDum = new Date(dum);
+    const hoje = new Date();
+
+    const diffTime =
+        Math.abs(hoje - dataDum);
+
+    const diffDays =
+        Math.ceil(
+            diffTime /
+            (1000 * 60 * 60 * 24)
+        );
+
+    const semanas =
+        Math.floor(diffDays / 7);
+
+    const dias =
+        diffDays % 7;
+
+    document.getElementById(
+        "gestIG"
+    ).value =
+        `${semanas} Semanas e ${dias} Dias`;
+
+    const dpp = new Date(dataDum);
+
+    dpp.setDate(
+        dpp.getDate() + 280
+    );
+
+    document.getElementById(
+        "gestDPP"
+    ).value =
+        dpp.toLocaleDateString("pt-BR");
+}
