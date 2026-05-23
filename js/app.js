@@ -50,31 +50,38 @@ function navigate(view) {
     });
 
     const tela = document.getElementById('view-' + view);
+
     if (tela) {
         tela.style.display = 'block';
+    } else {
+        console.error('Tela não encontrada:', 'view-' + view);
+        return;
     }
 
     const menu = Array.from(document.querySelectorAll('.nav-link'))
-        .find(el => el.getAttribute('onclick') && el.getAttribute('onclick').includes(view));
+        .find(link => link.getAttribute('onclick')?.includes(view));
 
     if (menu) {
         menu.classList.add('active');
     }
 
-    if (view === 'banco') {
+    if (view === 'banco' && typeof carregarTabelaBanco === 'function') {
         carregarTabelaBanco();
     }
 
-    if (view === 'reuniao') {
-    abrirModuloReuniao();
-}
+    if (view === 'reuniao' && typeof abrirModuloReuniao === 'function') {
+        abrirModuloReuniao();
+    }
 
-    if (view === 'prontuario') {
+    if (view === 'prontuario' && typeof carregarDatalistCIAP === 'function') {
         carregarDatalistCIAP();
+    }
+
+    if (view === 'config') {
+        console.log('Configurações & Carga aberta.');
     }
 }
 
-// deixa disponível para login.js e botões onclick
 window.navigate = navigate;
 
 // ======================================================
