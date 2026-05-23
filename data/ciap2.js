@@ -1,5 +1,4 @@
-window.CIAP2 = [
-    // CAPÍTULO A: Problemas Gerais e Inespecíficos
+window.CIAP2 = {
     "A01": "Dor generalizada / múltipla",
     "A03": "Febre",
     "A04": "Debilidade / fadiga geral",
@@ -19,8 +18,6 @@ window.CIAP2 = [
     "A82": "Efeito secundário de medicamento",
     "A84": "Anomalia congénita NE",
     "A97": "Sem doença / patologia demonstrada",
-
-    // CAPÍTULO B: Sangue, Órgãos Hematopoiéticos e Linfáticos
     "B02": "Gânglio linfático aumentado / doloroso",
     "B25": "Preocupação com VIH / SIDA",
     "B72": "Doença de Hodgkin / Linfoma",
@@ -30,8 +27,6 @@ window.CIAP2 = [
     "B81": "Anemia perniciosa / macrocítica",
     "B82": "Outra anemia NE",
     "B99": "Outra doença do sangue / linfáticos",
-
-    // CAPÍTULO D: Aparelho Digestivo
     "D01": "Dor abdominal generalizada",
     "D02": "Dor epigástrica",
     "D06": "Outra dor abdominal localizada",
@@ -53,8 +48,6 @@ window.CIAP2 = [
     "D93": "Síndrome do cólon irritável",
     "D97": "Doença do fígado / cirrose NE",
     "D98": "Colecistite / colelitíase",
-
-    // CAPÍTULO F: Olho
     "F01": "Dor no olho",
     "F02": "Olho vermelho",
     "F03": "Secreção ocular",
@@ -65,8 +58,6 @@ window.CIAP2 = [
     "F84": "Maculopatia / degenerescência",
     "F92": "Catarata",
     "F93": "Glaucoma",
-
-    // CAPÍTULO H: Ouvido
     "H01": "Dor de ouvidos",
     "H02": "Problemas de audição / surdez",
     "H03": "Acufeno / zumbido / ruído",
@@ -74,8 +65,6 @@ window.CIAP2 = [
     "H72": "Otite média crónica",
     "H74": "Otite externa",
     "H81": "Cerúmen impactado (rolha de cera)",
-
-    // CAPÍTULO K: Aparelho Circulatório
     "K01": "Dor cardíaca / atribuída ao coração",
     "K02": "Palpitações",
     "K04": "Palpitação / arritmia detetada",
@@ -91,8 +80,6 @@ window.CIAP2 = [
     "K90": "Acidente Vascular Cerebral (AVC)",
     "K91": "Aterosclerose / doença vascular periférica",
     "K92": "Tromboflebite / varizes das pernas",
-
-    // CAPÍTULO L: Aparelho Locomotor
     "L01": "Sintomas / queixas do pescoço",
     "L02": "Sintomas / queixas das costas / região lombar",
     "L03": "Sintomas / queixas da região dorsal",
@@ -116,8 +103,6 @@ window.CIAP2 = [
     "L90": "Osteoporose",
     "L95": "Lumbago / dor lombar sem ciática",
     "L99": "Outra doença musculoesquelética NE",
-
-    // CAPÍTULO N: Sistema Nervoso
     "N01": "Cefaleia / dor de cabeça",
     "N17": "Vertigem / tontura",
     "N18": "Paralisia / fraqueza muscular NE",
@@ -129,8 +114,6 @@ window.CIAP2 = [
     "N88": "Epilepsia",
     "N89": "Enxaqueca",
     "N94": "Paralisia facial periférica (Bell)",
-
-    // CAPÍTULO P: Problemas Psicológicos / Saúde Mental
     "P01": "Sensação de ansiedade / nervosismo",
     "P02": "Sensação de depressão / tristeza",
     "P03": "Sentimento de tontura / flutuação mental",
@@ -141,8 +124,6 @@ window.CIAP2 = [
     "P74": "Perturbação de ansiedade / neurose",
     "P76": "Perturbação depressiva major / severa",
     "P98": "Psicose / Esquizofrenia NE",
-
-    // CAPÍTULO R: Aparelho Respiratório
     "R01": "Dor respiratória / torácica",
     "R02": "Falta de ar / dispneia",
     "R03": "Sibilos / pieira no peito",
@@ -156,8 +137,6 @@ window.CIAP2 = [
     "R83": "Doença Pulmonar Obstrutiva Crónica (DPOC)",
     "R95": "Asma brônquica",
     "R96": "Rinite alérgica",
-
-    // CAPÍTULO S: Pele e Tecido Subcutâneo
     "S02": "Prurido / comichão na pele",
     "S06": "Erupção cutânea / exantema local",
     "S07": "Erupção cutânea generalizada",
@@ -169,8 +148,6 @@ window.CIAP2 = [
     "S88": "Dermatite de contacto / alergia",
     "S91": "Psoríase",
     "S97": "Úlcera crónica da pele (inclui pé diabético)",
-
-    // CAPÍTULO T: Sistema Endócrino, Metabólico e Nutricional
     "T01": "Sede excessiva / polidipsia",
     "T02": "Apetite excessivo / polifagia",
     "T07": "Ganho de peso inexplicado",
@@ -182,6 +159,6 @@ window.CIAP2 = [
     "T91": "Diabetes Mellitus Tipo 1",
     "T93": "Dislipidemia / hipercolesterolemia",
     "T99": "Outra patologia endócrina / metabólica"
-];
+};
 
 console.log("✅ ciap2.js carregado", window.CIAP2.length);
