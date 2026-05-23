@@ -48,45 +48,36 @@ function autenticarUsuario() {
 }
 
 function verificarSessao() {
-
-    const sessao =
-        localStorage.getItem("pep_sessao_ativa");
+    const sessao = localStorage.getItem("pep_sessao_ativa");
 
     if (sessao) {
-
         const user = JSON.parse(sessao);
 
-        document.getElementById(
-            "loginScreen"
-        ).style.display = "none";
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
 
-        document.getElementById(
-            "app"
-        ).style.display = "block";
-
-        const nomeUsuario =
-            document.getElementById(
-                "nomeUsuarioLogado"
-            );
-
+        const nomeUsuario = document.getElementById("nomeUsuarioLogado");
         if (nomeUsuario) {
-            nomeUsuario.innerText =
-                `👤 ${user.nome}`;
+            nomeUsuario.innerText = `👤 ${user.nome}`;
         }
 
-        if (typeof navigate === "function") {
-            navigate("inicio");
+        const seletorAcesso = document.getElementById("seletorNivelAcesso");
+        const btnAuditoria = document.getElementById("btnAuditoria");
+
+        if (seletorAcesso) {
+            seletorAcesso.style.display =
+                user.perfil === "admin" ? "inline-block" : "none";
         }
 
+        if (btnAuditoria) {
+            btnAuditoria.style.display =
+                user.perfil === "admin" ? "inline-block" : "none";
+        }
+
+        navigate("inicio");
     } else {
-
-        document.getElementById(
-            "loginScreen"
-        ).style.display = "flex";
-
-        document.getElementById(
-            "app"
-        ).style.display = "none";
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("app").style.display = "none";
     }
 }
 
