@@ -1,147 +1,267 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+SintaxeHub APS
+                    </h1>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SintaxeHub - Central Operational de Busca Ativa</title>
+                    <p>
+                        Central Municipal de Monitoramento Territorial
+                    </p>
 
-    <link rel="stylesheet" href="./css/styles.css">
-</head>
+                </div>
 
-<body>
-
-    <div id="loginScreen">
-        <div class="login-card">
-            <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight:800;">
-                SintaxeHub
-            </h2>
-
-            <p style="color:var(--text-muted); margin:0 0 20px 0; font-size:14px;">
-                Prontuário de Busca Ativa Territorial
-            </p>
-
-            <input type="text" id="loginUser" placeholder="Matrícula Municipal">
-            <input type="password" id="loginSenha" placeholder="Senha de Acesso">
-
-            <div id="loginErro"
-                 style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;">
             </div>
 
-            <button class="btn-login" onclick="autenticarUsuario()">
-                Entrar no Sistema
-            </button>
-        </div>
-    </div>
+            <div class="topbar-actions">
 
-    <div id="app" style="display:none;">
+                <span id="nomeUsuarioLogado"
+                      class="user-badge">
+                </span>
 
-        <header>
-            <div style="display:flex; align-items:center; gap:15px;">
-                <h2 style="margin:0; font-size:20px; font-weight:700;">
-                    SUS Digital • Territorial
-                </h2>
+                <div id="centralAvisosContainer"
+                     class="alert-badge"
+                     onclick="abrirPainelEpidemiologico('criticos')">
+
+                    🔔
+                    <span id="contadorAvisosSininho">
+                        0
+                    </span>
+
+                </div>
 
                 <select id="seletorNivelAcesso"
                         onchange="alternarVisaoGestor(this.value)"
-                        style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:4px 8px; font-size:12px; border-radius:4px;">
-                    <option value="user">Visão Assistencial</option>
-                    <option value="admin" selected>Visão Coordenador/Gestor</option>
+                        class="select-topbar">
+
+                    <option value="user">
+                        Assistencial
+                    </option>
+
+                    <option value="admin"
+                            selected>
+                        Gestor
+                    </option>
+
                 </select>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:20px;">
-                <span id="nomeUsuarioLogado"></span>
-
-                <div id="centralAvisosContainer"
-                     onclick="abrirPainelEpidemiologico('criticos')"
-                     style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; gap:6px;">
-                    <span>🔔</span>
-                    <span id="contadorAvisosSininho">0</span>
-                </div>
 
                 <button onclick="efetuarLogout()"
-                        style="background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:4px;">
+                        class="btn-logout">
+
                     Sair
+
                 </button>
+
             </div>
+
         </header>
 
-        <nav>
-            <a class="nav-link active" onclick="navigate('inicio')">Painel Inicial</a>
-            <a class="nav-link" onclick="navigate('prontuario')">Novo Atendimento (SOAP)</a>
-            <a class="nav-link" onclick="navigate('banco')">Base Territorial</a>
-            <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
+        <!-- ======================================================
+             MENU
+             ====================================================== -->
+
+        <nav class="main-tabs">
+
+            <a class="nav-link active"
+               onclick="navigate('inicio')">
+
+                Painel Inicial
+
+            </a>
+
+            <a class="nav-link"
+               onclick="navigate('prontuario')">
+
+                Novo Atendimento (SOAP)
+
+            </a>
+
+            <a class="nav-link"
+               onclick="navigate('banco')">
+
+                Base Territorial
+
+            </a>
+
+            <a class="nav-link"
+               id="btnAuditoria"
+               onclick="navigate('config')">
+
+                Configurações & Carga
+
+            </a>
+
         </nav>
 
+        <!-- ======================================================
+             CABEÇALHO PRONTUÁRIO
+             ====================================================== -->
+
         <div id="cabecalhoProntuario"
-             style="background:#1e3a8a; padding:10px 20px; display:none;">
-            <span id="cabecalhoNome"></span>
+             style="
+                background:#1e3a8a;
+                padding:10px 20px;
+                display:none;
+             ">
+
+            <span id="cabecalhoNome"
+                  style="
+                    color:white;
+                    font-weight:700;
+                  ">
+            </span>
+
         </div>
+
+        <!-- ======================================================
+             CONTAINER
+             ====================================================== -->
 
         <div class="container">
 
-            <div id="view-inicio" class="view" style="display:block;">
+            <!-- ==================================================
+                 DASHBOARD
+                 ================================================== -->
+
+            <div id="view-inicio"
+                 class="view active-view"
+                 style="display:block;">
+
                 <div class="dashboard-grid">
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('has')">
-                        <h3 id="dashHAS">0</h3>
-                        <p>Hipertensos (HAS)</p>
+
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('has')">
+
+                        <h3 id="dashHAS">
+                            0
+                        </h3>
+
+                        <p>
+                            Hipertensos (HAS)
+                        </p>
+
                     </div>
 
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('dm')">
-                        <h3 id="dashDM">0</h3>
-                        <p>Diabéticos (DM)</p>
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('dm')">
+
+                        <h3 id="dashDM">
+                            0
+                        </h3>
+
+                        <p>
+                            Diabéticos (DM)
+                        </p>
+
                     </div>
 
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('gestante')">
-                        <h3 id="dashGest">0</h3>
-                        <p>Pré-Natal Ativo</p>
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('gestante')">
+
+                        <h3 id="dashGest">
+                            0
+                        </h3>
+
+                        <p>
+                            Pré-Natal Ativo
+                        </p>
+
                     </div>
 
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('tuberculose')">
-                        <h3 id="dashTB">0</h3>
-                        <p>Tuberculose</p>
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('tuberculose')">
+
+                        <h3 id="dashTB">
+                            0
+                        </h3>
+
+                        <p>
+                            Tuberculose
+                        </p>
+
                     </div>
 
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('hanseniase')">
-                        <h3 id="dashHansen">0</h3>
-                        <p>Hanseníase</p>
+                    <div class="dash-card"
+                         onclick="abrirPainelEpidemiologico('hanseniase')">
+
+                        <h3 id="dashHansen">
+                            0
+                        </h3>
+
+                        <p>
+                            Hanseníase
+                        </p>
+
                     </div>
+
                 </div>
 
                 <div class="form-section">
-                    <h3>📞 Central Operational de Busca Ativa Territorial</h3>
+
+                    <h3>
+                        📞 Central Operacional de Busca Ativa Territorial
+                    </h3>
 
                     <input type="text"
                            id="buscaNomeInicio"
                            onkeyup="buscarInicio()"
-                           placeholder="Busque por Nome, CPF, HAS, DM, PN, TB, Hansen ou crítico">
+                           placeholder="Busque por Nome, CPF, CNS, HAS, DM, PN, TB, Hansen ou crítico">
 
-                    <div id="resultadoInicio" style="margin-top:20px;">
+                    <div id="resultadoInicio"
+                         style="margin-top:20px;">
+
                         <em style="color:var(--text-muted);">
+
                             Introduza um critério acima para pesquisar.
+
                         </em>
+
                     </div>
+
                 </div>
+
             </div>
 
-            <div id="view-prontuario" class="view">
-                <!-- mantenha aqui o seu formulário SOAP completo atual -->
-            </div>
+            <!-- ==================================================
+                 SOAP
+                 ================================================== -->
 
-            <div id="view-banco" class="view">
+            <!-- COLE AQUI O BLOCO COMPLETO DO VIEW-PRONTUARIO
+                 QUE EU ENVIEI NA MENSAGEM ANTERIOR -->
+
+            <!-- ==================================================
+                 BASE
+                 ================================================== -->
+
+            <div id="view-banco"
+                 class="view">
+
                 <div class="form-section">
-                    <h3>🗄️ Base de Cidadãos Monitorados</h3>
-                    <div id="tabelaBancoContainer"></div>
+
+                    <h3>
+                        🗄️ Base Territorial
+                    </h3>
+
+                    <div id="tabelaBancoContainer">
+                    </div>
+
                 </div>
+
             </div>
 
-            <div id="view-config" class="view">
+            <!-- ==================================================
+                 CONFIG
+                 ================================================== -->
+
+            <div id="view-config"
+                 class="view">
+
                 <div class="form-section">
-                    <h3>⚡ Configurações & Carga</h3>
+
+                    <h3>
+                        ⚡ Configurações & Carga
+                    </h3>
 
                     <button onclick="gerarCargaMassaOitoMil()">
+
                         🚀 Injetar 8.000 Prontuários
+
                     </button>
 
                     <br><br>
@@ -150,112 +270,231 @@
                            id="arquivoEsus"
                            accept=".json,.xml,.pdf"
                            onchange="processarArquivoEsus(this)">
+
                 </div>
+
             </div>
 
         </div>
+
     </div>
+
+    <!-- ==========================================================
+         BOTÃO DISCADOR
+         ========================================================== -->
 
     <button class="btn-flutuante-discador"
             onclick="alternarCentralDiscagem()"
             title="Abrir Central Operacional de Contatos">
+
         📞
+
     </button>
 
+    <!-- ==========================================================
+         DISCADOR
+         ========================================================== -->
+
     <div id="painelDiscagemContainer">
+
         <div class="discador-header">
-            <span>📞 Central Operational de Contatos</span>
-            <span onclick="alternarCentralDiscagem()"
-                  style="cursor:pointer; font-size:16px; color:var(--text-muted);">
-                ✕
+
+            <span>
+                📞 Central Operacional de Contatos
             </span>
+
+            <span onclick="alternarCentralDiscagem()"
+                  style="cursor:pointer;">
+
+                ✕
+
+            </span>
+
         </div>
 
-        <div style="padding:10px 12px 0 12px; display:flex; gap:6px; flex-wrap:wrap;">
-            <button onclick="editarMensagemPadrao()"
-                    style="background:#2563eb; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+        <div style="
+            padding:10px 12px 0 12px;
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+        ">
+
+            <button onclick="editarMensagemPadrao()">
                 ✏️ Editar mensagens
             </button>
 
-            <button onclick="restaurarMensagemPadrao()"
-                    style="background:#64748b; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+            <button onclick="restaurarMensagemPadrao()">
                 🔄 Restaurar padrão
             </button>
 
-            <button onclick="criarModeloPreSalvo()"
-                    style="background:#16a34a; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+            <button onclick="criarModeloPreSalvo()">
                 ➕ Criar modelo
             </button>
+
         </div>
 
         <div style="padding:12px; text-align:center;">
+
             <div id="statusDiscadorPaciente"
-                 style="margin-bottom:12px; min-height:50px; font-size:12px; text-align:left;">
-                <em style="color:var(--text-muted);">
-                    Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.
+                 style="
+                    margin-bottom:12px;
+                    min-height:50px;
+                    font-size:12px;
+                    text-align:left;
+                 ">
+
+                <em>
+                    Nenhum paciente selecionado.
                 </em>
+
             </div>
 
             <input type="text"
                    id="inputNumeroDiscador"
-                   placeholder="Busque por Nome, Linha ou número..."
-                   style="width:100%; text-align:center; font-size:14px; padding:10px; font-weight:600; border:1px solid var(--border); background:var(--bg-main); color:var(--text-main); border-radius:6px;">
+                   placeholder="Busque por Nome, Linha ou número...">
 
-            <p style="font-size:10px; color:var(--text-muted); margin:8px 0 0 0;">
-                Dica: digite <b>has</b>, <b>dm</b> ou <b>critico</b>.
+            <p style="
+                font-size:10px;
+                color:var(--text-muted);
+            ">
+
+                Dica: digite
+                <b>has</b>,
+                <b>dm</b>
+                ou
+                <b>critico</b>.
+
             </p>
+
         </div>
+
     </div>
 
-    <div id="painelEpidemiologicoContainer" class="modal">
+    <!-- ==========================================================
+         MODAL
+         ========================================================== -->
+
+    <div id="painelEpidemiologicoContainer"
+         class="modal">
+
         <div class="modal-content">
-            <h3 id="tituloPainelEpidemiologico">Vigilância em Saúde</h3>
+
+            <h3 id="tituloPainelEpidemiologico">
+
+                Vigilância em Saúde
+
+            </h3>
 
             <div class="form-grid">
-                <div>
-                    <label>Unidade (UBS)</label>
-                    <select id="filtroUBS" onchange="aplicarFiltrosRelatorio()"></select>
-                </div>
 
                 <div>
-                    <label>Filtro de Equipe</label>
-                    <select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()"></select>
-                </div>
 
-                <div>
-                    <label>Status de Prazo</label>
-                    <select id="filtroRisco"
-                            onchange="aplicarFiltrosRelatorio()"
-                            style="background:var(--bg-main);">
-                        <option value="TODOS">Todos os Controles</option>
-                        <option value="CRITICO">Apenas Críticos (0 Dias)</option>
-                        <option value="ATENCAO">⚠️ Próximos 30 Dias</option>
-                        <option value="CONTROLADO">Apenas Controlados</option>
+                    <label>
+                        Unidade
+                    </label>
+
+                    <select id="filtroUBS"
+                            onchange="aplicarFiltrosRelatorio()">
                     </select>
+
                 </div>
+
+                <div>
+
+                    <label>
+                        Equipe
+                    </label>
+
+                    <select id="filtroEquipe"
+                            onchange="aplicarFiltrosRelatorio()">
+                    </select>
+
+                </div>
+
+                <div>
+
+                    <label>
+                        Status
+                    </label>
+
+                    <select id="filtroRisco"
+                            onchange="aplicarFiltrosRelatorio()">
+
+                        <option value="TODOS">
+                            Todos
+                        </option>
+
+                        <option value="CRITICO">
+                            Críticos
+                        </option>
+
+                        <option value="ATENCAO">
+                            Próximos 30 Dias
+                        </option>
+
+                    </select>
+
+                </div>
+
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 2fr; gap:20px; margin-top:20px;">
-                <div id="containerGraficoDonut"></div>
-                <div id="containerGraficoBarras"></div>
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 2fr;
+                gap:20px;
+                margin-top:20px;
+            ">
+
+                <div id="containerGraficoDonut">
+                </div>
+
+                <div id="containerGraficoBarras">
+                </div>
+
             </div>
 
             <div id="tabelaPainelEpidemiologico"
-                 style="max-height:220px; overflow-y:auto; margin-top:20px;">
+                 style="
+                    max-height:220px;
+                    overflow-y:auto;
+                    margin-top:20px;
+                 ">
             </div>
 
-            <div style="margin-top:20px; text-align:right;">
+            <div style="
+                margin-top:20px;
+                text-align:right;
+            ">
+
                 <button onclick="fecharPainelEpidemiologico()">
+
                     Fechar Painel
+
                 </button>
+
             </div>
+
         </div>
+
     </div>
 
-    <div id="toastNotification"></div>
+    <!-- ==========================================================
+         TOAST
+         ========================================================== -->
+
+    <div id="toastNotification">
+    </div>
+
+    <!-- ==========================================================
+         DADOS
+         ========================================================== -->
 
     <script src="./data/ciap2.js"></script>
     <script src="./data/cipe.js"></script>
+
+    <!-- ==========================================================
+         MÓDULOS
+         ========================================================== -->
 
     <script src="./js/database.js"></script>
     <script src="./js/login.js"></script>
@@ -270,4 +509,5 @@
     <script src="./js/app.js"></script>
 
 </body>
+
 </html>
