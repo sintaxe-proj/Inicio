@@ -616,6 +616,72 @@
                 </div>
             </div>
 
+            <div id="view-reuniao" class="view">
+    <div class="form-section">
+        <h3 style="margin-top:0;">🗓️ Reunião de Equipe</h3>
+
+        <div class="form-grid">
+            <div>
+                <label>Data</label>
+                <input type="date" id="reuniaoData">
+            </div>
+
+            <div>
+                <label>Horário</label>
+                <input type="time" id="reuniaoHorario">
+            </div>
+
+            <div>
+                <label>Local</label>
+                <input type="text" id="reuniaoLocal">
+            </div>
+
+            <div>
+                <label>Coordenação</label>
+                <input type="text" id="reuniaoCoordenador">
+            </div>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Participantes</label>
+            <textarea id="reuniaoParticipantes" rows="2"></textarea>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Informes gerais</label>
+            <textarea id="reuniaoInformes" rows="2"></textarea>
+        </div>
+
+        <h4>Pautas</h4>
+        <div id="listaItensPauta"></div>
+        <button onclick="adicionarItemPauta()">+ Adicionar pauta</button>
+
+        <h4>Encaminhamentos</h4>
+        <div id="listaEncaminhamentos"></div>
+        <button onclick="adicionarEncaminhamento()">+ Adicionar encaminhamento</button>
+
+        <div style="margin-top:15px;">
+            <label>Considerações finais</label>
+            <textarea id="reuniaoConsideracoes" rows="2"></textarea>
+        </div>
+
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button onclick="salvarReuniaoEquipe()">Salvar reunião</button>
+            <button onclick="gerarAtaReuniao()">Gerar ata</button>
+            <button onclick="copiarAtaReuniao()">Copiar ata</button>
+            <button onclick="limparFormularioReuniao()">Limpar</button>
+        </div>
+
+        <div style="margin-top:20px;">
+            <label>Ata gerada</label>
+            <textarea id="ataReuniaoGerada" rows="12"></textarea>
+        </div>
+
+        <h4>Histórico</h4>
+        <div id="historicoReunioes"></div>
+    </div>
+</div>
+
             <div id="view-config" class="view">
                 <div class="form-section">
                     <h3 style="margin-top:0; color:var(--text-main);">⚡ Painel Avançado de Interoperabilidade e Testes</h3>
