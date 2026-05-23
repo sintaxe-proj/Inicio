@@ -13,34 +13,151 @@
 
 <body>
 
-    <!-- TUDO QUE JÁ EXISTIA CONTINUA AQUI -->
-    
+    <!-- LOGIN -->
     <div id="loginScreen">
-        ...
+        <div class="login-card">
+            <h2 style="color:var(--text-main);">
+                SintaxeHub
+            </h2>
+
+            <p style="color:var(--text-muted);">
+                Prontuário de Busca Ativa Territorial
+            </p>
+
+            <input
+                type="text"
+                id="loginUser"
+                placeholder="Matrícula Municipal">
+
+            <input
+                type="password"
+                id="loginSenha"
+                placeholder="Senha de Acesso">
+
+            <div id="loginErro"></div>
+
+            <button class="btn-login"
+                    onclick="autenticarUsuario()">
+                Entrar no Sistema
+            </button>
+        </div>
     </div>
 
-    <div id="app">
-        ...
+
+    <!-- APP -->
+    <div id="app" style="display:none;">
+
+        <header>
+            <!-- TODO seu cabeçalho original -->
+        </header>
+
+        <nav>
+            <!-- TODO sua navegação original -->
+        </nav>
+
+        <div class="container">
+
+            <div id="view-inicio"
+                 class="view"
+                 style="display:block">
+
+                <!-- Dashboard -->
+                <div class="dashboard-grid">
+
+                    <div class="dash-card">
+                        <h3 id="dashHAS">0</h3>
+                        <p>Hipertensos</p>
+                    </div>
+
+                    <div class="dash-card">
+                        <h3 id="dashDM">0</h3>
+                        <p>Diabéticos</p>
+                    </div>
+
+                </div>
+
+                <!-- Busca -->
+                <div class="form-section">
+
+                    <h3>
+                        Central Operational de Busca Ativa
+                    </h3>
+
+                    <input
+                        type="text"
+                        id="buscaNomeInicio"
+                        onkeyup="buscarInicio()"
+                        placeholder="Buscar">
+
+                    <div id="resultadoInicio"></div>
+
+                </div>
+
+            </div>
+
+
+            <div id="view-prontuario"
+                 class="view">
+
+                <!-- TODO todo o formulário SOAP -->
+                <!-- Mantém exatamente igual -->
+
+            </div>
+
+
+            <div id="view-banco"
+                 class="view">
+
+                <!-- TODO tabela -->
+
+            </div>
+
+
+            <div id="view-config"
+                 class="view">
+
+                <!-- TODO painel -->
+
+            </div>
+
+        </div>
+
     </div>
 
-    <button class="btn-flutuante-discador">
+
+    <!-- DISCADOR -->
+    <button
+        class="btn-flutuante-discador"
+        onclick="alternarCentralDiscagem()">
+
         📞
+
     </button>
 
+
     <div id="painelDiscagemContainer">
-        ...
+
+        <!-- mantém igual -->
+
     </div>
 
+
     <div id="painelEpidemiologicoContainer">
-        ...
+
+        <!-- mantém igual -->
+
     </div>
+
 
     <div id="toastNotification"></div>
 
-    <!-- Scripts -->
+
+    <!-- DADOS -->
     <script src="./data/ciap2.js"></script>
     <script src="./data/cipe.js"></script>
 
+
+    <!-- LÓGICA -->
     <script src="./js/login.js"></script>
     <script src="./js/app.js"></script>
 
