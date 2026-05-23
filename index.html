@@ -8,7 +8,9 @@
 
     <title>SintaxeHub - Central Operational de Busca Ativa</title>
 
+    <!-- CSS EXTERNO -->
     <link rel="stylesheet" href="./css/styles.css">
+
 </head>
 
 <body>
@@ -16,7 +18,7 @@
     <!-- LOGIN -->
     <div id="loginScreen">
         <div class="login-card">
-            <h2 style="color:var(--text-main);">
+            <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight:800;">
                 SintaxeHub
             </h2>
 
@@ -27,18 +29,24 @@
             <input
                 type="text"
                 id="loginUser"
-                placeholder="Matrícula Municipal">
+                placeholder="Matrícula Municipal (Ex:440129)">
 
             <input
                 type="password"
                 id="loginSenha"
                 placeholder="Senha de Acesso">
 
-            <div id="loginErro"></div>
+            <div
+                id="loginErro"
+                style="display:none;">
+            </div>
 
-            <button class="btn-login"
-                    onclick="autenticarUsuario()">
+            <button
+                class="btn-login"
+                onclick="autenticarUsuario()">
+
                 Entrar no Sistema
+
             </button>
         </div>
     </div>
@@ -48,20 +56,37 @@
     <div id="app" style="display:none;">
 
         <header>
-            <!-- TODO seu cabeçalho original -->
+
+            <!-- TODO: AQUI permanece TODO o conteúdo
+                 do seu header original -->
+
         </header>
 
+
         <nav>
-            <!-- TODO sua navegação original -->
+
+            <!-- TODO: permanece a navegação original -->
+
         </nav>
 
+
+        <div id="cabecalhoProntuario">
+
+            <span id="cabecalhoNome"></span>
+
+        </div>
+
+
         <div class="container">
+
+            <!-- ========================= -->
+            <!-- PAINEL INICIAL -->
+            <!-- ========================= -->
 
             <div id="view-inicio"
                  class="view"
                  style="display:block">
 
-                <!-- Dashboard -->
                 <div class="dashboard-grid">
 
                     <div class="dash-card">
@@ -74,20 +99,34 @@
                         <p>Diabéticos</p>
                     </div>
 
+                    <div class="dash-card">
+                        <h3 id="dashGest">0</h3>
+                        <p>Pré-Natal</p>
+                    </div>
+
+                    <div class="dash-card">
+                        <h3 id="dashTB">0</h3>
+                        <p>Tuberculose</p>
+                    </div>
+
+                    <div class="dash-card">
+                        <h3 id="dashHansen">0</h3>
+                        <p>Hanseníase</p>
+                    </div>
+
                 </div>
 
-                <!-- Busca -->
+
                 <div class="form-section">
 
                     <h3>
-                        Central Operational de Busca Ativa
+                        📞 Central Operational de Busca Ativa
                     </h3>
 
                     <input
                         type="text"
                         id="buscaNomeInicio"
-                        onkeyup="buscarInicio()"
-                        placeholder="Buscar">
+                        onkeyup="buscarInicio()">
 
                     <div id="resultadoInicio"></div>
 
@@ -96,33 +135,46 @@
             </div>
 
 
+            <!-- ========================= -->
+            <!-- PRONTUÁRIO -->
+            <!-- ========================= -->
+
             <div id="view-prontuario"
                  class="view">
 
-                <!-- TODO todo o formulário SOAP -->
-                <!-- Mantém exatamente igual -->
+                <!-- AQUI você cola TODO
+                     o formulário SOAP original -->
 
             </div>
 
+
+            <!-- ========================= -->
+            <!-- BANCO -->
+            <!-- ========================= -->
 
             <div id="view-banco"
                  class="view">
 
-                <!-- TODO tabela -->
+                <!-- tabela original -->
 
             </div>
 
 
+            <!-- ========================= -->
+            <!-- CONFIG -->
+            <!-- ========================= -->
+
             <div id="view-config"
                  class="view">
 
-                <!-- TODO painel -->
+                <!-- painel original -->
 
             </div>
 
         </div>
 
     </div>
+
 
 
     <!-- DISCADOR -->
@@ -137,18 +189,20 @@
 
     <div id="painelDiscagemContainer">
 
-        <!-- mantém igual -->
+        <!-- conteúdo original -->
 
     </div>
 
 
+    <!-- MODAL -->
     <div id="painelEpidemiologicoContainer">
 
-        <!-- mantém igual -->
+        <!-- conteúdo original -->
 
     </div>
 
 
+    <!-- TOAST -->
     <div id="toastNotification"></div>
 
 
