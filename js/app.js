@@ -81,4 +81,59 @@ function navigate(view) {
     }
 }
 
+function autenticarUsuario() {
+    const usuario = document.getElementById("loginUser").value.trim();
+    const senha = document.getElementById("loginSenha").value.trim();
+    const erro = document.getElementById("loginErro");
+
+    if (!usuario || !senha) {
+        erro.style.display = "block";
+        erro.innerText = "Informe usuário e senha.";
+        return;
+    }
+
+    localStorage.setItem("usuarioLogado", JSON.stringify({
+        usuario: usuario,
+        nome: usuario,
+        nivel: "admin",
+        logadoEm: new Date().toISOString()
+    }));
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    const nomeUsuario = document.getElementById("nomeUsuarioLogado");
+    if (nomeUsuario) {
+        nomeUsuario.innerText = "Usuário: " + usuario;
+    }
+}
+
+function verificarLoginSalvo() {
+    const sessao = localStorage.getItem("usuarioLogado");
+
+    if (sessao) {
+        const dados = JSON.parse(sessao);
+
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+
+        const nomeUsuario = document.getElementById("nomeUsuarioLogado");
+        if (nomeUsuario) {
+            nomeUsuario.innerText = "Usuário: " + dados.usuario;
+        }
+    } else {
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("app").style.display = "none";
+    }
+}
+
+function efetuarLogout() {
+    localStorage.removeItem("usuarioLogado");
+
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", verificarLoginSalvo);
+
 window.navigate = navigate;
