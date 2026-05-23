@@ -3,13 +3,19 @@
    ========================================================================== */
 
 const USUARIOS_MUNICIPAIS = {
-    "5132": { nome: "Enf. Josimar Kapps", perfil: "admin" },
-    "123456": { nome: "Dr. Alexandre Silva", perfil: "user" }
+    "5132": {
+        nome: "Enf. Josimar Kapps",
+        perfil: "admin"
+    },
+    "123456": {
+        nome: "Dr. Alexandre Silva",
+        perfil: "user"
+    }
 };
 
 function autenticarUsuario() {
-    const matricula = document.getElementById("loginUser").value;
-    const senha = document.getElementById("loginSenha").value;
+    const matricula = document.getElementById("loginUser").value.trim();
+    const senha = document.getElementById("loginSenha").value.trim();
     const erroDiv = document.getElementById("loginErro");
 
     if (USUARIOS_MUNICIPAIS[matricula] && senha === "senha123") {
@@ -24,7 +30,6 @@ function autenticarUsuario() {
 
         verificarSessao();
 
-        // Inicializações após login
         if (typeof inicializarAutocompleteCIAP === "function") {
             inicializarAutocompleteCIAP();
         }
@@ -37,10 +42,13 @@ function autenticarUsuario() {
             atualizarCentralAvisosSininho();
         }
 
+        if (typeof listarTodosBanco === "function") {
+            listarTodosBanco();
+        }
+
     } else {
         erroDiv.innerText =
             "Matrícula ou senha inválida no cadastro municipal.";
-
         erroDiv.style.display = "block";
     }
 }
@@ -54,9 +62,12 @@ function verificarSessao() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("app").style.display = "block";
 
-        document.getElementById(
-            "nomeUsuarioLogado"
-        ).innerText = `👤 ${user.nome}`;
+        const nomeUsuario =
+            document.getElementById("nomeUsuarioLogado");
+
+        if (nomeUsuario) {
+            nomeUsuario.innerText = `👤 ${user.nome}`;
+        }
 
         const seletorAcesso =
             document.getElementById("seletorNivelAcesso");
@@ -64,15 +75,19 @@ function verificarSessao() {
         const btnAuditoria =
             document.getElementById("btnAuditoria");
 
-        if (user.perfil === "admin") {
-            seletorAcesso.style.display = "inline-block";
-            btnAuditoria.style.display = "inline-block";
-        } else {
-            seletorAcesso.style.display = "none";
-            btnAuditoria.style.display = "none";
+        if (seletorAcesso && btnAuditoria) {
+            if (user.perfil === "admin") {
+                seletorAcesso.style.display = "inline-block";
+                btnAuditoria.style.display = "inline-block";
+            } else {
+                seletorAcesso.style.display = "none";
+                btnAuditoria.style.display = "none";
+            }
         }
 
-        navigate("inicio");
+        if (typeof navigate === "function") {
+            navigate("inicio");
+        }
 
     } else {
         document.getElementById("loginScreen").style.display = "flex";
@@ -93,32 +108,31 @@ function alternarVisaoGestor(perfil) {
     const btnAuditoria =
         document.getElementById("btnAuditoria");
 
+    if (!btnAuditoria) return;
+
     if (perfil === "admin") {
         btnAuditoria.style.display = "inline-block";
 
-        mostrarToast(
-            "🔄 Mudança para Perfil de Gestor/Coordenador."
-        );
+        if (typeof mostrarToast === "function") {
+            mostrarToast("🔄 Mudança para Perfil de Gestor/Coordenador.");
+        }
 
     } else {
         btnAuditoria.style.display = "none";
 
+        const viewConfig =
+            document.getElementById("view-config");
+
         if (
-            document.getElementById("view-config")
-            ?.style.display === "block"
+            viewConfig &&
+            viewConfig.style.display === "block" &&
+            typeof navigate === "function"
         ) {
             navigate("inicio");
         }
 
-        mostrarToast(
-            "🔄 Mudança para Perfil Assistencial."
-        );
+        if (typeof mostrarToast === "function") {
+            mostrarToast("🔄 Mudança para Perfil Assistencial.");
+        }
     }
 }
-
-/* Inicialização automática */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    verificarSessao
-);
