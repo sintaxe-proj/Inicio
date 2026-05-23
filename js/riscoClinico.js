@@ -260,6 +260,26 @@ function gerarRiscoDoFormularioAtual() {
     exibirPainelRiscoClinico(paciente);
 }
 
+function calcularIMC() {
+    const peso = parseFloat(document.getElementById('objpeso')?.value || 0);
+    const alturaCm = parseFloat(document.getElementById('objaltura')?.value || 0);
+    const campoIMC = document.getElementById('objIMC');
+
+    if (!campoIMC) return;
+
+    if (!peso || !alturaCm) {
+        campoIMC.value = '';
+        return;
+    }
+
+    const alturaM = alturaCm / 100;
+    const imc = peso / (alturaM * alturaM);
+
+    campoIMC.value = imc.toFixed(1);
+}
+
+window.calcularIMC = calcularIMC;
+
 window.calcularRiscoGlobalPaciente = calcularRiscoGlobalPaciente;
 window.gerarPlanoTerapeuticoSingular = gerarPlanoTerapeuticoSingular;
 window.exibirPainelRiscoClinico = exibirPainelRiscoClinico;
