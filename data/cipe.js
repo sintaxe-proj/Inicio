@@ -1,4 +1,4 @@
-window.CIPE_TERMS = [
+const CATALOGO_CIPE = {
   "(*) Cateterizar Bexiga Urinária",
   "(*) Executar Desimpactação Fecal",
   "(*) Orientar sobre Técnica de",
