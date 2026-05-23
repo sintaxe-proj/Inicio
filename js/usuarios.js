@@ -258,3 +258,4 @@ window.listarUsuariosSistema = listarUsuariosSistema;
 window.alternarStatusUsuario = alternarStatusUsuario;
 window.excluirUsuarioSistema = excluirUsuarioSistema;
 window.efetuarLogout = efetuarLogout;
+window.autenticarUsuario = autenticarUsuario;
