@@ -111,3 +111,81 @@ function carregarFiltrosModalUBS() {
 
     aplicarFiltrosRelatorio();
 }
+
+function aplicarFiltrosRelatorio() {
+    if (!db) return;
+
+    const ubs = document.getElementById("filtroUBS").value;
+    const equipe = document.getElementById("filtroEquipe").value;
+    const risco = document.getElementById("filtroRisco").value;
+
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function() {
+        let filtrados = request.result;
+
+        if (linhaCuidadoAtualVisualizacao === "has") {
+            filtrados = filtrados.filter(p => p.has === "Sim");
+        } else if (linhaCuidadoAtualVisualizacao === "dm") {
+            filtrados = filtrados.filter(p => p.dm === "Sim");
+        } else if (linhaCuidadoAtualVisualizacao === "gestante") {
+            filtrados = filtrados.filter(p => p.gestante === "Sim");
+        } else if (linhaCuidadoAtualVisualizacao === "tuberculose") {
+            filtrados = filtrados.filter(p => p.tb === "Sim");
+        } else if (linhaCuidadoAtualVisualizacao === "hanseniase") {
+            filtrados = filtrados.filter(p => p.hansen === "Sim");
+        } else if (linhaCuidadoAtualVisualizacao === "criticos") {
+            filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
+        }
+
+        if (ubs !== "TODAS") {
+            filtrados = filtrados.filter(p => p.ubs === ubs);
+        }
+
+        if (equipe !== "TODAS") {
+            filtrados = filtrados.filter(p => p.equipe === equipe);
+        }
+
+        if (risco === "CRITICO") {
+            filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
+        } else if (risco === "CONTROLADO") {
+            filtrados = filtrados.filter(p => p.reavaliacaoDias > 0);
+        }
+
+        renderizarGraficosModal(filtrados);
+
+        const tabela = document.getElementById("tabelaPainelEpidemiologico");
+
+        if (filtrados.length === 0) {
+            tabela.innerHTML =
+                "<p style='color:#64748b; padding:10px;'>Nenhum utente localizado sob estes critérios.</p>";
+            return;
+        }
+
+        let html =
+            "<table><thead><tr><th>Nome</th><th>CPF</th><th>UBS</th><th>Equipe</th><th>Monitoramento</th></tr></thead><tbody>";
+
+        filtrados.forEach(p => {
+            html += `
+                <tr>
+                    <td><b>${p.nome}</b></td>
+                    <td>${p.cpf}</td>
+                    <td>${p.ubs || "Pendente"}</td>
+                    <td>${p.equipe || "Pendente"}</td>
+                    <td>
+                        ${
+                            p.reavaliacaoDias === 0
+                                ? "🚨 Reavaliação Urgente"
+                                : `Acompanhamento em ${p.reavaliacaoDias}d`
+                        }
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += "</tbody></table>";
+        tabela.innerHTML = html;
+    };
+}
