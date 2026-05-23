@@ -18,12 +18,12 @@ function navigate(view) {
         v.style.display = 'none';
     });
 
-    // remove ativo menu
+    // remove menu ativo
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
 
-    // abre view
+    // localiza view
     const tela = document.getElementById('view-' + view);
 
     if (!tela) {
@@ -31,6 +31,7 @@ function navigate(view) {
         return;
     }
 
+    // mostra view
     tela.style.display = 'block';
 
     // ativa menu
@@ -48,6 +49,7 @@ function navigate(view) {
     // MÓDULOS
     // ==================================================
 
+    // banco territorial
     if (
         view === 'banco' &&
         typeof carregarTabelaBanco === 'function'
@@ -55,6 +57,7 @@ function navigate(view) {
         carregarTabelaBanco();
     }
 
+    // reunião
     if (
         view === 'reuniao' &&
         typeof abrirModuloReuniao === 'function'
@@ -62,6 +65,7 @@ function navigate(view) {
         abrirModuloReuniao();
     }
 
+    // prontuário
     if (
         view === 'prontuario' &&
         typeof carregarDatalistCIAP === 'function'
@@ -69,6 +73,17 @@ function navigate(view) {
         carregarDatalistCIAP();
     }
 
+    // estoque
+    if (
+        view === 'estoque' &&
+        typeof carregarHistoricoSolicitacoes === 'function'
+    ) {
+        carregarHistoricoSolicitacoes();
+
+        atualizarDashboardEstoque();
+    }
+
+    // configurações
     if (view === 'config') {
 
         console.log('Configurações & Carga aberta.');
@@ -81,59 +96,177 @@ function navigate(view) {
     }
 }
 
+// ======================================================
+// LOGIN
+// ======================================================
+
 function autenticarUsuario() {
-    const usuario = document.getElementById("loginUser").value.trim();
-    const senha = document.getElementById("loginSenha").value.trim();
-    const erro = document.getElementById("loginErro");
+
+    const usuario =
+        document.getElementById("loginUser")
+        .value
+        .trim();
+
+    const senha =
+        document.getElementById("loginSenha")
+        .value
+        .trim();
+
+    const erro =
+        document.getElementById("loginErro");
 
     if (!usuario || !senha) {
+
         erro.style.display = "block";
-        erro.innerText = "Informe usuário e senha.";
+
+        erro.innerText =
+            "Informe usuário e senha.";
+
         return;
     }
 
-    localStorage.setItem("usuarioLogado", JSON.stringify({
-        usuario: usuario,
-        nome: usuario,
-        nivel: "admin",
-        logadoEm: new Date().toISOString()
-    }));
+    // salva sessão
+    localStorage.setItem(
+        "usuarioLogado",
+        JSON.stringify({
+            usuario: usuario,
+            nome: usuario,
+            nivel: "admin",
+            logadoEm: new Date().toISOString()
+        })
+    );
 
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("app").style.display = "block";
+    // esconde login
+    document.getElementById("loginScreen")
+        .style.display = "none";
 
-    const nomeUsuario = document.getElementById("nomeUsuarioLogado");
+    // mostra sistema
+    document.getElementById("app")
+        .style.display = "block";
+
+    // nome usuário
+    const nomeUsuario =
+        document.getElementById("nomeUsuarioLogado");
+
     if (nomeUsuario) {
-        nomeUsuario.innerText = "Usuário: " + usuario;
+
+        nomeUsuario.innerText =
+            "Usuário: " + usuario;
     }
+
+    // abre tela inicial
+    navigate('inicio');
 }
+
+// ======================================================
+// VERIFICAR LOGIN
+// ======================================================
 
 function verificarLoginSalvo() {
-    const sessao = localStorage.getItem("usuarioLogado");
+
+    const sessao =
+        localStorage.getItem("usuarioLogado");
 
     if (sessao) {
-        const dados = JSON.parse(sessao);
 
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "block";
+        const dados =
+            JSON.parse(sessao);
 
-        const nomeUsuario = document.getElementById("nomeUsuarioLogado");
+        document.getElementById("loginScreen")
+            .style.display = "none";
+
+        document.getElementById("app")
+            .style.display = "block";
+
+        const nomeUsuario =
+            document.getElementById("nomeUsuarioLogado");
+
         if (nomeUsuario) {
-            nomeUsuario.innerText = "Usuário: " + dados.usuario;
+
+            nomeUsuario.innerText =
+                "Usuário: " + dados.usuario;
         }
+
+        navigate('inicio');
+
     } else {
-        document.getElementById("loginScreen").style.display = "flex";
-        document.getElementById("app").style.display = "none";
+
+        document.getElementById("loginScreen")
+            .style.display = "flex";
+
+        document.getElementById("app")
+            .style.display = "none";
     }
 }
 
+// ======================================================
+// LOGOUT
+// ======================================================
+
 function efetuarLogout() {
+
     localStorage.removeItem("usuarioLogado");
 
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("app").style.display = "none";
+    document.getElementById("loginScreen")
+        .style.display = "flex";
+
+    document.getElementById("app")
+        .style.display = "none";
 }
 
-document.addEventListener("DOMContentLoaded", verificarLoginSalvo);
+// ======================================================
+// DASHBOARD ESTOQUE
+// ======================================================
 
-window.navigate = navigate;
+function atualizarDashboardEstoque() {
+
+    let banco =
+        JSON.parse(
+            localStorage.getItem("solicitacoesMateriais")
+        ) || [];
+
+    const pendentes =
+        banco.filter(x => x.status === 'PENDENTE').length;
+
+    const aprovadas =
+        banco.filter(x => x.status === 'APROVADO').length;
+
+    const entregues =
+        banco.filter(x => x.status === 'ENTREGUE').length;
+
+    const dashPend =
+        document.getElementById(
+            "dashSolicitacoesPendentes"
+        );
+
+    const dashAprov =
+        document.getElementById(
+            "dashSolicitacoesAprovadas"
+        );
+
+    const dashEntr =
+        document.getElementById(
+            "dashSolicitacoesEntregues"
+        );
+
+    if (dashPend) {
+        dashPend.innerText = pendentes;
+    }
+
+    if (dashAprov) {
+        dashAprov.innerText = aprovadas;
+    }
+
+    if (dashEntr) {
+        dashEntr.innerText = entregues;
+    }
+}
+
+// ======================================================
+// START APP
+// ======================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    verificarLoginSalvo
+);
