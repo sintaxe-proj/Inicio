@@ -332,3 +332,27 @@ function buscarCEP() {
             mostrarToast("❌ Erro ao buscar CEP.");
         });
 }
+
+function carregarDatalistCIAP() {
+    const lista = document.getElementById("listaCIAP");
+
+    if (!lista) {
+        console.error("Datalist listaCIAP não encontrada.");
+        return;
+    }
+
+    lista.innerHTML = "";
+
+    if (!window.CIAP2 || !Array.isArray(window.CIAP2)) {
+        console.error("Dicionário CIAP2 não carregado.");
+        return;
+    }
+
+    window.CIAP2.forEach(item => {
+        const option = document.createElement("option");
+        option.value = `${item.codigo} - ${item.descricao}`;
+        lista.appendChild(option);
+    });
+
+    console.log("CIAP carregado:", window.CIAP2.length);
+}
