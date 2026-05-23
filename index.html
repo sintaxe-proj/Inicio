@@ -651,234 +651,8 @@
                 </div>
             </div>
 
+
 <div id="view-reuniao" class="view">
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">
-            🗓️ Reunião de Equipe
-        </h3>
-
-        <div class="form-grid">
-
-            <div>
-                <label>Data</label>
-                <input type="date" id="reuniaoData">
-            </div>
-
-            <div>
-                <label>Horário</label>
-                <input type="time" id="reuniaoHorario">
-            </div>
-
-            <div>
-                <label>Local</label>
-                <input type="text" id="reuniaoLocal">
-            </div>
-
-            <div>
-                <label>Coordenação</label>
-                <input type="text" id="reuniaoCoordenador">
-            </div>
-
-        </div>
-
-        <div style="margin-top:15px;">
-            <label>Participantes</label>
-            <textarea id="reuniaoParticipantes" rows="2"></textarea>
-        </div>
-
-        <div style="margin-top:15px;">
-            <label>Informes gerais</label>
-            <textarea id="reuniaoInformes" rows="2"></textarea>
-        </div>
-
-        <!-- PAUTAS -->
-
-        <h4>Pautas</h4>
-
-        <div id="listaItensPauta"></div>
-
-        <button onclick="adicionarItemPauta()">
-            + Adicionar pauta
-        </button>
-
-        <!-- DISCUSSÃO -->
-
-        <h4 style="margin-top:25px;">
-            Discussão de Casos
-        </h4>
-
-        <div class="form-section" style="background:#111c2e;">
-
-            <div class="form-grid">
-
-                <div style="grid-column: span 2;">
-                    <label>Selecionar paciente do banco</label>
-                    <select id="reuniaoPacienteCaso"></select>
-                </div>
-
-                <div style="grid-column: span 2;">
-                    <label>Discussão do caso</label>
-
-                    <textarea
-                        id="reuniaoDiscussaoCaso"
-                        rows="2"
-                        placeholder="Descreva a discussão clínica..."
-                    ></textarea>
-                </div>
-
-                <div style="grid-column: span 4;">
-                    <label>Conduta / Encaminhamento definido</label>
-
-                    <textarea
-                        id="reuniaoCondutaCaso"
-                        rows="2"
-                        placeholder="Ex: ACS fará visita..."
-                    ></textarea>
-                </div>
-
-            </div>
-
-            <button
-                onclick="registrarDiscussaoCasoNoProntuario()"
-                style="margin-top:10px;"
-            >
-                Registrar discussão no prontuário
-            </button>
-
-        </div>
-
-        <div id="listaCasosDiscussao" style="margin-top:15px;"></div>
-
-        <!-- ENCAMINHAMENTOS -->
-
-        <h4>Encaminhamentos</h4>
-
-        <div id="listaEncaminhamentos"></div>
-
-        <button onclick="adicionarEncaminhamento()">
-            + Adicionar encaminhamento
-        </button>
-
-        <!-- CONSIDERAÇÕES -->
-
-        <div style="margin-top:15px;">
-
-            <label>Considerações finais</label>
-
-            <textarea
-                id="reuniaoConsideracoes"
-                rows="2"
-            ></textarea>
-
-        </div>
-
-        <!-- BOTÕES -->
-
-        <div style="margin-top:15px; display:flex; gap:10px;">
-
-            <button onclick="salvarReuniaoEquipe()">
-                Salvar reunião
-            </button>
-
-            <button onclick="gerarAtaReuniao()">
-                Gerar ata
-            </button>
-
-            <button onclick="copiarAtaReuniao()">
-                Copiar ata
-            </button>
-
-            <button onclick="imprimirAtaReuniao()">
-                Imprimir ata
-            </button>
-
-            <button onclick="limparFormularioReuniao()">
-                Limpar
-            </button>
-
-        </div>
-
-        <!-- ATA -->
-
-        <div style="margin-top:20px;">
-
-            <label>Ata gerada</label>
-
-            <textarea
-                id="ataReuniaoGerada"
-                rows="12"
-            ></textarea>
-
-        </div>
-
-        <!-- HISTÓRICO -->
-
-        <h4>Histórico</h4>
-
-        <div id="historicoReunioes"></div>
-
-    </div>
-
-</div>
-
-<!-- ==========================================================
-     📦 VIEW ESTOQUE
-     ========================================================== -->
-
-<div id="view-estoque" class="view">
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">
-            📦 Gestão de Estoque e Farmácia
-        </h3>
-
-        <button onclick="abrirModuloSolicitacoesMateriais()">
-            ➕ Nova Solicitação
-        </button>
-
-        <div class="dashboard-grid" style="margin-top:20px;">
-
-            <div class="dash-card"
-                 style="border-top:4px solid #f59e0b;">
-
-                <h3 id="dashSolicitacoesPendentes">0</h3>
-
-                <p>Solicitações Pendentes</p>
-
-            </div>
-
-            <div class="dash-card"
-                 style="border-top:4px solid #22c55e;">
-
-                <h3 id="dashSolicitacoesAprovadas">0</h3>
-
-                <p>Solicitações Aprovadas</p>
-
-            </div>
-
-            <div class="dash-card"
-                 style="border-top:4px solid #3b82f6;">
-
-                <h3 id="dashSolicitacoesEntregues">0</h3>
-
-                <p>Entregues</p>
-
-            </div>
-
-        </div>
-
-        <h4>Histórico de Solicitações</h4>
-
-        <div id="historicoSolicitacoes"></div>
-
-    </div>
-
-</div>
-        
-            <div id="view-reuniao" class="view">
     <div class="form-section">
         <h3 style="margin-top:0;">🗓️ Reunião de Equipe</h3>
 
@@ -914,128 +688,53 @@
             <textarea id="reuniaoInformes" rows="2"></textarea>
         </div>
 
-     <h4>Pautas</h4>
+        <h4>Pautas</h4>
+        <div id="listaItensPauta"></div>
 
-<div id="listaItensPauta"></div>
+        <button onclick="adicionarItemPauta()">
+            + Adicionar pauta
+        </button>
 
-<button onclick="adicionarItemPauta()">
-    + Adicionar pauta
-</button>
+        <h4 style="margin-top:25px;">Discussão de Casos</h4>
 
-<h4>Discussão de Casos</h4>
+        <div class="form-section" style="background:#111c2e;">
+            <div class="form-grid">
+                <div style="grid-column: span 2;">
+                    <label>Selecionar paciente do banco</label>
+                    <select id="reuniaoPacienteCaso"></select>
+                </div>
 
-<div class="form-section" style="background:#111c2e;">
-    <div class="form-grid">
-        <div style="grid-column: span 2;">
-            <label>Selecionar paciente do banco</label>
-            <select id="reuniaoPacienteCaso"></select>
-        </div>
+                <div style="grid-column: span 2;">
+                    <label>Discussão do caso</label>
+                    <textarea id="reuniaoDiscussaoCaso" rows="2" placeholder="Descreva a discussão clínica, social ou territorial..."></textarea>
+                </div>
 
-        <div style="grid-column: span 2;">
-            <label>Discussão do caso</label>
-            <textarea id="reuniaoDiscussaoCaso" rows="2"></textarea>
-        </div>
-
-        <div style="grid-column: span 4;">
-            <label>Conduta / Encaminhamento definido</label>
-            <textarea id="reuniaoCondutaCaso" rows="2"></textarea>
-        </div>
-    </div>
-
-    <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
-        Registrar discussão no prontuário
-    </button>
-</div>
-
-<div id="listaCasosDiscussao" style="margin-top:15px;"></div>
-
-        <!-- DASHBOARD -->
-
-        <div class="dashboard-grid">
-
-            <div class="dash-card"
-                 style="border-top:4px solid #f59e0b;">
-
-                <h3 id="dashSolicitacoesPendentes">0</h3>
-                <p>Solicitações Pendentes</p>
-
+                <div style="grid-column: span 4;">
+                    <label>Conduta / Encaminhamento definido</label>
+                    <textarea id="reuniaoCondutaCaso" rows="2" placeholder="Ex: ACS fará visita domiciliar; enfermagem agendará retorno..."></textarea>
+                </div>
             </div>
 
-            <div class="dash-card"
-                 style="border-top:4px solid #22c55e;">
-
-                <h3 id="dashSolicitacoesAprovadas">0</h3>
-                <p>Solicitações Aprovadas</p>
-
-            </div>
-
-            <div class="dash-card"
-                 style="border-top:4px solid #3b82f6;">
-
-                <h3 id="dashSolicitacoesEntregues">0</h3>
-                <p>Entregues</p>
-
-            </div>
-
+            <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
+                Registrar discussão no prontuário
+            </button>
         </div>
 
-        <!-- HISTÓRICO -->
+        <div id="listaCasosDiscussao" style="margin-top:15px;"></div>
 
-        <div class="form-section"
-             style="background:#111c2e;">
-
-            <h4 style="margin-top:0;">
-                Histórico de Solicitações
-            </h4>
-
-            <div id="historicoSolicitacoes"></div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<h4>Discussão de Casos</h4>
-
-        
-<h4>Discussão de Casos</h4>
-
-<div class="form-section" style="background:#111c2e;">
-    <div class="form-grid">
-        <div style="grid-column: span 2;">
-            <label>Selecionar paciente do banco</label>
-            <select id="reuniaoPacienteCaso"></select>
-        </div>
-
-        <div style="grid-column: span 2;">
-            <label>Discussão do caso</label>
-            <textarea id="reuniaoDiscussaoCaso" rows="2" placeholder="Descreva a discussão clínica, social ou territorial..."></textarea>
-        </div>
-
-        <div style="grid-column: span 4;">
-            <label>Conduta / Encaminhamento definido</label>
-            <textarea id="reuniaoCondutaCaso" rows="2" placeholder="Ex: ACS fará visita domiciliar; enfermagem agendará retorno..."></textarea>
-        </div>
-    </div>
-
-    <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
-        Registrar discussão no prontuário
-    </button>
-</div>
-
-<div id="listaCasosDiscussao" style="margin-top:15px;"></div>
-        
         <h4>Encaminhamentos</h4>
         <div id="listaEncaminhamentos"></div>
-        <button onclick="adicionarEncaminhamento()">+ Adicionar encaminhamento</button>
+
+        <button onclick="adicionarEncaminhamento()">
+            + Adicionar encaminhamento
+        </button>
 
         <div style="margin-top:15px;">
             <label>Considerações finais</label>
             <textarea id="reuniaoConsideracoes" rows="2"></textarea>
         </div>
 
-        <div style="margin-top:15px; display:flex; gap:10px;">
+        <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
             <button onclick="salvarReuniaoEquipe()">Salvar reunião</button>
             <button onclick="gerarAtaReuniao()">Gerar ata</button>
             <button onclick="copiarAtaReuniao()">Copiar ata</button>
@@ -1052,6 +751,45 @@
         <div id="historicoReunioes"></div>
     </div>
 </div>
+
+<div id="view-estoque" class="view">
+    <div class="form-section">
+        <h3 style="margin-top:0;">📦 Gestão de Estoque e Farmácia</h3>
+
+        <p style="font-size:13px; color:var(--text-muted); margin-top:-5px;">
+            Solicitações internas para almoxarifado e farmácia.
+        </p>
+
+        <button
+            onclick="abrirModuloSolicitacoesMateriais()"
+            style="background:var(--primary-neon); color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold;"
+            ➕ Nova Solicitação
+        </button>
+
+        <div class="dashboard-grid" style="margin-top:20px;">
+            <div class="dash-card" style="border-top:4px solid #f59e0b;">
+                <h3 id="dashSolicitacoesPendentes">0</h3>
+                <p>Solicitações Pendentes</p>
+            </div>
+
+            <div class="dash-card" style="border-top:4px solid #22c55e;">
+                <h3 id="dashSolicitacoesAprovadas">0</h3>
+                <p>Solicitações Aprovadas</p>
+            </div>
+
+            <div class="dash-card" style="border-top:4px solid #3b82f6;">
+                <h3 id="dashSolicitacoesEntregues">0</h3>
+                <p>Entregues</p>
+            </div>
+        </div>
+
+        <div class="form-section" style="background:#111c2e;">
+            <h4 style="margin-top:0;">Histórico de Solicitações</h4>
+            <div id="historicoSolicitacoes"></div>
+        </div>
+    </div>
+</div>
+
 
             <div id="view-config" class="view">
                 <div class="form-section">
@@ -1119,7 +857,7 @@
             border-radius:6px;
             font-weight:bold;
             cursor:pointer;
-    
+        "
         Criar usuário
     </button>
 
@@ -1153,16 +891,168 @@
             padding:5px;
             color:var(--text-main);
         "
-    >
-
 </div>
->
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
+
+    
+<!-- ==========================================================
+     📦 MODAL DE SOLICITAÇÃO DE MATERIAIS / FARMÁCIA
+     ========================================================== -->
+<div id="modalSolicitacoesMateriais"
+     style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.75);
+        z-index:10002;
+        padding:24px;
+        overflow:auto;
+     ">
+
+    <div style="
+        max-width:1100px;
+        margin:auto;
+        background:#0f172a;
+        color:white;
+        border:1px solid #334155;
+        border-radius:16px;
+        padding:20px;
+        box-shadow:0 20px 60px rgba(0,0,0,.5);
+    ">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0; color:#38bdf8;">📦 Nova Solicitação de Materiais / Farmácia</h2>
+
+            <button
+                onclick="fecharModuloSolicitacoesMateriais()"
+                style="background:#ef4444; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
+            >
+                Fechar
+            </button>
+        </div>
+
+        <hr style="border-color:#334155; margin:15px 0;">
+
+        <div class="form-grid">
+            <div>
+                <label>Destino</label>
+                <select id="solDestino">
+                    <option>Almoxarifado</option>
+                    <option>Farmácia</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Solicitante</label>
+                <input id="solSolicitante" placeholder="Nome do profissional">
+            </div>
+
+            <div>
+                <label>Setor</label>
+                <input id="solSetor" placeholder="Sala / Unidade">
+            </div>
+
+            <div>
+                <label>Prioridade</label>
+                <select id="solPrioridade">
+                    <option>Rotina</option>
+                    <option>Alta</option>
+                    <option>Urgente</option>
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin-top:25px; color:#38bdf8;">Adicionar item</h3>
+
+        <div class="form-grid">
+            <div>
+                <label>Item</label>
+                <input id="itemNome" placeholder="Nome do material ou medicamento">
+            </div>
+
+            <div>
+                <label>Qtd</label>
+                <input id="itemQtd" type="number" min="1" value="1">
+            </div>
+
+            <div>
+                <label>Unidade</label>
+                <select id="itemUnidade">
+                    <option>Unidade</option>
+                    <option>Caixa</option>
+                    <option>Pacote</option>
+                    <option>Frasco</option>
+                    <option>Ampola</option>
+                    <option>Comprimido</option>
+                    <option>Rolo</option>
+                    <option>Par</option>
+                    <option>Litro</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Categoria</label>
+                <select id="itemCategoria">
+                    <option>Material</option>
+                    <option>Medicamento</option>
+                    <option>Insumo</option>
+                    <option>EPI</option>
+                    <option>Limpeza</option>
+                    <option>Escritório</option>
+                </select>
+            </div>
+        </div>
+
+        <button
+            onclick="adicionarItemSolicitacao()"
+            style="margin-top:10px; background:#22c55e; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
+        >
+            Adicionar item
+        </button>
+
+        <div style="overflow:auto; margin-top:20px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qtd</th>
+                        <th>Unidade</th>
+                        <th>Categoria</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaItensSolicitacao"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top:20px;">
+            <label>Observações</label>
+            <textarea id="solObservacoes" rows="3" placeholder="Justificativa, urgência, paciente vinculado, consumo estimado..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; flex-wrap:wrap;">
+            <button
+                onclick="limparSolicitacaoMaterial()"
+                style="background:#64748b; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
+            >
+                Limpar
+            </button>
+
+            <button
+                onclick="salvarSolicitacaoMaterial()"
+                style="background:#2563eb; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
+            >
+                Enviar Solicitação
+            </button>
+        </div>
+    </div>
+</div>
+
 
     <button class="btn-flutuante-discador" onclick="alternarCentralDiscagem()" title="Abrir Central Operacional de Contatos">📞</button>
 
