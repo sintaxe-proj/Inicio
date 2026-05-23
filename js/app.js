@@ -19,49 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
     verificarSessao();
 });
 
-/**
- * Inicializa e configura a estrutura de tabelas do IndexedDB
- */
-function configurarIndexedDB() {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = function(event) {
-        console.error("Erro crítico ao abrir o IndexedDB:", event.target.error);
-        mostrarToast("❌ Erro ao carregar banco de dados local.");
-    };
-
-    request.onsuccess = function(event) {
-        db = event.target.result;
-        console.log("🗄️ IndexedDB conectado com sucesso.");
-        
-        // Verifica se o usuário já está logado para inicializar os dados da tela principal
-        if (localStorage.getItem("pep_sessao_ativa")) {
-            inicializarAutocompleteCIAP();
-            atualizarIndicatorsDashboard();
-            atualizarCentralAvisosSininho();
-            listarTodosBanco();
-        }
-    };
-
-    request.onupgradeneeded = function(event) {
-        const dbInstance = event.target.result;
-        
-        // Cria a store de pacientes caso ela não exista
-        if (!dbInstance.objectStoreNames.contains("pacientes")) {
-            const store = dbInstance.createObjectStore("pacientes", { keyPath: "cpf" });
-            store.createIndex("nome", "nome", { unique: false });
-            store.createIndex("ubs", "ubs", { unique: false });
-            store.createIndex("equipe", "equipe", { unique: false });
-            console.log("🗄️ ObjectStore 'pacientes' criada com sucesso.");
-        }
-    };
-}
-
 /* ==========================================================================
    🔐 SEGURANÇA: CONTROLE DE ACESSO E SESSÃO MUNICIPAL
    ========================================================================== */
 const USUARIOS_MUNICIPAIS = {
-    "440129": { nome: "Enf. Josimar Kapps", perfil: "admin" },
+    "5132": { nome: "Enf. Josimar Kapps", perfil: "admin" },
     "123456": { nome: "Dr. Alexandre Silva", perfil: "user" }
 };
 
