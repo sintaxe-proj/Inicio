@@ -367,7 +367,6 @@ function salvarProntuario() {
 
         requestSalvar.onsuccess = function() {
             mostrarToast("💾 Prontuário SOAP gravado na base territorial!");
-            atualizarIndicatorsDashboard();
             atualizarCentralAvisosSininho();
             navigate('inicio');
         };
