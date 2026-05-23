@@ -656,6 +656,33 @@
         <div id="listaItensPauta"></div>
         <button onclick="adicionarItemPauta()">+ Adicionar pauta</button>
 
+<h4>Discussão de Casos</h4>
+
+<div class="form-section" style="background:#111c2e;">
+    <div class="form-grid">
+        <div style="grid-column: span 2;">
+            <label>Selecionar paciente do banco</label>
+            <select id="reuniaoPacienteCaso"></select>
+        </div>
+
+        <div style="grid-column: span 2;">
+            <label>Discussão do caso</label>
+            <textarea id="reuniaoDiscussaoCaso" rows="2" placeholder="Descreva a discussão clínica, social ou territorial..."></textarea>
+        </div>
+
+        <div style="grid-column: span 4;">
+            <label>Conduta / Encaminhamento definido</label>
+            <textarea id="reuniaoCondutaCaso" rows="2" placeholder="Ex: ACS fará visita domiciliar; enfermagem agendará retorno..."></textarea>
+        </div>
+    </div>
+
+    <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
+        Registrar discussão no prontuário
+    </button>
+</div>
+
+<div id="listaCasosDiscussao" style="margin-top:15px;"></div>
+        
         <h4>Encaminhamentos</h4>
         <div id="listaEncaminhamentos"></div>
         <button onclick="adicionarEncaminhamento()">+ Adicionar encaminhamento</button>
