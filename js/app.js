@@ -717,7 +717,7 @@ function listarTodosBanco() {
             if (p.dm === "Sim") linhas.push("DM");
             if (p.gestante === "Sim") linhas.push("PN");
             if (p.tb === "Sim") linhas.push("TB");
-            if (p.hansen === "Sim") lines.push("HANSEN");
+            if (p.hansen === "Sim") linhas.push("HANSEN");
 
             const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
 
