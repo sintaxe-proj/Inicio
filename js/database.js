@@ -1,3 +1,13 @@
+/* ==========================================================================
+   🗄️ CONFIGURAÇÃO GLOBAL DO INDEXEDDB
+   ========================================================================== */
+
+let db;
+
+const DB_NAME = "SintaxeHubDB";
+
+const DB_VERSION = 2;
+
 function configurarIndexedDB() {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -9,7 +19,7 @@ function configurarIndexedDB() {
             event.target.error
         );
 
-        mostrarToast("❌ Erro ao carregar banco de dados local.");
+        mostrarToast("❌ Erro ao carregar banco.");
     };
 
     request.onsuccess = function(event) {
@@ -18,30 +28,21 @@ function configurarIndexedDB() {
 
         console.log("🗄️ IndexedDB conectado.");
 
-        // Verifica se existe sessão ativa
         if (localStorage.getItem("pep_sessao_ativa")) {
 
-            // Inicializa autocomplete CIAP
             if (typeof inicializarAutocompleteCIAP === "function") {
-
                 inicializarAutocompleteCIAP();
             }
 
-            // Atualiza indicadores do dashboard
             if (typeof atualizarIndicatorsDashboard === "function") {
-
                 atualizarIndicatorsDashboard();
             }
 
-            // Atualiza sininho de avisos
             if (typeof atualizarCentralAvisosSininho === "function") {
-
                 atualizarCentralAvisosSininho();
             }
 
-            // Lista banco de pacientes
             if (typeof listarTodosBanco === "function") {
-
                 listarTodosBanco();
             }
         }
@@ -51,7 +52,6 @@ function configurarIndexedDB() {
 
         const dbInstance = event.target.result;
 
-        // Cria tabela pacientes
         if (!dbInstance.objectStoreNames.contains("pacientes")) {
 
             const store = dbInstance.createObjectStore(
@@ -77,9 +77,7 @@ function configurarIndexedDB() {
                 { unique: false }
             );
 
-            console.log(
-                "🗄️ ObjectStore 'pacientes' criada."
-            );
+            console.log("🗄️ Store pacientes criada.");
         }
     };
 }
