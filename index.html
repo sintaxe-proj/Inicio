@@ -694,6 +694,31 @@
         </div>
     </div>
 
+    function renderizarCIAP() {
+    const container = document.getElementById('lista-ciap');
+    const input = document.getElementById('busca-ciap');
+
+    if (!container) return;
+
+    const busca = input ? input.value.toLowerCase() : '';
+    const catalogo = window.CATALOGO_CIAPS2 || {};
+
+    container.innerHTML = '';
+
+    Object.entries(catalogo).forEach(([codigo, descricao]) => {
+        if (
+            codigo.toLowerCase().includes(busca) ||
+            descricao.toLowerCase().includes(busca)
+        ) {
+            container.innerHTML += `
+                <div class="item-ciap">
+                    <strong>${codigo}</strong> - ${descricao}
+                </div>
+            `;
+        }
+    });
+}
+
 <div id="toastNotification"></div>
 
 <!-- Dados -->
