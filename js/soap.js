@@ -348,9 +348,9 @@ function carregarDatalistCIAP() {
         return;
     }
 
-    window.CIAP2.forEach(item => {
+    window.Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
         const option = document.createElement("option");
-        option.value = `${item.codigo} - ${item.descricao}`;
+        option.value = `${codigo} - ${descricao}`;
         lista.appendChild(option);
     });
 
