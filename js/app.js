@@ -32,3 +32,28 @@ function aguardarBancoEIniciar(tentativas = 0) {
     }, 300);
 }loginScreen').style.display = 'flex';
 }
+
+function aguardarBancoEIniciar(tentativas = 0) {
+    if (window.db) {
+        console.log('✅ Banco pronto. Iniciando aplicação.');
+
+        if (typeof atualizarIndicatorsDashboard === 'function') {
+            atualizarIndicatorsDashboard();
+        }
+
+        if (typeof atualizarCentralAvisosSininho === 'function') {
+            atualizarCentralAvisosSininho();
+        }
+
+        return;
+    }
+
+    if (tentativas >= 50) {
+        console.warn('⚠️ Banco ainda não conectado.');
+        return;
+    }
+
+    setTimeout(() => {
+        aguardarBancoEIniciar(tentativas + 1);
+    }, 200);
+}
