@@ -1,74 +1,125 @@
-/* ============================================================
-   login.js 
-   Controle de login, hash com SHA-256 e sessão
-=========================================================== */
+/* ==========================================================================
+   🔐 LOGIN, SESSÃO E CONTROLE DE ACESSO
+   ========================================================================== */
 
-/* ----------- Função de hash SHA-256 ----------- */
-async function sha256(text) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hash = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("");
-}
+const USUARIOS_MUNICIPAIS = {
+    "5132": { nome: "Enf. Josimar Kapps", perfil: "admin" },
+    "123456": { nome: "Dr. Alexandre Silva", perfil: "user" }
+};
 
-/* ----------- Criar usuário admin padrão ----------- */
-async function initLoginSystem() {
-    let usuarios = JSON.parse(localStorage.getItem("usuarios"));
+function autenticarUsuario() {
+    const matricula = document.getElementById("loginUser").value;
+    const senha = document.getElementById("loginSenha").value;
+    const erroDiv = document.getElementById("loginErro");
 
-    if (!usuarios) {
-        const admin = {
-            user: "admin",
-            pass: await sha256("1234") // senha padrão
-        };
-        usuarios = [admin];
-        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    if (USUARIOS_MUNICIPAIS[matricula] && senha === "senha123") {
+        const user = USUARIOS_MUNICIPAIS[matricula];
+
+        localStorage.setItem(
+            "pep_sessao_ativa",
+            JSON.stringify(user)
+        );
+
+        erroDiv.style.display = "none";
+
+        verificarSessao();
+
+        // Inicializações após login
+        if (typeof inicializarAutocompleteCIAP === "function") {
+            inicializarAutocompleteCIAP();
+        }
+
+        if (typeof atualizarIndicatorsDashboard === "function") {
+            atualizarIndicatorsDashboard();
+        }
+
+        if (typeof atualizarCentralAvisosSininho === "function") {
+            atualizarCentralAvisosSininho();
+        }
+
+    } else {
+        erroDiv.innerText =
+            "Matrícula ou senha inválida no cadastro municipal.";
+
+        erroDiv.style.display = "block";
     }
 }
 
-/* Executa criação do admin ao iniciar */
-initLoginSystem();
+function verificarSessao() {
+    const sessao = localStorage.getItem("pep_sessao_ativa");
 
-/* ----------- Função de Login ----------- */
-async function login() {
-    const u = loginUser.value.trim();
-    const p = loginPass.value.trim();
+    if (sessao) {
+        const user = JSON.parse(sessao);
 
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
 
-    const hash = await sha256(p);
+        document.getElementById(
+            "nomeUsuarioLogado"
+        ).innerText = `👤 ${user.nome}`;
 
-    const existe = usuarios.find(x => x.user === u && x.pass === hash);
+        const seletorAcesso =
+            document.getElementById("seletorNivelAcesso");
 
-    if (!existe) {
-        loginErro.style.display = "block";
-        return;
+        const btnAuditoria =
+            document.getElementById("btnAuditoria");
+
+        if (user.perfil === "admin") {
+            seletorAcesso.style.display = "inline-block";
+            btnAuditoria.style.display = "inline-block";
+        } else {
+            seletorAcesso.style.display = "none";
+            btnAuditoria.style.display = "none";
+        }
+
+        navigate("inicio");
+
+    } else {
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("app").style.display = "none";
     }
-
-    // Login válido → salvar sessão
-    localStorage.setItem("logado", "sim");
-
-    // Exibir sistema
-    loginScreen.style.display = "none";
-    app.style.display = "block";
-
-    // Chama inicialização do app.js
-    if (typeof initApp === "function") initApp();
 }
 
-/* ----------- Logout ----------- */
-function logout() {
-    localStorage.removeItem("logado");
-    location.reload();
+function efetuarLogout() {
+    localStorage.removeItem("pep_sessao_ativa");
+    window.location.reload();
 }
 
-/* ----------- Manter login persistente ----------- */
-window.addEventListener("load", () => {
-    if (localStorage.getItem("logado") === "sim") {
-        loginScreen.style.display = "none";
-        app.style.display = "block";
+function BowserSessao() {
+    efetuarLogout();
+}
 
-        if (typeof initApp === "function") initApp();
+function alternarVisaoGestor(perfil) {
+    const btnAuditoria =
+        document.getElementById("btnAuditoria");
+
+    if (perfil === "admin") {
+        btnAuditoria.style.display = "inline-block";
+
+        mostrarToast(
+            "🔄 Mudança para Perfil de Gestor/Coordenador."
+        );
+
+    } else {
+        btnAuditoria.style.display = "none";
+
+        if (
+            document.getElementById("view-config")
+            ?.style.display === "block"
+        ) {
+            navigate("inicio");
+        }
+
+        mostrarToast(
+            "🔄 Mudança para Perfil Assistencial."
+        );
     }
+}
+
+/* Inicialização automática */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    verificarSessao
+);
 });
