@@ -1,10 +1,6 @@
 /* ==========================================================================
    🗄️ CORE CONFIG: BANCO DE DADOS LOCAL (INDEXEDDB) & SESSÃO PEP
    ========================================================================== */
-let db;
-const DB_NAME = "SintaxeHubDB";
-const DB_VERSION = 2; // Mantido em 2 para suportar a estrutura SOAP estendida
-
 // Dicionário de Mensagens Padrão para Busca Ativa Territorial via WhatsApp
 const SCRIPTS_WHATSAPP_APS = {
     "has_critico": "Olá! Aqui é da sua Equipe de Saúde da Família. Notamos que o seu monitoramento de Pressão Arterial precisa ser atualizado. Poderia comparecer à UBS esta semana para aferição e avaliação?",
