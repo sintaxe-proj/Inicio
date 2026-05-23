@@ -32,6 +32,7 @@ function buscarInicio() {
     const request = store.getAll();
 
     request.onsuccess = function () {
+
         const todosPacientes = request.result;
         const termoNumerico = termoOriginal.replace(/\D/g, "");
 
@@ -63,6 +64,7 @@ function buscarInicio() {
             termoOriginal.includes("hansen");
 
         const resultados = todosPacientes.filter(p => {
+
             if (desejaHAS && p.has !== "Sim") return false;
             if (desejaDM && p.dm !== "Sim") return false;
             if (desejaPN && p.gestante !== "Sim") return false;
@@ -82,6 +84,7 @@ function buscarInicio() {
                 desejaControlado;
 
             if (!digitouApenasFiltros) {
+
                 const nomeBate =
                     p.nome &&
                     p.nome.toLowerCase().includes(termoOriginal);
@@ -100,48 +103,72 @@ function buscarInicio() {
         });
 
         if (resultados.length === 0) {
+
             container.innerHTML =
                 `<p style="color:var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado.</p>`;
+
             return;
         }
 
         let html = `<div class="busca-ativa-grid">`;
 
         resultados.forEach(p => {
+
             let badges = "";
 
             if (p.has === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span> `;
+                badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span>`;
             }
 
             if (p.dm === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--success)">DM</span> `;
+                badges += `<span class="tag-clinica" style="background:var(--success)">DM</span>`;
             }
 
             if (p.gestante === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span> `;
+                badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span>`;
             }
 
             if (p.tb === "Sim") {
-                badges += `<span class="tag-clinica" style="background:#701a75">TB</span> `;
+                badges += `<span class="tag-clinica" style="background:#701a75">TB</span>`;
             }
 
             if (p.hansen === "Sim") {
-                badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span> `;
+                badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span>`;
             }
 
             if (parseInt(p.reavaliacaoDias) === 0) {
-                badges += `<span class="tag-clinica" style="background:#7c2d12;">⚠️ CRÍTICO (0d)</span> `;
+
+                badges += `
+                    <span class="tag-clinica"
+                          style="background:#7c2d12;">
+                          ⚠️ CRÍTICO (0d)
+                    </span>
+                `;
+
             } else {
-                badges += `<span class="tag-clinica" style="background:#475569">⏱️ ${p.reavaliacaoDias}d</span> `;
+
+                badges += `
+                    <span class="tag-clinica"
+                          style="background:#475569">
+                          ⏱️ ${p.reavaliacaoDias}d
+                    </span>
+                `;
             }
 
             html += `
                 <div class="busca-ativa-card"
                      onclick="abrirAtendimentoExistente('${p.cpf}')"
-                     style="cursor:pointer; padding:15px; margin-bottom:10px; border:1px solid #e2e8f0; border-radius:8px; background:white;">
+                     style="
+                        cursor:pointer;
+                        padding:15px;
+                        margin-bottom:12px;
+                        border:1px solid #e2e8f0;
+                        border-radius:10px;
+                        background:white;
+                        box-shadow:0 2px 4px rgba(0,0,0,0.04);
+                     ">
 
-                    <h4 style="margin:0 0 5px 0; color:#1e293b;">
+                    <h4 style="margin:0 0 6px 0; color:#1e293b;">
                         ${p.nome}
                     </h4>
 
@@ -157,14 +184,90 @@ function buscarInicio() {
                         ${p.equipe || "Sem equipe"}
                     </p>
 
-                    <div style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">
+                    <p style="
+                        margin-top:8px;
+                        font-size:12px;
+                        color:#334155;
+                        font-weight:600;
+                    ">
+                        ⏱️ Revisão:
+                        ${
+                            parseInt(p.reavaliacaoDias) === 0
+                            ? `<span style="color:#b91c1c;">URGENTE HOJE</span>`
+                            : `${p.reavaliacaoDias} dias`
+                        }
+                    </p>
+
+                    <p style="
+                        margin-top:4px;
+                        font-size:12px;
+                        color:#475569;
+                    ">
+                        📅 Último monitoramento:
+                        ${
+                            p.historicoEvolucoes &&
+                            p.historicoEvolucoes.length > 0
+                                ? p.historicoEvolucoes[0]
+                                    .split("\\n")[0]
+                                    .replace("--- ", "")
+                                : "Sem registros"
+                        }
+                    </p>
+
+                    <div style="
+                        margin-top:10px;
+                        display:flex;
+                        gap:4px;
+                        flex-wrap:wrap;
+                    ">
                         ${badges}
                     </div>
+
+                    <div style="
+                        margin-top:14px;
+                        display:flex;
+                        gap:8px;
+                        flex-wrap:wrap;
+                    ">
+
+                        <button
+                            onclick="event.stopPropagation(); abrirAtendimentoExistente('${p.cpf}')"
+                            style="
+                                background:#2563eb;
+                                color:white;
+                                border:none;
+                                padding:8px 12px;
+                                border-radius:6px;
+                                font-size:12px;
+                                font-weight:bold;
+                                cursor:pointer;
+                            ">
+                            📋 Abrir Prontuário
+                        </button>
+
+                        <button
+                            onclick="event.stopPropagation(); abrirDiscadorParaPaciente('${p.cpf}')"
+                            style="
+                                background:#25d366;
+                                color:white;
+                                border:none;
+                                padding:8px 12px;
+                                border-radius:6px;
+                                font-size:12px;
+                                font-weight:bold;
+                                cursor:pointer;
+                            ">
+                            💬 WhatsApp
+                        </button>
+
+                    </div>
+
                 </div>
             `;
         });
 
         html += `</div>`;
+
         container.innerHTML = html;
     };
 
@@ -173,16 +276,25 @@ function buscarInicio() {
     };
 }
 
+
+/* ==========================================================================
+   📋 ABRIR PRONTUÁRIO
+   ========================================================================== */
+
 function abrirAtendimentoExistente(cpf) {
+
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.get(cpf);
 
     request.onsuccess = function() {
+
         const p = request.result;
+
         if (!p) return;
 
         navigate("prontuario");
+
         limparFormularioProntuario();
 
         document.getElementById("nomePaciente").value = p.nome || "";
@@ -205,39 +317,18 @@ function abrirAtendimentoExistente(cpf) {
 
         document.getElementById("hasSN").value = p.has || "Não";
         mostrarCard("cardHAS", p.has);
-        document.getElementById("hasPAS").value = p.pas || "";
-        document.getElementById("hasPAD").value = p.pad || "";
-        document.getElementById("hasClassif").value = p.classifHas || "";
 
         document.getElementById("dmSN").value = p.dm || "Não";
         mostrarCard("cardDM", p.dm);
-        document.getElementById("dmHbA1c").value = p.hba1c || "";
-        document.getElementById("dmClassif").value = p.classifDm || "";
 
         document.getElementById("gestanteSN").value = p.gestante || "Não";
         mostrarCard("cardGestante", p.gestante);
-        document.getElementById("gestDUM").value = p.dum || "";
-        document.getElementById("gestIG").value = p.ig || "";
-        document.getElementById("gestDPP").value = p.dpp || "";
 
         document.getElementById("tbSN").checked = p.tb === "Sim";
         document.getElementById("hansenSN").checked = p.hansen === "Sim";
-        document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
-
-        if (parseInt(p.idade) >= 60) {
-            document.getElementById("ampiBloco").style.display = "block";
-        }
-
-        if (p.exameFisicoStatus === "Alterado") {
-            document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
-            document.getElementById("blocoExameAlterado").style.display = "block";
-            document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
-        } else {
-            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
-            document.getElementById("blocoExameAlterado").style.display = "none";
-        }
 
         if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
+
             let htmlTimeline = `
                 <label style="font-weight:700;">
                     ⏳ Histórico Clínico Digital:
@@ -246,6 +337,7 @@ function abrirAtendimentoExistente(cpf) {
             `;
 
             p.historicoEvolucoes.forEach(evo => {
+
                 htmlTimeline += `
                     <div class="timeline-item">
                         <div class="timeline-body">${evo}</div>
@@ -255,12 +347,55 @@ function abrirAtendimentoExistente(cpf) {
 
             htmlTimeline += `</div>`;
 
-            document.getElementById("linhaTempoEvolucoes").innerHTML = htmlTimeline;
+            document.getElementById("linhaTempoEvolucoes").innerHTML =
+                htmlTimeline;
         }
 
         document.getElementById("cabecalhoNome").innerText =
             `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
 
         document.getElementById("cabecalhoProntuario").style.display = "block";
+    };
+}
+
+
+/* ==========================================================================
+   💬 ABRIR WHATSAPP RÁPIDO
+   ========================================================================== */
+
+function abrirDiscadorParaPaciente(cpf) {
+
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.get(cpf);
+
+    request.onsuccess = function () {
+
+        const p = request.result;
+
+        if (!p || !p.tel) {
+            mostrarToast("⚠️ Paciente sem telefone cadastrado.");
+            return;
+        }
+
+        navigate("prontuario");
+
+        setTimeout(() => {
+
+            alternarCentralDiscagem();
+
+            const input =
+                document.getElementById("inputNumeroDiscador");
+
+            if (input) {
+
+                input.value = p.nome;
+
+                input.dispatchEvent(
+                    new Event("input")
+                );
+            }
+
+        }, 300);
     };
 }
