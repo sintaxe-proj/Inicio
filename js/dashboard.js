@@ -1,222 +1,11 @@
-function renderizarGraficosModal(lista) {
-
-    function definirLimiteAtencao(p) {
-
-        // HAS e DM entram em atenção com até 30 dias
-        if (
-            p.has === "Sim" ||
-            p.dm === "Sim"
-        ) {
-            return 30;
-        }
-
-        // Gestante, TB e Hanseníase entram em atenção com até 15 dias
-        if (
-            p.gestante === "Sim" ||
-            p.tb === "Sim" ||
-            p.hansen === "Sim"
-        ) {
-            return 15;
-        }
-
-        return 30;
-    }
-
-    function estaEmAtencao(p) {
-
-        const dias =
-            parseInt(p.reavaliacaoDias);
-
-        if (isNaN(dias)) {
-            return false;
-        }
-
-        // Se já venceu, não entra em atenção
-        if (dias <= 0) {
-            return false;
-        }
-
-        return dias <= definirLimiteAtencao(p);
-    }
-
-    const total = lista.length;
-
-    const criticos = lista.filter(p =>
-        parseInt(p.reavaliacaoDias) === 0
-    ).length;
-
-    const atencao = lista.filter(p =>
-        estaEmAtencao(p)
-    ).length;
-
-    const controlados =
-        total - criticos - atencao;
-
-    const pctCritico = total > 0
-        ? Math.round((criticos / total) * 100)
-        : 0;
-
-    const pctAtencao = total > 0
-        ? Math.round((atencao / total) * 100)
-        : 0;
-
-    const pctControlado = total > 0
-        ? Math.max(
-            0,
-            100 - pctCritico - pctAtencao
-        )
-        : 0;
-
-    /* ==========================================================
-       🍩 DONUT
-       ========================================================== */
-
-    document.getElementById(
-        "containerGraficoDonut"
-    ).innerHTML = `
-
-        <div class="donut-wrapper">
-
-            <svg
-                width="100%"
-                height="100%"
-                viewBox="0 0 42 42"
-                class="donut-svg"
-            >
-
-                <circle
-                    class="donut-bg"
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                ></circle>
-
-                <circle
-                    class="donut-segment"
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                    stroke="var(--danger)"
-                    stroke-dasharray="${pctCritico} ${100 - pctCritico}"
-                    stroke-dashoffset="0"
-                ></circle>
-
-            </svg>
-
-            <div class="donut-center-text">
-                <span class="donut-number">
-                    ${pctCritico}%
-                </span>
-
-                <span class="donut-label">
-                    Críticos
-                </span>
-            </div>
-
-        </div>
-    `;
-
-    /* ==========================================================
-       📊 BARRAS
-       ========================================================== */
-
-    document.getElementById(
-        "containerGraficoBarras"
-    ).innerHTML = `
-
-        <div class="bar-chart-container">
-
-            <!-- CRÍTICOS -->
-
-            <div class="bar-row">
-
-                <div class="bar-label">
-                    <span>
-                        🚨 Críticos / Vencidos
-                    </span>
-
-                    <span>
-                        ${criticos} Utentes
-                    </span>
-                </div>
-
-                <div class="bar-track">
-                    <div
-                        class="bar-fill"
-                        style="
-                            width:${pctCritico}%;
-                            background:var(--danger)
-                        "
-                    ></div>
-                </div>
-
-            </div>
-
-            <!-- ATENÇÃO -->
-
-            <div
-                class="bar-row"
-                style="margin-top:10px;"
-            >
-
-                <div class="bar-label">
-                    <span>
-                        ⚠️ Atenção / Próximo ao vencimento
-                    </span>
-
-                    <span>
-                        ${atencao} Utentes
-                    </span>
-                </div>
-
-                <div class="bar-track">
-                    <div
-                        class="bar-fill"
-                        style="
-                            width:${pctAtencao}%;
-                            background:var(--warning)
-                        "
-                    ></div>
-                </div>
-
-            </div>
-
-            <!-- CONTROLADOS -->
-
-            <div
-                class="bar-row"
-                style="margin-top:10px;"
-            >
-
-                <div class="bar-label">
-                    <span>
-                        ✅ Controlados / Monitorados
-                    </span>
-
-                    <span>
-                        ${controlados} Utentes
-                    </span>
-                </div>
-
-                <div class="bar-track">
-                    <div
-                        class="bar-fill"
-                        style="
-                            width:${pctControlado}%;
-                            background:var(--success)
-                        "
-                    ></div>
-                </div>
-
-            </div>
-
-        </div>
-    `;
-}
+/* ==========================================================================
+   📊 DASHBOARD / CARDS / CENTRAL DE AVISOS
+   Arquivo: js/dashboard.js
+   ========================================================================== */
 
 function atualizarIndicatorsDashboard() {
     if (!db) {
-        console.warn("Banco ainda não conectado.");
+        console.warn("Banco ainda não conectado para atualizar dashboard.");
         return;
     }
 
@@ -224,31 +13,104 @@ function atualizarIndicatorsDashboard() {
     const store = transaction.objectStore("pacientes");
     const request = store.getAll();
 
-    request.onsuccess = function() {
+    request.onsuccess = function () {
         const dados = request.result || [];
 
-        document.getElementById("dashHAS").innerText =
-            dados.filter(p => p.has === "Sim").length;
+        const dashHAS = document.getElementById("dashHAS");
+        const dashDM = document.getElementById("dashDM");
+        const dashGest = document.getElementById("dashGest");
+        const dashTB = document.getElementById("dashTB");
+        const dashHansen = document.getElementById("dashHansen");
 
-        document.getElementById("dashDM").innerText =
-            dados.filter(p => p.dm === "Sim").length;
+        if (dashHAS) {
+            dashHAS.innerText = dados.filter(p => p.has === "Sim").length;
+        }
 
-        document.getElementById("dashGest").innerText =
-            dados.filter(p => p.gestante === "Sim").length;
+        if (dashDM) {
+            dashDM.innerText = dados.filter(p => p.dm === "Sim").length;
+        }
 
-        document.getElementById("dashTB").innerText =
-            dados.filter(p => p.tb === "Sim").length;
+        if (dashGest) {
+            dashGest.innerText = dados.filter(p => p.gestante === "Sim").length;
+        }
 
-        document.getElementById("dashHansen").innerText =
-            dados.filter(p => p.hansen === "Sim").length;
+        if (dashTB) {
+            dashTB.innerText = dados.filter(p =>
+                p.tb === "Sim" || p.tbSelect === "Sim"
+            ).length;
+        }
+
+        if (dashHansen) {
+            dashHansen.innerText = dados.filter(p =>
+                p.hansen === "Sim" || p.hansenSelect === "Sim"
+            ).length;
+        }
 
         console.log("Dashboard atualizado:", {
             total: dados.length,
-            has: dados.filter(p => p.has === "Sim").length,
-            dm: dados.filter(p => p.dm === "Sim").length,
-            gestantes: dados.filter(p => p.gestante === "Sim").length,
-            tb: dados.filter(p => p.tb === "Sim").length,
-            hansen: dados.filter(p => p.hansen === "Sim").length
+            has: dashHAS?.innerText,
+            dm: dashDM?.innerText,
+            gestante: dashGest?.innerText,
+            tb: dashTB?.innerText,
+            hansen: dashHansen?.innerText
         });
     };
+
+    request.onerror = function () {
+        console.error("Erro ao atualizar dashboard:", request.error);
+    };
+}
+
+function atualizarCentralAvisosSininho() {
+    if (!db) {
+        console.warn("Banco ainda não conectado para atualizar sininho.");
+        return;
+    }
+
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function () {
+        const pacientes = request.result || [];
+
+        const alertas = pacientes.filter(p => {
+            const dias = parseInt(p.reavaliacaoDias);
+
+            const urgente =
+                p.alertaUrgente === "Sim" ||
+                p.urgente === "Sim";
+
+            return dias === 0 || urgente;
+        });
+
+        const contador = document.getElementById("contadorAvisosSininho");
+        const container = document.getElementById("centralAvisosContainer");
+
+        if (contador) {
+            contador.innerText = alertas.length;
+        }
+
+        if (container) {
+            if (alertas.length > 0) {
+                container.classList.add("tem-alerta");
+                container.title = `${alertas.length} cidadão(s) com alerta urgente ou prazo vencido.`;
+            } else {
+                container.classList.remove("tem-alerta");
+                container.title = "Nenhum alerta crítico no momento.";
+            }
+        }
+
+        console.log("Central de avisos atualizada:", alertas.length);
+    };
+
+    request.onerror = function () {
+        console.error("Erro ao atualizar central de avisos:", request.error);
+    };
+}
+
+function abrirPainelCriticosDireto() {
+    if (typeof abrirPainelEpidemiologico === "function") {
+        abrirPainelEpidemiologico("criticos");
+    }
 }
