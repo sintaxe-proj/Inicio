@@ -57,3 +57,5 @@ function aguardarBancoEIniciar(tentativas = 0) {
         aguardarBancoEIniciar(tentativas + 1);
     }, 200);
 }
+
+window.db = db;
