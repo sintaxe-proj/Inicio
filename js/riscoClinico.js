@@ -208,40 +208,6 @@ function registrarPlanoNoSOAP() {
     }
 }
 
-function calcularIMC() {
-
-    const peso = parseFloat(
-        document.getElementById('objpeso')?.value || 0
-    );
-
-    const alturaCm = parseFloat(
-        document.getElementById('objaltura')?.value || 0
-    );
-
-    // converte cm para metros
-    const altura = alturaCm / 100;
-
-    if (!peso || !altura) {
-
-        const campo = document.getElementById('imcPaciente');
-
-        if (campo) {
-            campo.value = '';
-        }
-
-        return;
-    }
-
-    const imc = peso / (altura * altura);
-
-    const campo = document.getElementById('imcPaciente');
-
-    if (campo) {
-        campo.value = imc.toFixed(1);
-    }
-
-}
-
 function gerarRiscoDoFormularioAtual() {
     const paciente = {
         nomePaciente: document.getElementById('nomePaciente')?.value || '',
