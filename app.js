@@ -3,17 +3,13 @@
    ========================================================================== */
 let db;
 const DB_NAME = "SintaxeHubDB";
-const DB_VERSION = 2; // Mantido em 2 para suportar a estrutura SOAP estendida
+const DB_VERSION = 2; 
 
-// Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
     configurarIndexedDB();
     verificarSessao();
 });
 
-/**
- * Inicializa e configura a estrutura de tabelas do IndexedDB
- */
 function configurarIndexedDB() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -26,9 +22,8 @@ function configurarIndexedDB() {
         db = event.target.result;
         console.log("🗄️ IndexedDB conectado com sucesso.");
         
-        // Verifica se o usuário já está logado para inicializar os dados da tela principal
         if (localStorage.getItem("pep_sessao_ativa")) {
-            inicializarAutocompleteCIAP();
+            vincularCatalogoCipeJS();
             atualizarIndicadoresDashboard();
             atualizarCentralAvisosSininho();
             listarTodosBanco();
@@ -37,39 +32,38 @@ function configurarIndexedDB() {
 
     request.onupgradeneeded = function(event) {
         const dbInstance = event.target.result;
-        
-        // Cria a store de pacientes caso ela não exista
         if (!dbInstance.objectStoreNames.contains("pacientes")) {
             const store = dbInstance.createObjectStore("pacientes", { keyPath: "cpf" });
             store.createIndex("nome", "nome", { unique: false });
             store.createIndex("ubs", "ubs", { unique: false });
             store.createIndex("equipe", "equipe", { unique: false });
-            console.log("🗄️ ObjectStore 'pacientes' criada com sucesso.");
+            console.log("🗄️ ObjectStore 'pacientes' criada.");
         }
     };
 }
 
 /* ==========================================================================
-   🔐 SEGURANÇA: CONTROLE DE ACESSO E SESSÃO MUNICIPAL
+   🔐 CONTROLE DE ACESSO: PERFIS E ISOLAMENTO DE DADOS POR EQUIPE
    ========================================================================== */
-const USUARIOS_MUNICIPAIS = {
-    "440129": { nome: "Enf. Josimar Kapps", perfil: "admin" },
-    "123456": { nome: "Dr. Alexandre Silva", perfil: "user" }
+// Base de dados local com vínculo compulsório de Equipe
+let USUARIOS_SISTEMA = JSON.parse(localStorage.getItem("pep_usuarios_painel")) || {
+    "440129": { nome: "Enf. Josimar Kapps", perfil: "admin", equipe: "Todas" },
+    "123456": { nome: "Enfª. Alessandra Cruz", perfil: "assistencial", equipe: "Equipe Verde" },
+    "789012": { nome: "Técnico João Silva", perfil: "visualizador", equipe: "Equipe Azul" }
 };
 
 function autenticarUsuario() {
-    const matricula = document.getElementById("loginUser").value;
+    const matricula = document.getElementById("loginUser").value.trim();
     const senha = document.getElementById("loginSenha").value;
     const erroDiv = document.getElementById("loginErro");
 
-    if (USUARIOS_MUNICIPAIS[matricula] && senha === "senha123") {
-        const user = USUARIOS_MUNICIPAIS[matricula];
+    if (USUARIOS_SISTEMA[matricula] && senha === "senha123") {
+        const user = USUARIOS_SISTEMA[matricula];
         localStorage.setItem("pep_sessao_ativa", JSON.stringify(user));
         erroDiv.style.display = "none";
         verificarSessao();
         
-        // Inicializa os dados do ecossistema após login
-        inicializarAutocompleteCIAP();
+        vincularCatalogoCipeJS();
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         listarTodosBanco();
@@ -85,16 +79,9 @@ function verificarSessao() {
         const user = JSON.parse(sessao);
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("app").style.display = "block";
-        document.getElementById("nomeUsuarioLogado").innerText = `👤 ${user.nome}`;
+        document.getElementById("nomeUsuarioLogado").innerText = `👤 ${user.nome} [${user.perfil.toUpperCase()} - ${user.equipe}]`;
 
-        const seletorAcesso = document.getElementById("seletorNivelAcesso");
-        if (user.perfil === "admin") {
-            seletorAcesso.style.display = "inline-block";
-            document.getElementById("btnAuditoria").style.display = "inline-block";
-        } else {
-            seletorAcesso.style.display = "none";
-            document.getElementById("btnAuditoria").style.display = "none";
-        }
+        aplicarRestricoesDePerfil(user.perfil, user.equipe);
         navigate('inicio');
     } else {
         document.getElementById("loginScreen").style.display = "flex";
@@ -102,9 +89,54 @@ function verificarSessao() {
     }
 }
 
-function BowserSessao() {
-    localStorage.removeItem("pep_sessao_ativa");
-    window.location.reload();
+function aplicarRestricoesDePerfil(perfil, equipe) {
+    const seletorAcesso = document.getElementById("seletorNivelAcesso");
+    const btnAuditoria = document.getElementById("btnAuditoria");
+    const linkNovoProntuario = document.getElementById("navLinkNovoProntuario");
+    const painelAdminVisual = document.getElementById("blocoConfigAdmin");
+
+    // Controle de telas administrativas
+    if (perfil === "admin") {
+        if (seletorAcesso) seletorAcesso.style.display = "inline-block";
+        if (btnAuditoria) btnAuditoria.style.display = "inline-block";
+        if (painelAdminVisual) painelAdminVisual.style.display = "block";
+    } else {
+        if (seletorAcesso) seletorAcesso.style.display = "none";
+        if (btnAuditoria) btnAuditoria.style.display = "none";
+        if (painelAdminVisual) painelAdminVisual.style.display = "none";
+    }
+
+    // Regra estrita de bloqueio clínico para Visualizador
+    if (perfil === "visualizador") {
+        if (linkNovoProntuario) linkNovoProntuario.style.display = "none";
+        mostrarToast(`🔒 Modo Visualizador: Acesso restrito aos dados de monitoramento da ${equipe}.`);
+    } else {
+        if (linkNovoProntuario) linkNovoProntuario.style.display = "inline-block";
+    }
+}
+
+/**
+ * PAINEL ADMINISTRATIVO: Criação de novos perfis amarrados à equipe
+ */
+function criarNovoUsuarioPainel() {
+    const matricula = document.getElementById("adminMatricula").value.trim();
+    const nome = document.getElementById("adminNome").value.trim();
+    const perfil = document.getElementById("adminPerfil").value;
+    const equipe = document.getElementById("adminEquipe").value;
+
+    if (!matricula || !nome || !perfil || !equipe) {
+        mostrarToast("❌ Preencha todos os campos do formulário de usuário.");
+        return;
+    }
+
+    USUARIOS_SISTEMA[matricula] = { nome: nome, perfil: perfil, equipe: equipe };
+    localStorage.setItem("pep_usuarios_painel", JSON.stringify(USUARIOS_SISTEMA));
+    
+    mostrarToast(`✅ Usuário ${nome} cadastrado com sucesso na ${equipe}!`);
+    
+    // Limpa campos do painel administrador
+    document.getElementById("adminMatricula").value = "";
+    document.getElementById("adminNome").value = "";
 }
 
 function efetuarLogout() {
@@ -112,24 +144,18 @@ function efetuarLogout() {
     window.location.reload();
 }
 
-function alternarVisaoGestor(perfil) {
-    const btnAuditoria = document.getElementById("btnAuditoria");
-    if (perfil === "admin") {
-        btnAuditoria.style.display = "inline-block";
-        mostrarToast("🔄 Mudança para Perfil de Gestor/Coordenador.");
-    } else {
-        btnAuditoria.style.display = "none";
-        if (document.getElementById("view-config").style.display === "block") {
-            navigate('inicio');
-        }
-        mostrarToast("🔄 Mudança para Perfil Assistencial.");
-    }
-}
-
 /* ==========================================================================
    🗺️ ROTAS NATIVAS E COMPORTAMENTO DE TELA
    ========================================================================== */
 function navigate(viewName) {
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    const user = sessao ? JSON.parse(sessao) : null;
+
+    if (user && user.perfil === "visualizador" && viewName === "prontuario") {
+        mostrarToast("🚫 Permissão negada: Seu perfil não possui atribuições assistenciais.");
+        return;
+    }
+
     document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
@@ -147,33 +173,30 @@ function mostrarCard(id, valor) {
 }
 
 /* ==========================================================================
-   🧬 MOTOR DE AUTOCOMPLETAR: INTEGRALIZAÇÃO DO CATÁLOGO CIAP-2
+   🧬 INTEGRAÇÃO CIPE.JS VIA ESCOPO GLOBAL WINDOW
    ========================================================================== */
-function inicializarAutocompleteCIAP() {
-    const datalist = document.getElementById("listaCIAP");
+function vincularCatalogoCipeJS() {
+    const datalist = document.getElementById("listaCIPE");
     if (!datalist) return;
 
-    if (typeof CATALOGO_CIAPS2 === "undefined") {
-        console.error("Erro: CATALOGO_CIAPS2 não está acessível no escopo global.");
+    datalist.innerHTML = "";
+    const catalogoOrigem = window.CATALOGO_CIPE || window.cipe || null;
+
+    if (!catalogoOrigem) {
+        console.warn("⚠️ Arquivo 'cipe.js' ausente ou objeto não inicializado.");
         return;
     }
 
-    datalist.innerHTML = "";
-    Object.entries(CATALOGO_CIAPS2).forEach(([codigo, descricao]) => {
+    Object.entries(catalogoOrigem).forEach(([codigo, descricao]) => {
         const option = document.createElement("option");
         option.value = `${codigo} - ${descricao}`;
         datalist.appendChild(option);
     });
-    console.log(`🧬 Autocomplete CIAP-2 carregado: ${Object.keys(CATALOGO_CIAPS2).length} códigos cadastrados.`);
 }
 
 /* ==========================================================================
    🩺 LÓGICA CLÍNICA E SUPORTE DINÂMICO AO REGISTRO S.O.A.P.
    ========================================================================== */
-
-/**
- * Alterna a visibilidade da caixa de texto detalhada para o exame físico alterado
- */
 function alternarExameFisico(status) {
     const bloco = document.getElementById("blocoExameAlterado");
     if (status === "Alterado") {
@@ -227,7 +250,6 @@ function calcIG() {
     if (!dum) return;
     const dataDum = new Date(dum);
     const hoje = new Date();
-    
     const diffTime = Math.abs(hoje - dataDum);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const semanas = Math.floor(diffDays / 7);
@@ -240,9 +262,6 @@ function calcIG() {
     document.getElementById("gestDPP").value = dpp.toLocaleDateString('pt-BR');
 }
 
-/* ==========================================================================
-   📍 GEOLOCALIZAÇÃO: CONSUMO INTEGRADO DA API VIACEP
-   ========================================================================== */
 function buscarCEP() {
     const cep = document.getElementById("CEP").value.replace(/\D/g, '');
     if (cep.length !== 8) return;
@@ -267,12 +286,8 @@ function buscarCEP() {
 }
 
 /* ==========================================================================
-   🔔 CENTRAL DE AVISOS TERRITORIAIS (SISTEMA DE MONITORAMENTO)
+   🔔 CENTRAL DE AVISOS TERRITORIAIS COM ISOLAMENTO DE FILTRO
    ========================================================================== */
-
-/**
- * Varre o banco local e atualiza o contador e a cor do sininho se houver reavaliação para 0 dias
- */
 function atualizarCentralAvisosSininho() {
     if (!db) return;
 
@@ -281,46 +296,57 @@ function atualizarCentralAvisosSininho() {
     const request = store.getAll();
 
     request.onsuccess = function() {
-        const todosPacientes = request.result;
-        // Filtra os utentes que possuem o contador de reavaliação em exatamente 0
-        const expirados = todosPacientes.filter(p => p.reavaliacaoDias !== undefined && parseInt(p.reavaliacaoDias) === 0);
+        const sessao = localStorage.getItem("pep_sessao_ativa");
+        const user = sessao ? JSON.parse(sessao) : null;
+        if (!user) return;
+
+        // Regra de Isolamento Territorial: Filtra os pacientes antes de calcular os avisos
+        let pacientesFiltrados = request.result;
+        if (user.perfil !== "admin") {
+            pacientesFiltrados = pacientesFiltrados.filter(p => p.equipe === user.equipe);
+        }
+
+        const expirados = pacientesFiltrados.filter(p => p.reavaliacaoDias !== undefined && parseInt(p.reavaliacaoDias) === 0);
 
         const contador = document.getElementById("contadorAvisosSininho");
         const container = document.getElementById("centralAvisosContainer");
         
         if (contador && container) {
             contador.innerText = expirados.length;
-            
             if (expirados.length > 0) {
                 container.style.background = "var(--danger)";
                 container.style.animation = "pulse 1.5s infinite";
-                container.title = `${expirados.length} Cidadãos precisam de reavaliação imediata da equipe!`;
             } else {
                 container.style.background = "#334155";
                 container.style.animation = "none";
-                container.title = "Nenhuma pendência crítica de prazos no território.";
             }
         }
     };
 }
 
 /* ==========================================================================
-   💾 OPERAÇÕES DE PERSISTÊNCIA: GRAVAÇÃO E TRATAMENTO DE ATENDIMENTOS
+   💾 OPERAÇÕES DE PERSISTÊNCIA E VALIDAÇÃO DE SEGURANÇA
    ========================================================================== */
-
 function salvarProntuario() {
     const cpf = document.getElementById("cpfPaciente").value.trim();
     const nome = document.getElementById("nomePaciente").value.trim();
+    const equipePaciente = document.getElementById("equipePaciente").value;
 
-    if (!cpf || !nome) {
-        mostrarToast("❌ Erro: O preenchimento do Nome e do CPF é obrigatório.");
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    const user = sessao ? JSON.parse(sessao) : null;
+
+    if (!cpf || !nome || !equipePaciente) {
+        mostrarToast("❌ Erro: Nome, CPF e Equipe são obrigatórios para salvar.");
         return;
     }
 
-    // Coleta do Registro Clínico Estruturado (S.O.A.P.)
+    // Trava de segurança: impede que profissional insira dados fora de sua equipe de atuação
+    if (user && user.perfil !== "admin" && equipePaciente !== user.equipe) {
+        mostrarToast(`🚫 Operação Negada: Você só pode registrar pacientes para a sua equipe (${user.equipe}).`);
+        return;
+    }
+
     const sub = document.getElementById("soapSubjetivo").value;
-    
-    // Novos campos estruturados da Seção O - Objetivo (Sinais Vitais)
     const pa = document.getElementById("objPA").value;
     const fc = document.getElementById("objFC").value;
     const fr = document.getElementById("objFR").value;
@@ -329,22 +355,19 @@ function salvarProntuario() {
 
     const examenStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
     const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
-    
-    const ciap = document.getElementById("inputBuscaCIAPS").value;
+    const cipeSelecionada = document.getElementById("inputBuscaCIPE").value;
     const plano = document.getElementById("soapPlanoConduta").value;
     const diasPrazo = document.getElementById("soapReavaliacaoDias").value;
 
     const exameFisicoTexto = examenStatus === "Normal" ? "Normal / Sem particularidades" : `ALTERADO: ${exameDetalhe}`;
 
-    // Concatenação formatada da evolução para persistência na Linha do Tempo histórica
     const novaEvolucaoFormatada = `--- ATENDIMENTO MUNICIPAL EM ${new Date().toLocaleDateString('pt-BR')} ---\n` +
-                                  `S: ${sub || "Sem queixas registradas."}\n` +
-                                  `O: [SSVV -> PA: ${pa || 'N/I'} | FC: ${fc || 'N/I'} bpm | FR: ${fr || 'N/I'} irpm | SatO₂: ${sat || 'N/I'}% | Dor: ${dor}/10]\n` +
-                                  `   Exame Físico Geral: ${exameFisicoTexto}\n` +
-                                  `A: CIAP-2 Selecionado: ${ciap || "Não classificado."}\n` +
-                                  `P: Plano de Cuidados: ${plano || "Conduta padrão."} | Reavaliação: em ${diasPrazo} dias.`;
+                                  `S: ${sub || "Sem queixas."}\n` +
+                                  `O: [SSVV -> PA: ${pa || 'N/I'} | FC: ${fc || 'N/I'} bpm | SatO₂: ${sat || 'N/I'}%]\n` +
+                                  `   Exame: ${exameFisicoTexto}\n` +
+                                  `A: CIPE: ${cipeSelecionada || "Não mapeado."}\n` +
+                                  `P: Conduta: ${plano || "Plano padrão."} | Prazo: ${diasPrazo} dias.`;
 
-    // Resgata se o paciente já possui histórico para acumular evoluções
     const transactionBuscar = db.transaction(["pacientes"], "readonly");
     const storeBuscar = transactionBuscar.objectStore("pacientes");
     const requestBuscar = storeBuscar.get(cpf);
@@ -354,9 +377,8 @@ function salvarProntuario() {
         if (requestBuscar.result && requestBuscar.result.historicoEvolucoes) {
             historicoEvolucoes = requestBuscar.result.historicoEvolucoes;
         }
-        historicoEvolucoes.unshift(novaEvolucaoFormatada); // Adiciona a mais recente no início
+        historicoEvolucoes.unshift(novaEvolucaoFormatada);
 
-        // Montagem do payload completo do Utente mapeado com chaves padronizadas
         const pacientePayload = {
             cpf: cpf,
             nome: nome,
@@ -368,7 +390,7 @@ function salvarProntuario() {
             numero: document.getElementById("endNumero").value,
             complemento: document.getElementById("endComplemento").value,
             ubs: document.getElementById("unidadePaciente").value,
-            equipe: document.getElementById("equipePaciente").value,
+            equipe: equipePaciente,
             
             has: document.getElementById("hasSN").value,
             hasPAS: document.getElementById("hasPAS").value,
@@ -388,7 +410,6 @@ function salvarProntuario() {
             hanseniase: document.getElementById("hansenSN").checked ? "Sim" : "Não",
             ampi: document.getElementById("ampiPaciente").value,
             
-            // Persistência dos campos de Sinais Vitais no objeto
             objPA: pa,
             objFC: fc,
             objFR: fr,
@@ -397,7 +418,7 @@ function salvarProntuario() {
             exameFisicoStatus: examenStatus,
             soapObjetivoAlterado: exameDetalhe,
             
-            reavaliacaoDias: parseInt(diasPrazo) || 0, // Metadado indexador do sininho
+            reavaliacaoDias: parseInt(diasPrazo) || 0,
             historicoEvolucoes: historicoEvolucoes
         };
 
@@ -406,7 +427,7 @@ function salvarProntuario() {
         const requestSalvar = storeSalvar.put(pacientePayload);
 
         requestSalvar.onsuccess = function() {
-            mostrarToast("💾 Prontuário SOAP gravado na base territorial!");
+            mostrarToast("💾 Registro Clínico territorial salvo.");
             limparFormularioProntuario();
             atualizarIndicadoresDashboard();
             atualizarCentralAvisosSininho();
@@ -417,26 +438,22 @@ function salvarProntuario() {
 }
 
 function limparFormularioProntuario() {
-    // Limpeza dos inputs de texto e áreas estruturadas SOAP
     document.getElementById("soapSubjetivo").value = "";
-    
-    // Limpeza da grade de sinais vitais e exame físico
     document.getElementById("objPA").value = "";
     document.getElementById("objFC").value = "";
     document.getElementById("objFR").value = "";
     document.getElementById("objSatO2").value = "";
     document.getElementById("objDor").value = "0";
-    document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+    const radNormal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
+    if (radNormal) radNormal.checked = true;
     document.getElementById("blocoExameAlterado").style.display = "none";
     document.getElementById("soapObjetivoAlterado").value = "";
-    
     document.getElementById("soapPlanoConduta").value = "";
     document.getElementById("soapReavaliacaoDias").value = "0";
-    document.getElementById("inputBuscaCIAPS").value = "";
+    document.getElementById("inputBuscaCIPE").value = "";
 
-    // Campos cadastrais e de endereço
     const campos = ["nomePaciente", "cpfPaciente", "nascPaciente", "idadePaciente", "telPaciente", "CEP", "endPaciente", "endNumero", "endComplemento", "hasPAS", "hasPAD", "hasClassif", "dmHbA1c", "dmClassif", "gestDUM", "gestIG", "gestDPP"];
-    campos.forEach(c => document.getElementById(c).value = "");
+    campos.forEach(c => { const el = document.getElementById(c); if(el) el.value = ""; });
 
     document.getElementById("hasSN").value = "Não";
     document.getElementById("dmSN").value = "Não";
@@ -452,12 +469,11 @@ function limparFormularioProntuario() {
     document.getElementById("cardGestante").style.display = "none";
     document.getElementById("ampiBloco").style.display = "none";
     document.getElementById("cabecalhoProntuario").style.display = "none";
-    
     document.getElementById("linhaTempoEvolucoes").innerHTML = "";
 }
 
 /* ==========================================================================
-   🔍 MECANISMO DE CONSULTA E BUSCA ATIVA EPIDEMIOLÓGICA
+   🔍 CONSULTA EPIDEMIOLÓGICA COM ISOLAMENTO DE ACESSO GEOGRÁFICO
    ========================================================================== */
 function buscarInicio() {
     const termo = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
@@ -468,53 +484,55 @@ function buscarInicio() {
         return;
     }
 
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    const user = sessao ? JSON.parse(sessao) : null;
+    if (!user) return;
+
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.getAll();
 
     request.onsuccess = function() {
+        // Aplicação do filtro geográfico e de busca simultaneamente
         const resultados = request.result.filter(p => {
             const nomeMatch = p.nome.toLowerCase().includes(termo);
             const cpfMatch = p.cpf.includes(termo);
-            const hasMatch = (termo === "has" || termo === "hipertensão") && p.has === "Sim";
-            const dmMatch = (termo === "dm" || termo === "diabetes") && p.dm === "Sim";
-            const pnMatch = (termo === "pn" || termo === "pré-natal" || termo === "gestante") && p.gestante === "Sim";
-            const tbMatch = (termo === "tb" || termo === "tuberculose") && p.tuberculose === "Sim";
-            const hansenMatch = (termo === "hansen" || termo === "hanseníase") && p.hanseniase === "Sim";
-            const criticoMatch = termo === "crítico" && p.reavaliacaoDias === 0;
-
-            return nomeMatch || cpfMatch || hasMatch || dmMatch || pnMatch || tbMatch || hansenMatch || criticoMatch;
+            
+            // Administrador vê tudo, equipes específicas têm escopo fechado
+            const equipeMatch = (user.perfil === "admin") || (p.equipe === user.equipe);
+            
+            return (nomeMatch || cpfMatch) && equipeMatch;
         });
         
         if (resultados.length === 0) {
-            container.innerHTML = `<p style="color: var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado com este critério no território.</p>`;
+            container.innerHTML = `<p style="color: var(--danger); font-weight:600;">⚠️ Nenhum prontuário localizado nesta área de abrangência.</p>`;
             return;
         }
 
-        let html = '<table><thead><tr><th>Cidadão / CPF</th><th>Vínculo Operacional</th><th>Linhas de Cuidado Ativas</th><th>Ações</th></tr></thead><tbody>';
+        let html = '<table><thead><tr><th>Cidadão / CPF</th><th>Vínculo Operacional</th><th>Linhas Ativas</th><th>Ações</th></tr></thead><tbody>';
         resultados.forEach(p => {
             let tags = "";
-            if (p.has === "Sim") tags += `<span class="tag-clinica" style="background:var(--danger); margin-right:4px;">HAS</span> `;
-            if (p.dm === "Sim") tags += `<span class="tag-clinica" style="background:var(--success-dark); margin-right:4px;">DM</span> `;
-            if (p.gestante === "Sim") tags += `<span class="tag-clinica" style="background:var(--warning); color:#000; margin-right:4px;">PRÉ-NATAL</span> `;
-            if (p.tuberculose === "Sim") tags += `<span class="tag-clinica" style="background:#a21caf; margin-right:4px;">TB</span> `;
-            if (p.hanseniase === "Sim") tags += `<span class="tag-clinica" style="background:var(--primary-neon); margin-right:4px;">HANSEN</span> `;
-            if (p.reavaliacaoDias === 0) tags += `<span class="tag-clinica" style="background:#7c2d12; margin-right:4px;">🔔 CRÍTICO</span> `;
+            
+            if (user.perfil !== "visualizador") {
+                if (p.has === "Sim") tags += `<span class="tag-clinica" style="background:var(--danger); margin-right:4px;">HAS</span> `;
+                if (p.dm === "Sim") tags += `<span class="tag-clinica" style="background:var(--success-dark); margin-right:4px;">DM</span> `;
+                if (p.gestante === "Sim") tags += `<span class="tag-clinica" style="background:var(--warning); color:#000; margin-right:4px;">PRÉ-NATAL</span> `;
+                if (p.tuberculose === "Sim") tags += `<span class="tag-clinica" style="background:#a21caf; margin-right:4px;">TB</span> `;
+                if (p.hanseniase === "Sim") tags += `<span class="tag-clinica" style="background:var(--primary-neon); margin-right:4px;">HANSEN</span> `;
+            } else {
+                tags = `<span class="tag-clinica" style="background:#475569;">[PROTEGIDO]</span>`;
+            }
+
+            const botaoAcao = (user.perfil === "visualizador") 
+                ? `<span style="color:var(--text-muted); font-size:12px;">Visualização</span>`
+                : `<button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">🩺 Abrir SOAP</button>`;
 
             html += `
                 <tr>
-                    <td>
-                        <b>${p.nome}</b><br>
-                        <small style="color:var(--text-muted); font-mono">${p.cpf}</small>
-                    </td>
-                    <td>
-                        <small style="display:block; font-weight:600;">${p.ubs || "Não vinculada"}</small>
-                        <small style="color:var(--text-muted);">${p.equipe || "Sem equipe"}</small>
-                    </td>
-                    <td>${tags || '<span class="tag-clinica" style="background:var(--bg-input); color:var(--text-muted);">Geral</span>'}</td>
-                    <td>
-                        <button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">🩺 Abrir SOAP</button>
-                    </td>
+                    <td><b>${p.nome}</b><br><small style="color:var(--text-muted);">${p.cpf}</small></td>
+                    <td><small style="display:block; font-weight:600;">${p.ubs || "N/V"}</small><small style="color:var(--text-muted);">${p.equipe}</small></td>
+                    <td>${tags}</td>
+                    <td>${botaoAcao}</td>
                 </tr>
             `;
         });
@@ -524,6 +542,14 @@ function buscarInicio() {
 }
 
 function carregarPacienteProntuario(cpf) {
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    const user = sessao ? JSON.parse(sessao) : null;
+
+    if (user && user.perfil === "visualizador") {
+        mostrarToast("🚫 Acesso negado: Perfil sem credencial clínica.");
+        return;
+    }
+
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.get(cpf);
@@ -532,10 +558,15 @@ function carregarPacienteProntuario(cpf) {
         const p = request.result;
         if (!p) return;
 
+        // Camada dupla de proteção territorial na abertura direta por URL/Chamada
+        if (user && user.perfil !== "admin" && p.equipe !== user.equipe) {
+            mostrarToast("🚫 Violação de Acesso: Este paciente pertence a outro território.");
+            return;
+        }
+
         navigate('prontuario');
         limparFormularioProntuario();
 
-        // Vinculação de dados cadastrais
         document.getElementById("nomePaciente").value = p.nome;
         document.getElementById("cpfPaciente").value = p.cpf;
         document.getElementById("nascPaciente").value = p.nascimento || "";
@@ -548,24 +579,18 @@ function carregarPacienteProntuario(cpf) {
         document.getElementById("unidadePaciente").value = p.ubs || "";
         document.getElementById("equipePaciente").value = p.equipe || "";
 
-        // Repovoamento dos Sinais Vitais Estruturados (O)
         document.getElementById("objPA").value = p.objPA || "";
         document.getElementById("objFC").value = p.objFC || "";
         document.getElementById("objFR").value = p.objFR || "";
         document.getElementById("objSatO2").value = p.objSatO2 || "";
         document.getElementById("objDor").value = p.objDor || "0";
 
-        // Comportamento dinâmico do Exame Físico Geral
         if (p.exameFisicoStatus === "Alterado") {
             document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
             document.getElementById("blocoExameAlterado").style.display = "block";
             document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
-        } else {
-            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
-            document.getElementById("blocoExameAlterado").style.display = "none";
         }
 
-        // Configuração de Linhas de cuidado
         document.getElementById("hasSN").value = p.has || "Não";
         mostrarCard('cardHAS', p.has || "Não");
         document.getElementById("hasPAS").value = p.hasPAS || "";
@@ -586,35 +611,23 @@ function carregarPacienteProntuario(cpf) {
         document.getElementById("tbSN").checked = (p.tuberculose === "Sim");
         document.getElementById("hansenSN").checked = (p.hanseniase === "Sim");
         document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
-        if (parseInt(p.idade) >= 60) document.getElementById("ampiBloco").style.display = "block";
 
-        // Montagem da Linha de Tempo de Atendimentos Anteriores
         if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
-            let htmlTimeline = `<label style='font-weight:700;'>⏳ Histórico Clínico Digital (Últimas Evoluções):</label><div class='timeline'>`;
+            let htmlTimeline = `<label style='font-weight:700;'>⏳ Histórico Clínico Digital CIPE:</label><div class='timeline'>`;
             p.historicoEvolucoes.forEach(evo => {
-                htmlTimeline += `
-                    <div class='timeline-item'>
-                        <div class='timeline-body'>${evo}</div>
-                    </div>
-                `;
+                htmlTimeline += `<div class='timeline-item'><div class='timeline-body'>${evo}</div></div>`;
             });
             htmlTimeline += `</div>`;
             document.getElementById("linhaTempoEvolucoes").innerHTML = htmlTimeline;
         }
 
-        // Cabeçalho azul informativo de prontuário ativo
-        document.getElementById("cabecalhoNome").innerText = `👤 UTENTE EM ATENDIMENTO ATIVO: ${p.nome.toUpperCase()} (${p.cpf})`;
+        document.getElementById("cabecalhoNome").innerText = `👤 UTENTE EM ATENDIMENTO ATIVO: ${p.nome.toUpperCase()}`;
         document.getElementById("cabecalhoProntuario").style.display = "block";
     };
 }
 
-// Apelido para manter compatibilidade com cliques antigos do card de busca
-function abrirAtendimentoExistente(cpf) {
-    carregarPacienteProntuario(cpf);
-}
-
 /* ==========================================================================
-   📊 VIGILÂNCIA EPIDEMIOLÓGICA & ATUALIZAÇÃO DO DASHBOARD CENTRAL
+   📊 DASHBOARD TERRITORIAL (SÓ SOMA O QUE FOR DA PRÓPRIA EQUIPE)
    ========================================================================== */
 function atualizarIndicadoresDashboard() {
     if (!db) return;
@@ -623,12 +636,29 @@ function atualizarIndicadoresDashboard() {
     const request = store.getAll();
 
     request.onsuccess = function() {
-        const dados = request.result;
-        document.getElementById("dashHAS").innerText = dados.filter(p => p.has === "Sim").length;
-        document.getElementById("dashDM").innerText = dados.filter(p => p.dm === "Sim").length;
-        document.getElementById("dashGest").innerText = dados.filter(p => p.gestante === "Sim").length;
-        document.getElementById("dashTB").innerText = dados.filter(p => p.tuberculose === "Sim").length;
-        document.getElementById("dashHansen").innerText = dados.filter(p => p.hanseniase === "Sim").length;
+        const sessao = localStorage.getItem("pep_sessao_ativa");
+        const user = sessao ? JSON.parse(sessao) : null;
+        if (!user) return;
+
+        // Se for visualizador, os cards mantêm blindagem de dados cega
+        if (user.perfil === "visualizador") {
+            ["dashHAS", "dashDM", "dashGest", "dashTB", "dashHansen"].forEach(id => {
+                document.getElementById(id).innerText = "🔒";
+            });
+            return;
+        }
+
+        // Aplicação do filtro de territorialização na somatória de indicadores
+        let dadosFiltrados = request.result;
+        if (user.perfil !== "admin") {
+            dadosFiltrados = dadosFiltrados.filter(p => p.equipe === user.equipe);
+        }
+
+        document.getElementById("dashHAS").innerText = dadosFiltrados.filter(p => p.has === "Sim").length;
+        document.getElementById("dashDM").innerText = dadosFiltrados.filter(p => p.dm === "Sim").length;
+        document.getElementById("dashGest").innerText = dadosFiltrados.filter(p => p.gestante === "Sim").length;
+        document.getElementById("dashTB").innerText = dadosFiltrados.filter(p => p.tuberculose === "Sim").length;
+        document.getElementById("dashHansen").innerText = dadosFiltrados.filter(p => p.hanseniase === "Sim").length;
     };
 }
 
@@ -639,52 +669,52 @@ function listarTodosBanco() {
     const request = store.getAll();
 
     request.onsuccess = function() {
-        const dados = request.result;
         const container = document.getElementById("tabelaBancoContainer");
+        const sessao = localStorage.getItem("pep_sessao_ativa");
+        const user = sessao ? JSON.parse(sessao) : null;
+        if (!user) return;
 
-        if (dados.length === 0) {
-            container.innerHTML = `<p style="color:#64748b;">Nenhum prontuário residente no banco local.</p>`;
+        // Filtro territorial compulsório para a listagem interna do banco
+        let dadosExibicao = request.result;
+        if (user.perfil !== "admin") {
+            dadosExibicao = dadosExibicao.filter(p => p.equipe === user.equipe);
+        }
+
+        if (dadosExibicao.length === 0) {
+            container.innerHTML = `<p style="color:#64748b;">Nenhum prontuário residente na área desta equipe.</p>`;
             return;
         }
 
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome do Utente</th>
-                        <th>CPF</th>
-                        <th>Idade</th>
-                        <th>UBS Vinculada</th>
-                        <th>Linhas Ativas</th>
-                        <th>Prazo (Dias)</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        let html = `<table><thead><tr><th>Nome do Utente</th><th>CPF</th><th>Idade</th><th>Equipe Vinculada</th><th>Linhas Ativas</th><th>Ações</th></tr></thead><tbody>`;
 
-        dados.forEach(p => {
+        dadosExibicao.forEach(p => {
             let linhas = [];
-            if (p.has === "Sim") linhas.push("HAS");
-            if (p.dm === "Sim") linhas.push("DM");
-            if (p.gestante === "Sim") linhas.push("PN");
-            if (p.tuberculose === "Sim") linhas.push("TB");
-            if (p.hanseniase === "Sim") linhas.push("HANSEN");
+            if (user.perfil !== "visualizador") {
+                if (p.has === "Sim") linhas.push("HAS");
+                if (p.dm === "Sim") linhas.push("DM");
+                if (p.gestante === "Sim") linhas.push("PN");
+                if (p.tuberculose === "Sim") linhas.push("TB");
+                if (p.hanseniase === "Sim") linhas.push("HANSEN");
+            } else {
+                linhas.push("Ocultado");
+            }
 
-            const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
+            const botaoRemover = (user.perfil === "admin") 
+                ? `<button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>`
+                : "";
+
+            const botaoAbrir = (user.perfil === "visualizador")
+                ? `<span style="color:var(--text-muted);">Apenas Leitura</span>`
+                : `<button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">Abrir</button>`;
 
             html += `
                 <tr>
                     <td><strong>${p.nome}</strong></td>
                     <td>${p.cpf}</td>
                     <td>${p.idade} Anos</td>
-                    <td>${p.ubs || "Não informada"}</td>
+                    <td><span class="tag-clinica" style="background:#1e293b;">${p.equipe}</span></td>
                     <td>${linhas.join(", ") || "Nenhuma"}</td>
-                    <td>${badgePrazo}</td>
-                    <td class="action-buttons">
-                        <button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">Abrir</button>
-                        <button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
-                    </td>
+                    <td class="action-buttons">${botaoAbrir} ${botaoRemover}</td>
                 </tr>
             `;
         });
@@ -695,14 +725,22 @@ function listarTodosBanco() {
 }
 
 function removerPacienteDoTerritorio(cpf) {
-    if (!confirm("Tem certeza de que deseja remover permanentemente este utente da base territorial municipal?")) return;
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    const user = sessao ? JSON.parse(sessao) : null;
+
+    if (!user || user.perfil !== "admin") {
+        mostrarToast("🚫 Operação negada: Apenas administradores globais podem expurgar dados.");
+        return;
+    }
+
+    if (!confirm("Remover definitivamente o utente do banco local?")) return;
     
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
     const request = store.delete(cpf);
 
     request.onsuccess = function() {
-        mostrarToast("🗑️ Registro de cidadão removido com sucesso.");
+        mostrarToast("🗑️ Registro de cidadão removido.");
         listarTodosBanco();
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
@@ -710,271 +748,95 @@ function removerPacienteDoTerritorio(cpf) {
 }
 
 /* ==========================================================================
-   📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA (EXEMPLO DE FILTRO)
-   ========================================================================== */
-let linhaCuidadoAtualVisualizacao = "has";
-
-function abrirPainelEpidemiologico(linhaCuidado) {
-    linhaCuidadoAtualVisualizacao = linhaCuidado;
-    document.getElementById("painelEpidemiologicoContainer").style.display = "block";
-    
-    const titulos = {
-        has: "Monitoramento Territorial: Hipertensão Arterial Sistêmica (HAS)",
-        dm: "Monitoramento Territorial: Diabetes Mellitus (DM)",
-        gestante: "Monitoramento Territorial: Vigilância de Pré-Natal (Cegonha)",
-        tuberculose: "Monitoramento Epidemiológico: Tuberculose",
-        hanseniase: "Monitoramento Epidemiológico: Hanseníase",
-        criticos: "🚨 Central de Alertas Rápidos: Utentes com Prazo Expirado (0 Dias)"
-    };
-    
-    document.getElementById("tituloPainelEpidemiologico").innerText = titulos[linhaCuidado] || "Vigilância em Saúde";
-    carregarFiltrosModalUBS();
-}
-
-function fecharPainelEpidemiologico() {
-    document.getElementById("painelEpidemiologicoContainer").style.display = "none";
-}
-
-function carregarFiltrosModalUBS() {
-    const ubsSelect = document.getElementById("filtroUBS");
-    const equipeSelect = document.getElementById("filtroEquipe");
-    
-    ubsSelect.innerHTML = "<option value='TODAS'>Todas as Unidades</option><option value='UBS Centro Médico'>UBS Centro Médico</option><option value='UBS Vila Nova'>UBS Vila Nova</option><option value='Clínica da Família Zona Sul'>Clínica da Família Zona Sul</option><option value='UBS Integrada Norte'>UBS Integrada Norte</option>";
-    equipeSelect.innerHTML = "<option value='TODAS'>Todas as Equipes</option><option value='Equipe Verde'>Equipe Verde</option><option value='Equipe Azul'>Equipe Azul</option><option value='Equipe Esmeralda'>Equipe Esmeralda</option><option value='Equipe Rubi'>Equipe Rubi</option>";
-    
-    document.getElementById("filtroRisco").value = "TODOS";
-    aplicarFiltrosRelatorio();
-}
-
-function aplicarFiltrosRelatorio() {
-    if (!db) return;
-    const ubs = document.getElementById("filtroUBS").value;
-    const equipe = document.getElementById("filtroEquipe").value;
-    const risco = document.getElementById("filtroRisco").value;
-
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.getAll();
-
-    request.onsuccess = function() {
-        let filtrados = request.result;
-
-        // Filtro por Linha de Cuidado / Sininho Crítico
-        if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tuberculose === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hanseniase === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "criticos") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
-
-        // Filtros de Localidade/UBS/Equipe
-        if (ubs !== "TODAS") filtrados = filtrados.filter(p => p.ubs === ubs);
-        if (equipe !== "TODAS") filtrados = filtrados.filter(p => p.equipe === equipe);
-        
-        // Filtros Rápidos de Risco
-        if (risco === "CRITICO") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
-        else if (risco === "CONTROLADO") filtrados = filtrados.filter(p => p.reavaliacaoDias > 0);
-
-        // Renderiza Gráficos Nativos SVG/CSS baseados nos filtrados
-        renderizarGraficosModal(filtrados);
-
-        // Constrói tabela interna do modal
-        const tabela = document.getElementById("tabelaPainelEpidemiologico");
-        if (filtrados.length === 0) {
-            tabela.innerHTML = "<p style='color:#64748b; padding:10px;'>Nenhum utente localizado sob estes critérios de filtro territorial.</p>";
-            return;
-        }
-
-        let html = "<table><thead><tr><th>Nome</th><th>CPF</th><th>UBS</th><th>Equipe</th><th>Monitoramento</th></tr></thead><tbody>";
-        filtrados.forEach(p => {
-            html += `<tr>
-                <td><b>${p.nome}</b></td>
-                <td>${p.cpf}</td>
-                <td>${p.ubs || "Pendente"}</td>
-                <td>${p.equipe || "Pendente"}</td>
-                <td>${p.reavaliacaoDias === 0 ? "🚨 Reavaliação Urgente" : `Acompanhamento em ${p.reavaliacaoDias}d`}</td>
-            </tr>`;
-        });
-        html += "</tbody></table>";
-        tabela.innerHTML = html;
-    };
-}
-
-function renderizarGraficosModal(lista) {
-    const total = lista.length;
-    const criticos = lista.filter(p => p.reavaliacaoDias === 0).length;
-    const controlados = total - criticos;
-    
-    const pctCritico = total > 0 ? Math.round((criticos / total) * 100) : 0;
-
-    // Donut de Criticidade
-    document.getElementById("containerGraficoDonut").innerHTML = `
-        <div class="donut-wrapper">
-            <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut-svg">
-                <circle class="donut-bg" cx="21" cy="21" r="15.915"></circle>
-                <circle class="donut-segment" cx="21" cy="21" r="15.915" stroke="var(--danger)" stroke-dasharray="${pctCritico} ${100 - pctCritico}" stroke-dashoffset="0"></circle>
-            </svg>
-            <div class="donut-center-text">
-                <span class="donut-number">${pctCritico}%</span>
-                <span class="donut-label">Críticos</span>
-            </div>
-        </div>
-    `;
-
-    // Barras de Volumetria
-    document.getElementById("containerGraficoBarras").innerHTML = `
-        <div class="bar-chart-container">
-            <div class="bar-row">
-                <div class="bar-label"><span>Críticos (0 Dias)</span><span>${criticos} Utentes</span></div>
-                <div class="bar-track"><div class="bar-fill" style="width: ${pctCritico}%; background: var(--danger)"></div></div>
-            </div>
-            <div class="bar-row" style="margin-top:10px;">
-                <div class="bar-label"><span>Controlados / Monitorados</span><span>${controlados} Utentes</span></div>
-                <div class="bar-track"><div class="bar-fill" style="width: ${total > 0 ? 100 - pctCritico : 0}%; background: var(--success)"></div></div>
-            </div>
-        </div>
-    `;
-}
-
-/* ==========================================================================
-   ⚙️ GESTÃO DE ESTRESSE DE MEMÓRIA & INTEROPERABILIDADE ACADÉMICA
+   ⚙️ GESTÃO DE ESTRESSE DE MEMÓRIA (INJETA BALANCEADO ENTRE AS EQUIPES)
    ========================================================================== */
 function gerarCargaMassaOitoMil() {
-    if (!confirm("Esta ação injetará 8.000 cadastros simulados com strings SOAP completas no seu IndexedDB local para testes de latência. Continuar?")) return;
+    if (!db) {
+        mostrarToast("❌ Erro: Banco não conectado.");
+        return;
+    }
+
+    if (!confirm("Esta ação injetará 8.000 cadastros distribuídos igualmente entre as equipes (Verde, Azul, Esmeralda e Rubi). Continuar?")) return;
     
-    mostrarToast("⏳ Gerando matriz randômica de alta densidade... Aguarde.");
+    mostrarToast("⏳ Processando volumetria em lote distribuído... Aguarde.");
     
     const nomesFalsos = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana", "Marcos", "Letícia", "Lucas", "Beatriz", "Rodrigo", "Amanda", "Ricardo", "Camila", "Larissa", "Gustavo"];
-    const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa", "Ribeiro", "Carvalho", "Gomes", "Martins", "Rocha", "Alves", "Araújo", "Barbosa", "Melo", "Cardoso"];
-    const ubsFalsas = ["UBS Centro Médico", "UBS Vila Nova", "Clínica da Família Zona Sul", "UBS Integrada Norte"];
+    const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima"];
     const equipesFalsas = ["Equipe Verde", "Equipe Azul", "Equipe Esmeralda", "Equipe Rubi"];
-    const ciapsFalsos = ["K86 - Hipertensão sem complicações", "T90 - Diabetes insulinodependente", "W78 - Gravidez", "A70 - Tuberculose", "A78 - Hanseníase", "R74 - Sintomas respiratórios", "U99 - Outra doença musculoesquelética"];
 
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
 
+    let inseridosComSucesso = 0;
+
     for (let i = 0; i < 8000; i++) {
-        const cpfSimulado = `999.${String(Math.floor(100 + Math.random() * 899))}.${String(Math.floor(100 + Math.random() * 899))}-${String(Math.floor(10 + Math.random() * 89))}`;
+        const bloco1 = String(100 + Math.floor(Math.random() * 899));
+        const bloco2 = String(100 + Math.floor(Math.random() * 899));
+        const finalCpf = String(i).padStart(5, '0'); 
+        const cpfSimulado = `888.${bloco1}.${bloco2}-${finalCpf.substring(3,5)}`;
         
-        // Aleatorização de Gênero e Nome
         const indexNome = Math.floor(Math.random() * nomesFalsos.length);
-        const nomeCompleto = `${nomesFalsos[indexNome]} ${sobrenomesFalsos[Math.floor(Math.random() * sobrenomesFalsos.length)]} ${sobrenomesFalsos[Math.floor(Math.random() * sobrenomesFalsos.length)]}`;
-        
-        // Determina se é um nome socialmente feminino baseado na lista (índices pares na nossa array) para fins de Pré-Natal
+        const nomeCompleto = `${nomesFalsos[indexNome]} ${sobrenomesFalsos[Math.floor(Math.random() * sobrenomesFalsos.length)]}`;
         const ehFeminino = indexNome % 2 === 0;
 
-        // Gerador de Idade Totalmente Randômica (de 0 a 95 anos)
-        const idadeAleatoria = Math.floor(Math.random() * 96);
-        const anoNasc = 2026 - idadeAleatoria;
-        const mesNasc = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
-        const diaNasc = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
-        const dataNascimento = `${anoNasc}-${mesNasc}-${diaNasc}`;
+        const idadeAleatoria = Math.floor(Math.random() * 85) + 1;
+        const dataNascimento = `${2026 - idadeAleatoria}-01-15`;
 
-        // Distribuição Randômica das Linhas de Cuidado (Probabilidades baseadas em amostragem real de território)
-        const temHAS = Math.random() < 0.25 ? "Sim" : "Não"; // 25% de chance
-        const temDM = Math.random() < 0.15 ? "Sim" : "Não";  // 15% de chance
-        
-        // Só pode ser gestante se for do sexo feminino e tiver entre 12 e 49 anos (Probabilidade de 8% dentro dessa faixa)
+        const temHAS = Math.random() < 0.25 ? "Sim" : "Não";
+        const temDM = Math.random() < 0.15 ? "Sim" : "Não";
         const temGestante = (ehFeminino && idadeAleatoria >= 12 && idadeAleatoria <= 49 && Math.random() < 0.08) ? "Sim" : "Não";
-        
-        const temTB = Math.random() < 0.02 ? "Sim" : "Não";      // 2% de chance (Epidemiológico)
-        const temHansen = Math.random() < 0.015 ? "Sim" : "Não"; // 1.5% de chance
-
-        // Gerador de Sinais Vitais Instáveis e Randômicos
-        const pasAleatoria = Math.floor(100 + Math.random() * 90); // 100 a 190
-        const padAleatoria = Math.floor(60 + Math.random() * 50);   // 60 a 110
-        const fcAleatoria = Math.floor(55 + Math.random() * 65);    // 55 a 120
-        const frAleatoria = Math.floor(14 + Math.random() * 12);    // 14 a 26
-        const satAleatoria = Math.floor(92 + Math.random() * 8);    // 92% a 100%
-        const dorAleatoria = String(Math.floor(Math.random() * 11)); // 0 a 10
-
-        // Classificações Clínicas Automáticas Baseadas nos SSVV gerados
-        let classifHAS = "";
-        if (temHAS === "Sim") {
-            classifHAS = (pasAleatoria >= 180 || padAleatoria >= 110) ? "Crise Hipertensiva (Prioridade Máxima)" : 
-                         (pasAleatoria >= 140 || padAleatoria >= 90) ? "Hipertensão Estágio 1 ou 2 (Descontrolada)" : "Pressão Controlada / Alvo Terapêutico";
-        }
-
-        let classifDM = "";
-        let hba1cAleatoria = "";
-        if (temDM === "Sim") {
-            hba1cAleatoria = (5.5 + Math.random() * 5.5).toFixed(1); // 5.5 a 11.0 %
-            classifDM = parseFloat(hba1cAleatoria) >= 8.0 ? "Controle Metabólico Ruim (Alto Risco)" :
-                        parseFloat(hba1cAleatoria) >= 7.0 ? "Controle Limítrofe" : "Excelente Controle Glicêmico";
-        }
-
-        // Metadados do Pré-Natal se ativo
-        let gestDUM = ""; let gestIG = ""; let gestDPP = "";
-        if (temGestante === "Sim") {
-            const semanasFalsas = Math.floor(Math.random() * 38) + 2;
-            gestIG = `${semanasFalsas} Semanas e ${Math.floor(Math.random() * 7)} Dias`;
-            gestDUM = `2025-10-12`;
-            gestDPP = `2026-07-19`;
-        }
-
-        // AMPI (Idoso)
-        let ampiStatus = "Idoso Robusto";
-        if (idadeAleatoria >= 60) {
-            const r = Math.random();
-            ampiStatus = r < 0.5 ? "Idoso Robusto" : r < 0.8 ? "Idoso em Risco de Fragilização" : "Idoso Fragilizado";
-        }
-
-        // Sorteio de Criticidade de Monitoramento Territorial
-        // 10% da população total gerada cairá como Crítica (0 dias para estresse do sininho)
-        const prazoSimulado = Math.random() < 0.10 ? 0 : Math.floor(Math.random() * 90) + 1;
-
-        const exameStatus = Math.random() < 0.20 ? "Alterado" : "Normal";
-        const exameDetalhe = exameStatus === "Alterado" ? "Presença de estertores crepitantes em bases/edema maleolar bilateral +/4." : "";
+        const temTB = Math.random() < 0.03 ? "Sim" : "Não";
+        const temHansen = Math.random() < 0.02 ? "Sim" : "Não";
 
         const payload = {
             cpf: cpfSimulado,
             nome: nomeCompleto,
             nascimento: dataNascimento,
             idade: String(idadeAleatoria),
-            telefone: `(21) 9${Math.floor(6000 + Math.random() * 3999)}-${Math.floor(1000 + Math.random() * 8999)}`,
-            cep: `${Math.floor(20000 + Math.random() * 9000)}-${Math.floor(100 + Math.random() * 899)}`,
-            endereco: `Alamedas das Flores de Teste, Nº ${Math.floor(Math.random() * 1500)}`,
+            telefone: `(21) 98000-${String(i).padStart(4, '0')}`,
+            cep: "21000-000",
+            endereco: "Logradouro Territorializado",
             numero: String(i),
-            complemento: `Apt ${Math.floor(101 + Math.random() * 400)}`,
-            ubs: ubsFalsas[Math.floor(Math.random() * ubsFalsas.length)],
-            equipe: equipesFalsas[Math.floor(Math.random() * equipesFalsas.length)],
+            complemento: "",
+            ubs: "Complexo de Saúde Municipal",
+            equipe: equipesFalsas[i % equipesFalsas.length], // Distribuição balanceada exata entre as 4 equipes
             
             has: temHAS,
-            hasPAS: temHAS === "Sim" ? String(pasAleatoria) : "",
-            hasPAD: temHAS === "Sim" ? String(padAleatoria) : "",
-            classifHas: classifHAS,
+            hasPAS: temHAS === "Sim" ? "145" : "120",
+            hasPAD: temHAS === "Sim" ? "95" : "80",
+            classifHas: temHAS === "Sim" ? "Hipertensão Descontrolada" : "Alvo Terapêutico",
             
             dm: temDM,
-            hba1c: hba1cAleatoria,
-            classifDm: classifDM,
+            hba1c: temDM === "Sim" ? "7.9" : "",
+            classifDm: temDM === "Sim" ? "Controle Limítrofe" : "",
             
             gestante: temGestante,
-            gestDUM: gestDUM,
-            gestIG: gestIG,
-            gestDPP: gestDPP,
+            gestDUM: temGestante === "Sim" ? "2025-11-10" : "",
+            gestIG: temGestante === "Sim" ? "24 Semanas" : "",
+            gestDPP: temGestante === "Sim" ? "2026-08-17" : "",
             
             tuberculose: temTB,
             hanseniase: temHansen,
-            ampi: ampiStatus,
+            ampi: "Idoso Robusto",
             
-            objPA: `${pasAleatoria}x${padAleatoria}`,
-            objFC: String(fcAleatoria),
-            objFR: String(frAleatoria),
-            objSatO2: String(satAleatoria),
-            objDor: dorAleatoria,
-            exameFisicoStatus: examenStatus,
-            soapObjetivoAlterado: exameDetalhe,
+            objPA: "120x80",
+            objFC: "76",
+            objFR: "16",
+            objSatO2: "98",
+            objDor: "0",
+            exameFisicoStatus: "Normal",
+            soapObjetivoAlterado: "",
             
-            reavaliacaoDias: prazoSimulado,
-            historicoEvolucoes: [
-                `--- ATENDIMENTO REGISTRADO EM ${new Date().toLocaleDateString('pt-BR')} ---\nS: Relatos extraídos de simulação analítica do território.\nO: [SSVV -> PA: ${pasAleatoria}x${padAleatoria} mmHg | SatO₂: ${satAleatoria}%]. Exame Geral: ${exameStatus}.\nA: Monitoramento ativo via algoritmo SintaxeHub. CIAP-2 correspondente: ${ciapsFalsos[Math.floor(Math.random() * ciapsFalsos.length)]}.\nP: Manter plano terapêutico e busca territorial. Prazo fixado em ${prazoSimulado} dias.`
-            ]
+            reavaliacaoDias: Math.random() < 0.08 ? 0 : 30,
+            historicoEvolucoes: [`--- CARGA SINTAXEHUB ---`]
         };
-        store.put(payload);
+
+        const requestPut = store.put(payload);
+        requestPut.onsuccess = function() { inseridosComSucesso++; };
     }
 
     transaction.oncomplete = function() {
-        mostrarToast("🚀 Matriz de 8.000 cadastros randômicos injetada perfeitamente!");
+        mostrarToast(`🚀 Sucesso: ${inseridosComSucesso} cadastros injetados e distribuídos por Equipe!`);
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
@@ -989,39 +851,29 @@ function processarArquivoEsus(input) {
     reader.onload = function(e) {
         try {
             const dadosImportados = JSON.parse(e.target.result);
-            if (!dadosImportados.cpf || !dadosImportados.nome) {
-                mostrarToast("❌ Falha de interoperabilidade: Estrutura inválida ou sem CPF.");
+            if (!dadosImportados.cpf || !dadosImportados.nome || !dadosImportados.equipe) {
+                mostrarToast("❌ Falha de validação: JSON necessita de Nome, CPF e Equipe.");
                 return;
             }
 
             const transaction = db.transaction(["pacientes"], "readwrite");
             const store = transaction.objectStore("pacientes");
-            
-            // Força o tipo numérico do aprazamento para indexação correta
-            if (dadosImportados.reavaliacaoDias !== undefined) {
-                dadosImportados.reavaliacaoDias = parseInt(dadosImportados.reavaliacaoDias);
-            } else {
-                dadosImportados.reavaliacaoDias = 30; // Padrão se ausente
-            }
-
+            dadosImportados.reavaliacaoDias = dadosImportados.reavaliacaoDias !== undefined ? parseInt(dadosImportados.reavaliacaoDias) : 30;
             store.put(dadosImportados);
 
             transaction.oncomplete = function() {
-                mostrarToast(`📥 Cidadão ${dadosImportados.nome} importado para a base!`);
+                mostrarToast(`📥 Utente ${dadosImportados.nome} importado.`);
                 atualizarIndicadoresDashboard();
                 atualizarCentralAvisosSininho();
-                input.value = ""; // Limpa campo de arquivo
+                input.value = "";
             };
         } catch (err) {
-            mostrarToast("❌ Erro ao decodificar a sintaxe JSON do arquivo e-SUS.");
+            mostrarToast("❌ Erro ao ler JSON.");
         }
     };
     reader.readAsText(file);
 }
 
-/* ==========================================================================
-   🍞 UTILS: UI INTERFACE NOTIFICATIONS & MASCARAS
-   ========================================================================== */
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
     if (!toast) return;
