@@ -256,3 +256,42 @@ function calcIG() {
     ).value =
         dpp.toLocaleDateString("pt-BR");
 }
+
+function mostrarOutroMetodoTB() {
+    const rx = document.getElementById("tbRadiografia")?.value;
+    const bacilo = document.getElementById("tbBaciloscopia")?.value;
+    const box = document.getElementById("tbOutroMetodoBox");
+
+    if (!box) return;
+
+    box.style.display =
+        rx === "Não" || bacilo === "Não"
+            ? "block"
+            : "none";
+}
+
+function mostrarMotivoUrgente(valor) {
+    const box = document.getElementById("motivoUrgenteBox");
+
+    if (!box) return;
+
+    box.style.display =
+        valor === "Sim"
+            ? "block"
+            : "none";
+}
+
+function classificarAMPI() {
+    const pontuacao = parseInt(document.getElementById("ampiPontuacao")?.value);
+    const campo = document.getElementById("ampiPaciente");
+
+    if (!campo || isNaN(pontuacao)) return;
+
+    if (pontuacao <= 5) {
+        campo.value = "Idoso Robusto";
+    } else if (pontuacao <= 10) {
+        campo.value = "Idoso em Risco de Fragilização";
+    } else {
+        campo.value = "Idoso Fragilizado";
+    }
+}
