@@ -704,21 +704,6 @@ function listarTodosBanco() {
     };
 }
 
-function removerPacienteDoTerritorio(cpf) {
-    if (!confirm("Tem certeza de que deseja remover permanentemente este utente da base territorial municipal?")) return;
-    
-    const transaction = db.transaction(["pacientes"], "readwrite");
-    const store = transaction.objectStore("pacientes");
-    const request = store.delete(cpf);
-
-    request.onsuccess = function() {
-        mostrarToast("🗑️ Registro de cidadão removido com sucesso.");
-        listarTodosBanco();
-        atualizarIndicatorsDashboard();
-        atualizarCentralAvisosSininho();
-    };
-}
-
 /* ==========================================================================
    📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA
    ========================================================================== */
