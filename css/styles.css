@@ -1,100 +1,54 @@
-<style>
-    /* ==========================================================================
-       🎨 DIRETRICES DE DESIGN: DARK MODE OPERACIONAL (SINTAXEHUB LABS)
-       ========================================================================== */
-    :root {
-        --bg-main: #0f172a;
-        --bg-card: #1e293b;
-        --bg-input: #334155;
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --border: #334155;
+/* ==========================================================================
+   🎨 DIRETRICES DE DESIGN: DARK MODE OPERACIONAL (SINTAXEHUB LABS)
+   ========================================================================== */
 
-        --primary-neon: #3b82f6;
-        --success: #25d366;
-        --success-dark: #16a34a;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-    }
+:root {
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --bg-input: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #334155;
 
-    body {
-        font-family: -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --primary-neon: #3b82f6;
+    --success: #25d366;
+    --success-dark: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+}
 
-        margin: 0;
-        padding: 0;
-        background-color: var(--bg-main);
-        color: var(--text-main);
-    }
+body {
+    font-family: -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    #loginScreen {
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        height:100vh;
-        background:linear-gradient(
-            135deg,
-            #090d16 0%,
-            var(--bg-main) 100%
-        );
-    }
+    margin:0;
+    padding:0;
+    background-color:var(--bg-main);
+    color:var(--text-main);
+}
 
-    .login-card {
-        background:var(--bg-card);
-        padding:30px;
-        border-radius:12px;
-        box-shadow:0 10px 25px rgba(0,0,0,.4);
-        border:1px solid var(--border);
-        width:100%;
-        max-width:360px;
-        text-align:center;
-    }
+#loginScreen {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    background:linear-gradient(
+        135deg,
+        #090d16 0%,
+        var(--bg-main) 100%
+    );
+}
 
-    .login-card input{
-        width:100%;
-        padding:10px;
-        margin:10px 0;
-        background:var(--bg-input);
-        border:1px solid var(--border);
-        color:var(--text-main);
-        border-radius:6px;
-        box-sizing:border-box;
-    }
+.login-card{
+    background:var(--bg-card);
+    padding:30px;
+    border-radius:12px;
+    box-shadow:0 10px 25px rgba(0,0,0,.4);
+    border:1px solid var(--border);
+    width:100%;
+    max-width:360px;
+    text-align:center;
+}
 
-    .btn-login{
-        width:100%;
-        background:var(--primary-neon);
-        color:white;
-        border:none;
-        padding:12px;
-        border-radius:6px;
-        font-weight:bold;
-        cursor:pointer;
-    }
-
-    /* TODO O RESTANTE DAS CLASSES */
-
-    .dashboard-grid { ... }
-
-    .dash-card { ... }
-
-    .form-section { ... }
-
-    .clinical-card { ... }
-
-    table { ... }
-
-    .modal { ... }
-
-    .timeline { ... }
-
-    .tag-clinica { ... }
-
-    @keyframes pulse {
-        0% {transform:scale(1);}
-        50% {transform:scale(1.05);}
-        100% {transform:scale(1);}
-    }
-
-</style>
+/* restante do CSS continua aqui */
