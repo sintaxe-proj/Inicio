@@ -842,67 +842,139 @@ function renderizarGraficosModal(lista) {
 function gerarCargaMassaOitoMil() {
     if (!confirm("Esta ação injetará 8.000 cadastros simulados com strings SOAP completas no seu IndexedDB local para testes de latência. Continuar?")) return;
     
-    mostrarToast("⏳ Processando matriz de dados... Aguarde.");
+    mostrarToast("⏳ Gerando matriz randômica de alta densidade... Aguarde.");
     
-    const nomesFalsos = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana"];
-    const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa"];
+    const nomesFalsos = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana", "Marcos", "Letícia", "Lucas", "Beatriz", "Rodrigo", "Amanda", "Ricardo", "Camila", "Larissa", "Gustavo"];
+    const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa", "Ribeiro", "Carvalho", "Gomes", "Martins", "Rocha", "Alves", "Araújo", "Barbosa", "Melo", "Cardoso"];
     const ubsFalsas = ["UBS Centro Médico", "UBS Vila Nova", "Clínica da Família Zona Sul", "UBS Integrada Norte"];
     const equipesFalsas = ["Equipe Verde", "Equipe Azul", "Equipe Esmeralda", "Equipe Rubi"];
+    const ciapsFalsos = ["K86 - Hipertensão sem complicações", "T90 - Diabetes insulinodependente", "W78 - Gravidez", "A70 - Tuberculose", "A78 - Hanseníase", "R74 - Sintomas respiratórios", "U99 - Outra doença musculoesquelética"];
 
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
 
     for (let i = 0; i < 8000; i++) {
-        const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
-        const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
-        const prazoSimulado = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1; // Distribui alguns críticos
+        const cpfSimulado = `999.${String(Math.floor(100 + Math.random() * 899))}.${String(Math.floor(100 + Math.random() * 899))}-${String(Math.floor(10 + Math.random() * 89))}`;
+        
+        // Aleatorização de Gênero e Nome
+        const indexNome = Math.floor(Math.random() * nomesFalsos.length);
+        const nomeCompleto = `${nomesFalsos[indexNome]} ${sobrenomesFalsos[Math.floor(Math.random() * sobrenomesFalsos.length)]} ${sobrenomesFalsos[Math.floor(Math.random() * sobrenomesFalsos.length)]}`;
+        
+        // Determina se é um nome socialmente feminino baseado na lista (índices pares na nossa array) para fins de Pré-Natal
+        const ehFeminino = indexNome % 2 === 0;
+
+        // Gerador de Idade Totalmente Randômica (de 0 a 95 anos)
+        const idadeAleatoria = Math.floor(Math.random() * 96);
+        const anoNasc = 2026 - idadeAleatoria;
+        const mesNasc = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+        const diaNasc = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+        const dataNascimento = `${anoNasc}-${mesNasc}-${diaNasc}`;
+
+        // Distribuição Randômica das Linhas de Cuidado (Probabilidades baseadas em amostragem real de território)
+        const temHAS = Math.random() < 0.25 ? "Sim" : "Não"; // 25% de chance
+        const temDM = Math.random() < 0.15 ? "Sim" : "Não";  // 15% de chance
+        
+        // Só pode ser gestante se for do sexo feminino e tiver entre 12 e 49 anos (Probabilidade de 8% dentro dessa faixa)
+        const temGestante = (ehFeminino && idadeAleatoria >= 12 && idadeAleatoria <= 49 && Math.random() < 0.08) ? "Sim" : "Não";
+        
+        const temTB = Math.random() < 0.02 ? "Sim" : "Não";      // 2% de chance (Epidemiológico)
+        const temHansen = Math.random() < 0.015 ? "Sim" : "Não"; // 1.5% de chance
+
+        // Gerador de Sinais Vitais Instáveis e Randômicos
+        const pasAleatoria = Math.floor(100 + Math.random() * 90); // 100 a 190
+        const padAleatoria = Math.floor(60 + Math.random() * 50);   // 60 a 110
+        const fcAleatoria = Math.floor(55 + Math.random() * 65);    // 55 a 120
+        const frAleatoria = Math.floor(14 + Math.random() * 12);    // 14 a 26
+        const satAleatoria = Math.floor(92 + Math.random() * 8);    // 92% a 100%
+        const dorAleatoria = String(Math.floor(Math.random() * 11)); // 0 a 10
+
+        // Classificações Clínicas Automáticas Baseadas nos SSVV gerados
+        let classifHAS = "";
+        if (temHAS === "Sim") {
+            classifHAS = (pasAleatoria >= 180 || padAleatoria >= 110) ? "Crise Hipertensiva (Prioridade Máxima)" : 
+                         (pasAleatoria >= 140 || padAleatoria >= 90) ? "Hipertensão Estágio 1 ou 2 (Descontrolada)" : "Pressão Controlada / Alvo Terapêutico";
+        }
+
+        let classifDM = "";
+        let hba1cAleatoria = "";
+        if (temDM === "Sim") {
+            hba1cAleatoria = (5.5 + Math.random() * 5.5).toFixed(1); // 5.5 a 11.0 %
+            classifDM = parseFloat(hba1cAleatoria) >= 8.0 ? "Controle Metabólico Ruim (Alto Risco)" :
+                        parseFloat(hba1cAleatoria) >= 7.0 ? "Controle Limítrofe" : "Excelente Controle Glicêmico";
+        }
+
+        // Metadados do Pré-Natal se ativo
+        let gestDUM = ""; let gestIG = ""; let gestDPP = "";
+        if (temGestante === "Sim") {
+            const semanasFalsas = Math.floor(Math.random() * 38) + 2;
+            gestIG = `${semanasFalsas} Semanas e ${Math.floor(Math.random() * 7)} Dias`;
+            gestDUM = `2025-10-12`;
+            gestDPP = `2026-07-19`;
+        }
+
+        // AMPI (Idoso)
+        let ampiStatus = "Idoso Robusto";
+        if (idadeAleatoria >= 60) {
+            const r = Math.random();
+            ampiStatus = r < 0.5 ? "Idoso Robusto" : r < 0.8 ? "Idoso em Risco de Fragilização" : "Idoso Fragilizado";
+        }
+
+        // Sorteio de Criticidade de Monitoramento Territorial
+        // 10% da população total gerada cairá como Crítica (0 dias para estresse do sininho)
+        const prazoSimulado = Math.random() < 0.10 ? 0 : Math.floor(Math.random() * 90) + 1;
+
+        const exameStatus = Math.random() < 0.20 ? "Alterado" : "Normal";
+        const exameDetalhe = exameStatus === "Alterado" ? "Presença de estertores crepitantes em bases/edema maleolar bilateral +/4." : "";
 
         const payload = {
             cpf: cpfSimulado,
             nome: nomeCompleto,
-            nascimento: "1985-06-15",
-            idade: "41",
-            telefone: "(21) 98888-7711",
-            cep: "20000-000",
-            endereco: "Avenida Central do Município Simulador",
+            nascimento: dataNascimento,
+            idade: String(idadeAleatoria),
+            telefone: `(21) 9${Math.floor(6000 + Math.random() * 3999)}-${Math.floor(1000 + Math.random() * 8999)}`,
+            cep: `${Math.floor(20000 + Math.random() * 9000)}-${Math.floor(100 + Math.random() * 899)}`,
+            endereco: `Alamedas das Flores de Teste, Nº ${Math.floor(Math.random() * 1500)}`,
             numero: String(i),
-            complemento: "Lote Acadêmico",
-            ubs: ubsFalsas[i % 4],
-            equipe: equipesFalsas[i % 4],
-            has: i % 2 === 0 ? "Sim" : "Não",
-            hasPAS: i % 2 === 0 ? "145" : "",
-            hasPAD: i % 2 === 0 ? "95" : "",
-            classifHas: i % 2 === 0 ? "Hipertensão Estágio 1 ou 2" : "",
-            dm: i % 3 === 0 ? "Sim" : "Não",
-            hba1c: i % 3 === 0 ? "7.5" : "",
-            classifDm: i % 3 === 0 ? "Controle Limítrofe" : "",
-            gestante: "Não",
-            gestDUM: "",
-            gestIG: "",
-            gestDPP: "",
-            tuberculose: "Não",
-            hanseniase: "Não",
-            ampi: "Idoso Robusto",
+            complemento: `Apt ${Math.floor(101 + Math.random() * 400)}`,
+            ubs: ubsFalsas[Math.floor(Math.random() * ubsFalsas.length)],
+            equipe: equipesFalsas[Math.floor(Math.random() * equipesFalsas.length)],
             
-            // Sinais Vitais Falsos para Massa de Teste
-            objPA: i % 2 === 0 ? "140x90" : "120x80",
-            objFC: "76",
-            objFR: "16",
-            objSatO2: "98",
-            objDor: "0",
-            exameFisicoStatus: "Normal",
-            soapObjetivoAlterado: "",
-
+            has: temHAS,
+            hasPAS: temHAS === "Sim" ? String(pasAleatoria) : "",
+            hasPAD: temHAS === "Sim" ? String(padAleatoria) : "",
+            classifHas: classifHAS,
+            
+            dm: temDM,
+            hba1c: hba1cAleatoria,
+            classifDm: classifDM,
+            
+            gestante: temGestante,
+            gestDUM: gestDUM,
+            gestIG: gestIG,
+            gestDPP: gestDPP,
+            
+            tuberculose: temTB,
+            hanseniase: temHansen,
+            ampi: ampiStatus,
+            
+            objPA: `${pasAleatoria}x${padAleatoria}`,
+            objFC: String(fcAleatoria),
+            objFR: String(frAleatoria),
+            objSatO2: String(satAleatoria),
+            objDor: dorAleatoria,
+            exameFisicoStatus: examenStatus,
+            soapObjetivoAlterado: exameDetalhe,
+            
             reavaliacaoDias: prazoSimulado,
             historicoEvolucoes: [
-                `--- ATENDIMENTO SIMULADO DE ESTRESSE DE MEMÓRIA (LOTE ${i}) ---\nS: Sem queixas aparentes.\nO: [SSVV -> PA: 120x80 | FC: 76 bpm] Exame Físico Normal.\nA: Registro inserido via robô de simulação acadêmica municipal.\nP: Manter monitoramento do território. Prazo: ${prazoSimulado} dias.`
+                `--- ATENDIMENTO REGISTRADO EM ${new Date().toLocaleDateString('pt-BR')} ---\nS: Relatos extraídos de simulação analítica do território.\nO: [SSVV -> PA: ${pasAleatoria}x${padAleatoria} mmHg | SatO₂: ${satAleatoria}%]. Exame Geral: ${exameStatus}.\nA: Monitoramento ativo via algoritmo SintaxeHub. CIAP-2 correspondente: ${ciapsFalsos[Math.floor(Math.random() * ciapsFalsos.length)]}.\nP: Manter plano terapêutico e busca territorial. Prazo fixado em ${prazoSimulado} dias.`
             ]
         };
         store.put(payload);
     }
 
     transaction.oncomplete = function() {
-        mostrarToast("🚀 Injeção de 8.000 cadastros concluída com sucesso!");
+        mostrarToast("🚀 Matriz de 8.000 cadastros randômicos injetada perfeitamente!");
         atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
