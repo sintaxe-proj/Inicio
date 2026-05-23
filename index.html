@@ -824,11 +824,31 @@
                             <button onclick="gerarCargaMassaOitoMil()" style="background:var(--danger); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Injetar Matriz de Dados</button>
                         </div>
 
-                        <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
-                            <h4 style="margin:0 0 10px 0; color:var(--primary-neon);">📥 Interoperabilidade de Arquivos e-SUS PEC</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Importar arquivo de dados de cadastros estruturados individuais (formato JSON) direto para o ecossistema.</p>
-                            <input type="file" id="arquivoEsus" accept=".json" onchange="processarArquivoEsus(this)" style="background:var(--bg-input); padding:5px; color:var(--text-main);">
-                        </div>
+                      <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
+
+    <h4 style="margin:0 0 10px 0; color:var(--primary-neon);">
+        📥 Interoperabilidade de Arquivos e-SUS PEC
+    </h4>
+
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">
+        Importar arquivo de dados estruturados individuais (JSON, XML, XLSX ou PDF)
+        direto para o ecossistema.
+    </p>
+
+    <input
+        type="file"
+        id="arquivoEsus"
+        accept=".json,.xml,.xlsx,.xls,.pdf"
+        onchange="processarArquivoEsus(this)"
+        style="
+            background:var(--bg-input);
+            padding:5px;
+            color:var(--text-main);
+        "
+    >
+
+</div>
+>
                     </div>
                 </div>
             </div>
@@ -976,6 +996,9 @@ window.autenticarUsuario = autenticarUsuario;
 <script src="./js/dashboard.js"></script>
 <script src="./js/soap.js"></script>
 <script src="./js/busca.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="./js/importador.js"></script>
 <script src="./js/monitoramento.js"></script>
 <script src="./js/whatsapp.js"></script>
