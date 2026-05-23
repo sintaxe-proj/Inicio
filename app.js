@@ -1,377 +1,287 @@
-/**
- * ==========================================================================
- * 🏥 SINTAXEHUB - SISTEMA INTEGRADO DE BUSCA ATIVA E MONITORAMENTO TERRITORIAL
- * ==========================================================================
- * Arquivo: app.js
- * Descrição: Núcleo operacional contendo barramento de dados local (IndexedDB),
- * algoritmos de decisão clínica (SBC/SBD/Naegele), segurança baseada
- * em papéis (RBAC), barramento de automação VoIP/WhatsApp, Catálogos
- * Internacionais Pareados (CIAP-2 e CIPE®) e Módulo Avançado de Gestão
- * de Casos Complexos em Reunião de Equipe (PTS).
- * Versão: 4.0.0 (Completa - Produção)
- */
-
 /* ==========================================================================
-   🚨 SEÇÃO I: DICIONÁRIOS EPIDEMIOLÓGICOS E TAXONOMIAS (CIAP-2 & CIPE.JS)
+   🗄️ CORE CONFIG: BANCO DE DADOS LOCAL (INDEXEDDB) & SESSÃO PEP
    ========================================================================== */
+let db;
+const DB_NAME = "SintaxeHubDB";
+const DB_VERSION = 2; // Mantido em 2 para suportar a estrutura SOAP estendida
 
-if (typeof window.CATALOGO_CIAPS2 === "undefined") {
-    window.CATALOGO_CIAPS2 = [
-        { codigo: "A30", nome: "Hanseníase" },
-        { codigo: "A70", nome: "Tuberculose" },
-        { codigo: "A85", nome: "Vacinação/Imunização Preventiva" },
-        { codigo: "K86", nome: "Hipertensão Arterial Sem Complicações" },
-        { codigo: "K87", nome: "Hipertensão Arterial Com Complicações" },
-        { codigo: "T89", nome: "Diabetes Mellitus Tipo 1" },
-        { codigo: "T90", nome: "Diabetes Mellitus Tipo 2" },
-        { codigo: "W78", nome: "Gravidez / Pré-Natal (Início/Ativo)" },
-        { codigo: "W79", nome: "Gravidez de Alto Risco" },
-        { codigo: "P15", nome: "Vulnerabilidade Crônica / Social" },
-        { codigo: "U99", nome: "Outras Demandas de Atenção Primária" }
-    ];
-}
-
-// Ingestão do Barramento CIPE® (Classificação Internacional para a Prática de Enfermagem)
-if (typeof window.CATALOGO_CIPE === "undefined") {
-    window.CATALOGO_CIPE = [
-        { codigo: "10014312", nome: "Regime terapêutico não eficaz" },
-        { codigo: "10023419", nome: "Adesão ao regime terapêutico, prejudicada" },
-        { codigo: "10013231", nome: "Pressão arterial elevada" },
-        { codigo: "10008210", nome: "Glicemia instável" },
-        { codigo: "10022411", nome: "Conhecimento sobre o processo da doença, deficiente" },
-        { codigo: "10041209", nome: "Vulnerabilidade social" },
-        { codigo: "10015112", nome: "Integridade da pele prejudicada" },
-        { codigo: "10033211", nome: "Processo de maternidade alterado" },
-        { codigo: "10011812", nome: "Falta de apoio social" },
-        { codigo: "10023901", nome: "Comportamento de busca de saúde" }
-    ];
-}
-
-const ModelosPadraoMensagem = {
-    has: "Olá {nome}, identificamos que faz algum tempo desde o seu último acompanhamento de Hipertensão Arterial. Como estão as suas aferições? Podemos agendar uma visita da sua eSF?",
-    dm: "Olá {nome}, tudo bem? Precisamos atualizar o registro do seu monitoramento de Diabetes e verificar sua última glicemia/HbA1c. Responda por aqui para acompanharmos.",
-    gestante: "Olá futura mamãe {nome}! Lembramos da importância das suas consultas de Pré-Natal Ativo na sua UBS de vinculação. Quando será o seu próximo exame?",
-    tuberculose: "Olá {nome}, estamos acompanhando o seu plano terapêutico da Tuberculose de forma integrada. Como você está se sentindo hoje com a medicação?",
-    hanseniase: "Olá {nome}, passando para atualizar o monitoramento clínico continuado de Hanseníase. Notou alguma alteração recente na sensibilidade da pele?",
-    geral: "Olá {nome}, este é o contato do monitoramento da Busca Ativa Territorial do SUS Digital. Como está a sua saúde hoje?"
+// Dicionário de Mensagens Padrão para Busca Ativa Territorial via WhatsApp
+const SCRIPTS_WHATSAPP_APS = {
+    "has_critico": "Olá! Aqui é da sua Equipe de Saúde da Família. Notamos que o seu monitoramento de Pressão Arterial precisa ser atualizado. Poderia comparecer à UBS esta semana para aferição e avaliação?",
+    "dm_controle": "Olá! Tudo bem? Passando para lembrar da necessidade de trazer os seus últimos exames de HbA1c (Glicada) para atualizarmos o seu plano de cuidados na unidade.",
+    "pn_rotina": "Olá, mamãe! Estamos aguardando você para a sua próxima consulta programada de Pré-Natal. Não falte, o acompanhamento é fundamental para você e para o bebê!",
+    "busca_ativa": "Olá! Tentamos contato recente para acompanhamento de saúde, mas não conseguimos. Por favor, responda a esta mensagem ou passe na UBS para podermos atualizar o seu cadastro municipal."
 };
 
-/* ==========================================================================
-   💾 SEÇÃO II: ARQUITETURA DE DADOS LOCAL (INDEXEDDB - PERSISTÊNCIA COMPLETA)
-   ========================================================================== */
+// Inicialização Automática ao Carregar a Página
+document.addEventListener("DOMContentLoaded", () => {
+    configurarIndexedDB();
+    verificarSessao();
+});
 
-let db = null;
-let usuarioLogado = null;
-let pacienteAtualCpf = null;
-let visaoAtual = "inicio";
-
-let paginaAtualTabela = 1;
-const registrosPorPagina = 10;
-
-function inicializarBancoDados() {
-    const request = indexedDB.open("SintaxeHubDB", 1);
+/**
+ * Inicializa e configura a estrutura de tabelas do IndexedDB
+ */
+function configurarIndexedDB() {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = function(event) {
-        console.error("❌ [IndexedDB] Erro crítico na inicialização do barramento de dados local:", event.target.error);
-        mostrarToast("Erro grave ao conectar ao banco de dados local.");
+        console.error("Erro crítico ao abrir o IndexedDB:", event.target.error);
+        mostrarToast("❌ Erro ao carregar banco de dados local.");
     };
 
     request.onsuccess = function(event) {
         db = event.target.result;
-        console.log("✅ [IndexedDB] Conectado e instanciado com sucesso no escopo da aplicação.");
-        inicializarComponentesGerais();
+        console.log("🗄️ IndexedDB conectado com sucesso.");
+        
+        // Verifica se o usuário já está logado para inicializar os dados da tela principal
+        if (localStorage.getItem("pep_sessao_ativa")) {
+            inicializarAutocompleteCIAP();
+            atualizarIndicatorsDashboard();
+            atualizarCentralAvisosSininho();
+            listarTodosBanco();
+        }
     };
 
     request.onupgradeneeded = function(event) {
-        const localDb = event.target.result;
-        console.log("🛠️ [IndexedDB] Upgrade necessário detectado. Estruturando tabelas operacionais...");
+        const dbInstance = event.target.result;
         
-        if (!localDb.objectStoreNames.contains("pacientes")) {
-            const storePacientes = localDb.createObjectStore("pacientes", { keyPath: "cpf" });
-            storePacientes.createIndex("nome", "nome", { unique: false });
-            storePacientes.createIndex("equipePaciente", "equipePaciente", { unique: false });
-            storePacientes.createIndex("unidadePaciente", "unidadePaciente", { unique: false });
-            storePacientes.createIndex("criticidade", "criticidade", { unique: false });
-        }
-        
-        if (!localDb.objectStoreNames.contains("usuarios")) {
-            const storeUsuarios = localDb.createObjectStore("usuarios", { keyPath: "matricula" });
-            storeUsuarios.createIndex("perfil", "perfil", { unique: false });
+        // Cria a store de pacientes caso ela não exista
+        if (!dbInstance.objectStoreNames.contains("pacientes")) {
+            const store = dbInstance.createObjectStore("pacientes", { keyPath: "cpf" });
+            store.createIndex("nome", "nome", { unique: false });
+            store.createIndex("ubs", "ubs", { unique: false });
+            store.createIndex("equipe", "equipe", { unique: false });
+            console.log("🗄️ ObjectStore 'pacientes' criada com sucesso.");
         }
     };
 }
 
 /* ==========================================================================
-   🧠 SEÇÃO III: MOTORES DE DECISÃO E REGRAS DE NEGÓCIO CLÍNICO (SBC / SBD / NAEGELE)
+   🔐 SEGURANÇA: CONTROLE DE ACESSO E SESSÃO MUNICIPAL
    ========================================================================== */
-
-function calcularRiscoHipertensao(pas, pad) {
-    if (!pas || !pad) return "Aguardando preenchimento dos níveis de PA...";
-    pas = parseInt(pas, 10);
-    pad = parseInt(pad, 10);
-
-    if (isNaN(pas) || isNaN(pad)) return "Valores numéricos inválidos detectados.";
-
-    if (pas >= 180 || pad >= 110) {
-        return "⚠️ HAS Estágio 3 - ALTO RISCO CRÍTICO (Necessita Conduta Imediata)";
-    } else if ((pas >= 160 && pas <= 179) || (pad >= 100 && pad <= 109)) {
-        return "⚠️ HAS Estágio 2 - Risco Moderado/Alto (Alinhamento Farmacológico Próximo)";
-    } else if ((pas >= 140 && pas <= 159) || (pad >= 90 && pad <= 99)) {
-        return "📈 HAS Estágio 1 - Leve / Monitoramento de Busca Ativa Continuado";
-    } else if ((pas >= 130 && pas <= 139) || (pad >= 85 && pad <= 89)) {
-        return "🟡 Pré-Hipertensão - Estratégia de Mudança de Estilo de Vida (MEV)";
-    } else {
-        return "🟢 Pressão Arterial Normal / Ótima";
-    }
-}
-
-function calcularControleDiabetes(hba1c) {
-    if (!hba1c) return "Aguardando preenchimento do valor de HbA1c...";
-    hba1c = parseFloat(hba1c);
-
-    if (isNaN(hba1c)) return "Valor de HbA1c inválido.";
-
-    if (hba1c >= 9.0) {
-        return "⚠️ HbA1c Crítica (>= 9.0%) - Descompensação Grave / Alerta de Falha Terapêutica";
-    } else if (hba1c >= 7.0 && hba1c < 9.0) {
-        return "🟡 HbA1c Fora da Meta (>= 7.0%) - Controle Inadequado / Ajuste Necessário";
-    } else {
-        return "🟢 HbA1c na Meta (< 7.0%) - Controle Clínico Territorial Adequado";
-    }
-}
-
-function calcularDadosGestante(dumString) {
-    if (!dumString) return { ig: "DUM não cadastrada", dpp: "Aguardando DUM" };
-    
-    const dum = new Date(dumString + "T00:00:00");
-    const hoje = new Date();
-    
-    if (isNaN(dum.getTime())) return { ig: "Data inválida", dpp: "Data inválida" };
-
-    const diffTime = hoje.getTime() - dum.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return { ig: "DUM futura detectada", dpp: "Verifique o ano preenchido" };
-
-    const semanas = Math.floor(diffDays / 7);
-    const diasRestantes = diffDays % 7;
-    
-    let dppData = new Date(dum.getTime());
-    dppData.setDate(dppData.getDate() + 7);
-    dppData.setMonth(dppData.getMonth() - 3);
-    
-    if (dppData.getFullYear() <= dum.getFullYear()) {
-        dppData.setFullYear(dppData.getFullYear() + 1);
-    }
-    
-    return {
-        ig: `${semanas} Semanas e ${diasRestantes} Dias`,
-        dpp: dppData.toLocaleDateString('pt-BR')
-    };
-}
-
-function registrarListenersClinicos() {
-    const pasInput = document.getElementById("hasPAS");
-    const padInput = document.getElementById("hasPAD");
-    if (pasInput && padInput) {
-        const processarHAS = () => {
-            const classif = document.getElementById("hasClassif");
-            if (classif) classif.value = calcularRiscoHipertensao(pasInput.value, padInput.value);
-        };
-        pasInput.addEventListener("input", processarHAS);
-        padInput.addEventListener("input", processarHAS);
-    }
-
-    const hba1cInput = document.getElementById("dmHbA1c");
-    if (hba1cInput) {
-        hba1cInput.addEventListener("input", () => {
-            const classifDM = document.getElementById("dmClassif");
-            if (classifDM) classifDM.value = calcularControleDiabetes(hba1cInput.value);
-        });
-    }
-
-    const dumInput = document.getElementById("gestDUM");
-    if (dumInput) {
-        dumInput.addEventListener("change", () => {
-            const elIg = document.getElementById("gestIG");
-            const elDpp = document.getElementById("gestDPP");
-            const dados = calcularDadosGestante(dumInput.value);
-            if (elIg) elIg.value = dados.ig;
-            if (elDpp) elDpp.value = dados.dpp;
-        });
-    }
-}
-
-/* ==========================================================================
-   🔐 SEÇÃO IV: SEGURANÇA MUNICIPAL, CONTROLE DE ACESSO E CONTRATOS RBAC
-   ========================================================================== */
+const USUARIOS_MUNICIPAIS = {
+    "440129": { nome: "Enf. Josimar Kapps", perfil: "admin" },
+    "123456": { nome: "Dr. Alexandre Silva", perfil: "user" }
+};
 
 function autenticarUsuario() {
-    const inputMatricula = document.getElementById("loginUser").value.trim();
-    const inputSenha = document.getElementById("loginSenha").value;
-    const divErro = document.getElementById("loginErro");
+    const matricula = document.getElementById("loginUser").value;
+    const senha = document.getElementById("loginSenha").value;
+    const erroDiv = document.getElementById("loginErro");
 
-    if (!divErro) return;
-
-    if (!inputMatricula || !inputSenha) {
-        divErro.innerText = "Campos obrigatórios ausentes. Insira matrícula e senha corporativa.";
-        divErro.style.display = "block";
-        return;
+    if (USUARIOS_MUNICIPAIS[matricula] && senha === "senha123") {
+        const user = USUARIOS_MUNICIPAIS[matricula];
+        localStorage.setItem("pep_sessao_ativa", JSON.stringify(user));
+        erroDiv.style.display = "none";
+        verificarSessao();
+        
+        // Inicializa os dados do ecossistema após login
+        inicializarAutocompleteCIAP();
+        atualizarIndicatorsDashboard();
+        atualizarCentralAvisosSininho();
+        listarTodosBanco();
+    } else {
+        erroDiv.innerText = "Matrícula ou senha inválida no cadastro municipal.";
+        erroDiv.style.display = "block";
     }
-
-    if (inputMatricula === "440129" || inputMatricula === "admin") {
-        sucessoLogin({ matricula: inputMatricula, nome: "Mestrando Josimar Kapps", perfil: "admin", equipe: "Todas" });
-        return;
-    }
-
-    const transaction = db.transaction(["usuarios"], "readonly");
-    const store = transaction.objectStore("usuarios");
-    const request = store.get(inputMatricula);
-
-    request.onsuccess = function() {
-        if (request.result) {
-            sucessoLogin(request.result);
-        } else {
-            divErro.innerText = "Matrícula não cadastrada no perímetro municipal.";
-            divErro.style.display = "block";
-        }
-    };
 }
 
-function sucessoLogin(usuario) {
-    usuarioLogado = usuario;
-    const sLogin = document.getElementById("loginScreen");
-    const sApp = document.getElementById("app");
-    const labelUser = document.getElementById("nomeUsuarioLogado");
-    
-    if (sLogin) sLogin.style.display = "none";
-    if (sApp) sApp.style.display = "block";
-    if (labelUser) labelUser.innerText = `👤 ${usuario.nome} (${usuario.equipe})`;
+function verificarSessao() {
+    const sessao = localStorage.getItem("pep_sessao_ativa");
+    if (sessao) {
+        const user = JSON.parse(sessao);
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+        document.getElementById("nomeUsuarioLogado").innerText = `👤 ${user.nome}`;
 
-    alternarVisaoGestor(usuario.perfil);
-    mostrarToast(`Autenticação validada. Bem-vindo!`);
-    carregarDadosIniciaisEServicos();
+        const seletorAcesso = document.getElementById("seletorNivelAcesso");
+        if (user.perfil === "admin") {
+            seletorAcesso.style.display = "inline-block";
+            document.getElementById("btnAuditoria").style.display = "inline-block";
+        } else {
+            seletorAcesso.style.display = "none";
+            document.getElementById("btnAuditoria").style.display = "none";
+        }
+        navigate('inicio');
+    } else {
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("app").style.display = "none";
+    }
+}
+
+function BowserSessao() {
+    localStorage.removeItem("pep_sessao_ativa");
+    window.location.reload();
 }
 
 function efetuarLogout() {
-    usuarioLogado = null;
-    pacienteAtualCpf = null;
-    document.getElementById("app").style.display = "none";
-    document.getElementById("loginScreen").style.display = "flex";
-    fecharCabecalhoProntuario();
-    mostrarToast("Desconexão efetuada com segurança.");
+    localStorage.removeItem("pep_sessao_ativa");
+    window.location.reload();
 }
 
 function alternarVisaoGestor(perfil) {
-    const painelAdm = document.getElementById("blocoConfigAdmin");
-    const linkReuniao = document.getElementById("navReuniaoLink");
-
+    const btnAuditoria = document.getElementById("btnAuditoria");
     if (perfil === "admin") {
-        if (painelAdm) painelAdm.style.display = "block";
-        if (linkReuniao) linkReuniao.style.display = "block";
+        btnAuditoria.style.display = "inline-block";
+        mostrarToast("🔄 Mudança para Perfil de Gestor/Coordenador.");
     } else {
-        if (painelAdm) painelAdm.style.display = "none";
-        if (linkReuniao) linkReuniao.style.display = "none";
-        if (visaoAtual === "config" || visaoAtual === "reuniao") navigate("inicio");
+        btnAuditoria.style.display = "none";
+        if (document.getElementById("view-config").style.display === "block") {
+            navigate('inicio');
+        }
+        mostrarToast("🔄 Mudança para Perfil Assistencial.");
     }
 }
 
 /* ==========================================================================
-   🧭 SEÇÃO V: ESTADOS DE NAVEGAÇÃO E CICLO DE VIDA DO NAVEGADOR
+   🗺️ ROTAS NATIVAS E COMPORTAMENTO DE TELA
    ========================================================================== */
-
 function navigate(viewName) {
-    visaoAtual = viewName;
-    document.querySelectorAll(".view").forEach(view => view.style.display = "none");
-    document.querySelectorAll(".nav-link").forEach(link => link.classList.remove("active"));
-    
-    const targetView = document.getElementById(`view-${viewName}`);
-    if (targetView) targetView.style.display = "block";
-    
-    const links = document.querySelectorAll(".nav-link");
-    links.forEach(link => {
-        const clickAttr = link.getAttribute("onclick");
-        if (clickAttr && clickAttr.includes(`'${viewName}'`)) link.classList.add("active");
-    });
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
-    if (viewName === "inicio" || viewName === "banco" || viewName === "reuniao") {
-        carregarDadosIniciaisEServicos();
-    }
+    const viewAlvo = document.getElementById(`view-${viewName}`);
+    if (viewAlvo) viewAlvo.style.display = 'block';
+
+    const linkAtivo = Array.from(document.querySelectorAll('.nav-link')).find(l => l.innerText.toLowerCase().includes(viewName === 'prontuario' ? 'novo' : viewName));
+    if (linkAtivo) linkAtivo.classList.add('active');
+
+    if (viewName === 'banco') listarTodosBanco();
 }
 
-function inicializarComponentesGerais() {
-    inicializarAutocompletesEspecializados();
-    carregarTextoModeloAtual();
-    registrarListenersClinicos();
-    
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const countRequest = store.count();
-    
-    countRequest.onsuccess = function() {
-        if (countRequest.result === 0) alimentarBancoDadosMock();
-        else carregarDadosIniciaisEServicos();
-    };
-}
-
-function inicializarAutocompletesEspecializados() {
-    // Inicializa catálogo CIAP-2
-    const listaCiap = document.getElementById("listaCIAP");
-    if (listaCiap) {
-        listaCiap.innerHTML = "";
-        window.CATALOGO_CIAPS2.forEach(item => {
-            let op = document.createElement("option");
-            op.value = `${item.codigo} - ${item.nome}`;
-            listaCiap.appendChild(op);
-        });
-    }
-
-    // Inicializa catálogo CIPE
-    const listaCipe = document.getElementById("listaCIPE");
-    if (listaCipe) {
-        listaCipe.innerHTML = "";
-        window.CATALOGO_CIPE.forEach(item => {
-            let op = document.createElement("option");
-            op.value = `${item.codigo} - ${item.nome}`;
-            listaCipe.appendChild(op);
-        });
-    }
+function mostrarCard(id, valor) {
+    document.getElementById(id).style.display = (valor === "Sim") ? "block" : "none";
 }
 
 /* ==========================================================================
-   📝 SEÇÃO VI: GERENCIADOR DE MODELOS DE MENSAGENS E COMUNICAÇÃO
+   🧬 MOTOR DE AUTOCOMPLETAR: INTEGRALIZAÇÃO DO CATÁLOGO CIAP-2
    ========================================================================== */
+function inicializarAutocompleteCIAP() {
+    const datalist = document.getElementById("listaCIAP");
+    if (!datalist) return;
 
-function carregarTextoModeloAtual() {
-    const elChave = document.getElementById("selecaoChaveModelo");
-    const elTexto = document.getElementById("textoModeloCustom");
-    if (!elChave || !elTexto) return;
-
-    const chave = elChave.value;
-    const armazenados = JSON.parse(localStorage.getItem("SintaxeHub_ModelosMsg")) || ModelosPadraoMensagem;
-    elTexto.value = armazenados[chave] || ModelosPadraoMensagem[chave];
-}
-
-function salvarModeloMensagem() {
-    const chave = document.getElementById("selecaoChaveModelo").value;
-    const texto = document.getElementById("textoModeloCustom").value.trim();
-    
-    if (!texto) {
-        mostrarToast("Erro: O conteúdo textual do modelo é obrigatório.");
+    if (typeof CATALOGO_CIAPS2 === "undefined") {
+        console.error("Erro: CATALOGO_CIAPS2 não está acessível no escopo global.");
         return;
     }
 
-    const armazenados = JSON.parse(localStorage.getItem("SintaxeHub_ModelosMsg")) || ModelosPadraoMensagem;
-    armazenados[chave] = texto;
-    localStorage.setItem("SintaxeHub_ModelosMsg", JSON.stringify(armazenados));
-    mostrarToast("Diretriz de comunicação e modelo gravados com sucesso!");
+    datalist.innerHTML = "";
+    Object.entries(CATALOGO_CIAPS2).forEach(([codigo, descricao]) => {
+        const option = document.createElement("option");
+        option.value = `${codigo} - ${descricao}`;
+        datalist.appendChild(option);
+    });
+    console.log(`🧬 Autocomplete CIAP-2 carregado: ${Object.keys(CATALOGO_CIAPS2).length} códigos cadastrados.`);
 }
 
 /* ==========================================================================
-   🔄 SEÇÃO VII: PROCESSAMENTO DE INDICADORES E ESTATÍSTICAS TRILHADAS
+   🩺 LÓGICA CLÍNICA E SUPORTE DINÂMICO AO REGISTRO S.O.A.P.
    ========================================================================== */
 
-function carregarDadosIniciaisEServicos() {
+/**
+ * Alterna a visibilidade da caixa de texto detalhada para o exame físico alterado
+ */
+function alternarExameFisico(status) {
+    const bloco = document.getElementById("blocoExameAlterado");
+    if (status === "Alterado") {
+        bloco.style.display = "block";
+        document.getElementById("soapObjetivoAlterado").focus();
+    } else {
+        bloco.style.display = "none";
+        document.getElementById("soapObjetivoAlterado").value = "";
+    }
+}
+
+function calcIdade() {
+    const nasc = document.getElementById("nascPaciente").value;
+    if (!nasc) return;
+    const hoje = new Date();
+    const dataNasc = new Date(nasc);
+    let idade = hoje.getFullYear() - dataNasc.getFullYear();
+    const m = hoje.getMonth() - dataNasc.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < dataNasc.getDate())) {
+        idade--;
+    }
+    document.getElementById("idadePaciente").value = idade;
+    document.getElementById("ampiBloco").style.display = (idade >= 60) ? "block" : "none";
+}
+
+function classificarHAS() {
+    const pas = parseInt(document.getElementById("hasPAS").value);
+    const pad = parseInt(document.getElementById("hasPAD").value);
+    const campo = document.getElementById("hasClassif");
+
+    if (!pas || !pad) { campo.value = ""; return; }
+
+    if (pas >= 180 || pad >= 110) { campo.value = "Crise Hipertensiva (Prioridade Máxima)"; campo.style.color = "var(--danger)"; }
+    else if (pas >= 140 || pad >= 90) { campo.value = "Hipertensão Estágio 1 ou 2 (Descontrolada)"; campo.style.color = "var(--warning)"; }
+    else { campo.value = "Pressão Controlada / Alvo Terapêutico"; campo.style.color = "var(--success)"; }
+}
+
+function classificarDM() {
+    const hba1c = parseFloat(document.getElementById("dmHbA1c").value);
+    const campo = document.getElementById("dmClassif");
+
+    if (!hba1c) { campo.value = ""; return; }
+
+    if (hba1c >= 8.0) { campo.value = "Controle Metabólico Ruim (Alto Risco)"; campo.style.color = "var(--danger)"; }
+    else if (hba1c >= 7.0) { campo.value = "Controle Limítrofe"; campo.style.color = "var(--warning)"; }
+    else { campo.value = "Excelente Controle Glicêmico"; campo.style.color = "var(--success)"; }
+}
+
+function calcIG() {
+    const dum = document.getElementById("gestDUM").value;
+    if (!dum) return;
+    const dataDum = new Date(dum);
+    const hoje = new Date();
+    
+    const diffTime = Math.abs(hoje - dataDum);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const semanas = Math.floor(diffDays / 7);
+    const dias = diffDays % 7;
+
+    document.getElementById("gestIG").value = `${semanas} Semanas e ${dias} Dias`;
+
+    const dpp = new Date(dataDum);
+    dpp.setDate(dpp.getDate() + 280);
+    document.getElementById("gestDPP").value = dpp.toLocaleDateString('pt-BR');
+}
+
+/* ==========================================================================
+   📍 GEOLOCALIZAÇÃO: CONSUMO INTEGRADO DA API VIACEP
+   ========================================================================== */
+function buscarCEP() {
+    const cep = document.getElementById("CEP").value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+
+    document.getElementById("endPaciente").value = "Buscando endereço nos servidores dos Correios...";
+
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(res => res.json())
+        .then(dados => {
+            if (!dados.erro) {
+                document.getElementById("endPaciente").value = `${dados.logradouro}, ${dados.bairro}, ${dados.localidade} - ${dados.uf}`;
+                document.getElementById("endNumero").focus();
+            } else {
+                document.getElementById("endPaciente").value = "";
+                mostrarToast("❌ CEP não localizado na base nacional.");
+            }
+        })
+        .catch(() => {
+            document.getElementById("endPaciente").value = "";
+            mostrarToast("⚠️ Falha de conexão ao validar o CEP.");
+        });
+}
+
+/* ==========================================================================
+   🔔 CENTRAL DE AVISOS TERRITORIAIS (SISTEMA DE MONITORAMENTO)
+   ========================================================================== */
+
+/**
+ * Varre o banco local e atualiza o contador e a cor do sininho se houver reavaliação para 0 dias
+ */
+function atualizarCentralAvisosSininho() {
     if (!db) return;
 
     const transaction = db.transaction(["pacientes"], "readonly");
@@ -379,523 +289,912 @@ function carregarDadosIniciaisEServicos() {
     const request = store.getAll();
 
     request.onsuccess = function() {
-        const todosPacientes = request.result || [];
-        
-        let pacientesFiltrados = todosPacientes;
-        if (usuarioLogado && usuarioLogado.perfil !== "admin" && usuarioLogado.equipe !== "Todas") {
-            pacientesFiltrados = todosPacientes.filter(p => p.equipePaciente === usuarioLogado.equipe);
-        }
+        const todosPacientes = request.result;
+        // Filtra os utentes que possuem o contador de reavaliação em exatamente 0
+        const expirados = todosPacientes.filter(p => p.reavaliacaoDias !== undefined && parseInt(p.reavaliacaoDias) === 0);
 
-        processarEstatisticasEInjetarDom(pacientesFiltrados);
+        const contador = document.getElementById("contadorAvisosSininho");
+        const container = document.getElementById("centralAvisosContainer");
         
-        if (visaoAtual === "inicio") buscarInicio(); 
-        else if (visaoAtual === "banco") renderizarTabelaBaseTerritorial(pacientesFiltrados);
-        else if (visaoAtual === "reuniao") renderizarPainelReuniaoEquipe(pacientesFiltrados);
+        if (contador && container) {
+            contador.innerText = expirados.length;
+            
+            if (expirados.length > 0) {
+                container.style.background = "var(--danger)";
+                container.style.animation = "pulse 1.5s infinite";
+                container.title = `${expirados.length} Cidadãos precisam de reavaliação imediata da equipe!`;
+            } else {
+                container.style.background = "#334155";
+                container.style.animation = "none";
+                container.title = "Nenhuma pendência crítica de prazos no território.";
+            }
+        }
     };
 }
 
-function processarEstatisticasEInjetarDom(pacientes) {
-    const elHas = document.getElementById("dashHAS");
-    const elDm = document.getElementById("dashDM");
-    const elGest = document.getElementById("dashGest");
-    const elTB = document.getElementById("dashTB");
-    const elHansen = document.getElementById("dashHansen");
-    const elSininho = document.getElementById("contadorAvisosSininho");
+/* ==========================================================================
+   💾 OPERAÇÕES DE PERSISTÊNCIA: GRAVAÇÃO E TRATAMENTO DE ATENDIMENTOS
+   ========================================================================== */
 
-    let has = 0, dm = 0, gest = 0, tb = 0, hansen = 0, criticos = 0;
+function salvarProntuario() {
+    const cpf = document.getElementById("cpfPaciente").value;
+    const nome = document.getElementById("nomePaciente").value;
 
-    pacientes.forEach(p => {
-        if (p.hasSN === "Sim") has++;
-        if (p.dmSN === "Sim") dm++;
-        if (p.gestanteSN === "Sim") gest++;
-        if (p.tbSN) tb++;
-        if (p.hansenSN) hansen++;
-        
-        if (p.criticidade === "crítico" || p.hasPAS > 160 || p.dmHbA1c > 9.0) criticos++;
-    });
+    if (!cpf || !nome) {
+        mostrarToast("❌ Erro: O preenchimento do Nome e do CPF é obrigatório.");
+        return;
+    }
 
-    if (elHas) elHas.innerText = has;
-    if (elDm) elDm.innerText = dm;
-    if (elGest) elGest.innerText = gest;
-    if (elTB) elTB.innerText = tb;
-    if (elHansen) elHansen.innerText = hansen;
-    if (elSininho) elSininho.innerText = criticos;
+    // Coleta do Registro Clínico Estruturado (S.O.A.P.)
+    const sub = document.getElementById("soapSubjetivo").value;
+    
+    // Novos campos estruturados da Seção O - Objetivo (Sinais Vitais)
+    const pa = document.getElementById("objPA").value;
+    const fc = document.getElementById("objFC").value;
+    const fr = document.getElementById("objFR").value;
+    const sat = document.getElementById("objSatO2").value;
+    const dor = document.getElementById("objDor").value;
+
+    const exameStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
+    const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
+    
+    const ciap = document.getElementById("inputBuscaCIAPS").value;
+    const plano = document.getElementById("soapPlanoConduta").value;
+    const diasPrazo = document.getElementById("soapReavaliacaoDias").value;
+
+    const exameFisicoTexto = exameStatus === "Normal" ? "Normal / Sem particularidades" : `ALTERADO: ${exameDetalhe}`;
+
+    // Concatenação formatada da evolução para persistência na Linha do Tempo histórica
+    const novaEvolucaoFormatada = `--- ATENDIMENTO MUNICIPAL EM ${new Date().toLocaleDateString('pt-BR')} ---\n` +
+                                  `S: ${sub || "Sem queixas registradas."}\n` +
+                                  `O: [SSVV -> PA: ${pa || 'N/I'} | FC: ${fc || 'N/I'} bpm | FR: ${fr || 'N/I'} irpm | SatO₂: ${sat || 'N/I'}% | Dor: ${dor}/10]\n` +
+                                  `   Exame Físico Geral: ${exameFisicoTexto}\n` +
+                                  `A: CIAP-2 Selecionado: ${ciap || "Não classificado."}\n` +
+                                  `P: Plano de Cuidados: ${plano || "Conduta padrão."} | Reavaliação: em ${diasPrazo} dias.`;
+
+    // Resgata se o paciente já possui histórico para acumular evoluções
+    const transactionBuscar = db.transaction(["pacientes"], "readonly");
+    const storeBuscar = transactionBuscar.objectStore("pacientes");
+    const requestBuscar = storeBuscar.get(cpf);
+
+    requestBuscar.onsuccess = function() {
+        let historicoEvolucoes = [];
+        if (requestBuscar.result && requestBuscar.result.historicoEvolucoes) {
+            historicoEvolucoes = requestBuscar.result.historicoEvolucoes;
+        }
+        historicoEvolucoes.unshift(novaEvolucaoFormatada); // Adiciona a mais recente no início
+
+        // Montagem do payload completo do Utente com os sinais vitais persistidos individualmente
+        const pacientePayload = {
+            cpf: cpf,
+            nome: nome,
+            nasc: document.getElementById("nascPaciente").value,
+            idade: document.getElementById("idadePaciente").value,
+            tel: document.getElementById("telPaciente").value,
+            cep: document.getElementById("CEP").value,
+            endereco: document.getElementById("endPaciente").value,
+            numero: document.getElementById("endNumero").value,
+            complemento: document.getElementById("endComplemento").value,
+            ubs: document.getElementById("unidadePaciente").value,
+            equipe: document.getElementById("equipePaciente").value,
+            
+            has: document.getElementById("hasSN").value,
+            pas: document.getElementById("hasPAS").value,
+            pad: document.getElementById("hasPAD").value,
+            classifHas: document.getElementById("hasClassif").value,
+            
+            dm: document.getElementById("dmSN").value,
+            hba1c: document.getElementById("dmHbA1c").value,
+            classifDm: document.getElementById("dmClassif").value,
+            
+            gestante: document.getElementById("gestanteSN").value,
+            dum: document.getElementById("gestDUM").value,
+            ig: document.getElementById("gestIG").value,
+            dpp: document.getElementById("gestDPP").value,
+            
+            tb: document.getElementById("tbSN").checked ? "Sim" : "Não",
+            hansen: document.getElementById("hansenSN").checked ? "Sim" : "Não",
+            ampi: document.getElementById("ampiPaciente").value,
+            
+            // Persistência dos campos de Sinais Vitais no objeto
+            objPA: pa,
+            objFC: fc,
+            objFR: fr,
+            objSatO2: sat,
+            objDor: dor,
+            exameFisicoStatus: exameStatus,
+            soapObjetivoAlterado: exameDetalhe,
+            
+            reavaliacaoDias: parseInt(diasPrazo) || 0, // Metadado indexador do sininho
+            historicoEvolucoes: historicoEvolucoes
+        };
+
+        const transactionSalvar = db.transaction(["pacientes"], "readwrite");
+        const storeSalvar = transactionSalvar.objectStore("pacientes");
+        const requestSalvar = storeSalvar.put(pacientePayload);
+
+        requestSalvar.onsuccess = function() {
+            mostrarToast("💾 Prontuário SOAP gravado na base territorial!");
+            limparFormularioProntuario();
+            atualizarIndicatorsDashboard();
+            atualizarCentralAvisosSininho();
+            navigate('inicio');
+        };
+    };
+}
+
+function limparFormularioProntuario() {
+    // Limpeza dos inputs de texto e áreas estruturadas SOAP
+    document.getElementById("soapSubjetivo").value = "";
+    
+    // Limpeza da grade de sinais vitais e exame físico
+    document.getElementById("objPA").value = "";
+    document.getElementById("objFC").value = "";
+    document.getElementById("objFR").value = "";
+    document.getElementById("objSatO2").value = "";
+    document.getElementById("objDor").value = "0";
+    document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+    document.getElementById("blocoExameAlterado").style.display = "none";
+    document.getElementById("soapObjetivoAlterado").value = "";
+    
+    document.getElementById("soapPlanoConduta").value = "";
+    document.getElementById("soapReavaliacaoDias").value = "0";
+    document.getElementById("inputBuscaCIAPS").value = "";
+
+    // Campos cadastrais e de endereço
+    const campos = ["nomePaciente", "cpfPaciente", "nascPaciente", "idadePaciente", "telPaciente", "CEP", "endPaciente", "endNumero", "endComplemento", "hasPAS", "hasPAD", "hasClassif", "dmHbA1c", "dmClassif", "gestDUM", "gestIG", "gestDPP"];
+    campos.forEach(c => document.getElementById(c).value = "");
+
+    document.getElementById("hasSN").value = "Não";
+    document.getElementById("dmSN").value = "Não";
+    document.getElementById("gestanteSN").value = "Não";
+    document.getElementById("tbSN").checked = false;
+    document.getElementById("hansenSN").checked = false;
+    document.getElementById("unidadePaciente").value = "";
+    document.getElementById("equipePaciente").value = "";
+    document.getElementById("ampiPaciente").value = "Idoso Robusto";
+
+    document.getElementById("cardHAS").style.display = "none";
+    document.getElementById("cardDM").style.display = "none";
+    document.getElementById("cardGestante").style.display = "none";
+    document.getElementById("ampiBloco").style.display = "none";
+    document.getElementById("cabecalhoProntuario").style.display = "none";
+    
+    document.getElementById("linhaTempoEvolucoes").innerHTML = "";
 }
 
 /* ==========================================================================
-   🔍 SEÇÃO VIII: CENTRAL DE BUSCA ATIVA E DISPAROS ADAPTATIVOS
+   🔍 MECANISMO DE CONSULTA E BUSCA ATIVA EPIDEMIOLÓGICA (PÁGINA INICIAL)
    ========================================================================== */
-
 function buscarInicio() {
-    const termoInput = document.getElementById("buscaNomeInicio");
+    const inputBusca = document.getElementById("buscaNomeInicio");
+    if (!inputBusca) {
+        console.error("Erro: O elemento HTML 'buscaNomeInicio' não foi encontrado.");
+        return;
+    }
+
+    const termoOriginal = inputBusca.value.toLowerCase().trim();
     const container = document.getElementById("resultadoInicio");
+
     if (!container) return;
 
-    const termo = termoInput ? termoInput.value.toLowerCase().trim() : "";
+    if (!termoOriginal) {
+        container.innerHTML = `<em style="color: #94a3b8;">Introduza um critério acima para pesquisar (Nome, CPF, Linha de Cuidado ou "Crítico").</em>`;
+        return;
+    }
+
+    if (!db) {
+        container.innerHTML = `<p style="color: var(--danger);">⚠️ Banco de dados local não conectado.</p>`;
+        return;
+    }
 
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.getAll();
 
     request.onsuccess = function() {
-        let pacientes = request.result || [];
+        const todosPacientes = request.result;
+        const termoNumerico = termoOriginal.replace(/\D/g, "");
+
+        // Identifica palavras-chave de criticidade no termo digitado
+        const desejaCritico = termoOriginal.includes("critico") || termoOriginal.includes("crítico");
+        const desejaControlado = termoOriginal.includes("controlado");
+
+        // Identifica palavras-chave de linhas de cuidado no termo digitado
+        const desejaHAS = termoOriginal.includes("has") || termoOriginal.includes("hipertens");
+        const desejaDM = termoOriginal.includes("dm") || termoOriginal.includes("diabet");
+        const desejaPN = termoOriginal.includes("pn") || termoOriginal.includes("gestant") || termoOriginal.includes("natal");
+        const desejaTB = termoOriginal.includes("tb") || termoOriginal.includes("tuberculose");
+        const desejaHansen = termoOriginal.includes("hansen");
+
+        // Executa o filtro avançado multi-critério
+        const resultados = todosPacientes.filter(p => {
+            
+            // 1. Se o usuário digitou uma linha de cuidado específica, verifica se o paciente pertence a ela
+            if (desejaHAS && p.has !== "Sim") return false;
+            if (desejaDM && p.dm !== "Sim") return false;
+            if (desejaPN && p.gestante !== "Sim") return false;
+            if (desejaTB && p.tb !== "Sim") return false;
+            if (desejaHansen && p.hansen !== "Sim") return false;
+
+            // 2. Verifica o status do prazo (Criticidade)
+            if (desejaCritico && p.reavaliacaoDias !== 0) return false;
+            if (desejaControlado && p.reavaliacaoDias <= 0) return false;
+
+            // 3. Se NÃO digitou nenhuma linha de cuidado nem criticidade, assume que é busca por Nome ou CPF
+            const digitouApenasFiltros = desejaHAS || desejaDM || desejaPN || desejaTB || desejaHansen || desejaCritico || desejaControlado;
+            
+            if (!digitouApenasFiltros) {
+                const nomeBate = p.nome.toLowerCase().includes(termoOriginal);
+                const cpfLimpoBanco = p.cpf.replace(/\D/g, "");
+                const cpfBate = termoNumerico !== "" && cpfLimpoBanco.includes(termoNumerico);
+                
+                return nomeBate || cpfBate;
+            }
+
+            // Se caiu aqui, passou nos filtros de linha de cuidado/criticidade digitados
+            return true;
+        });
         
-        if (usuarioLogado && usuarioLogado.perfil !== "admin" && usuarioLogado.equipe !== "Todas") {
-            pacientes = pacientes.filter(p => p.equipePaciente === usuarioLogado.equipe);
+        // Renderização dos Resultados na Interface (Grid da APS)
+        if (resultados.length === 0) {
+            container.innerHTML = `<p style="color: var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado para o critério aplicado.</p>`;
+            return;
         }
 
-        if (termo !== "") {
-            pacientes = pacientes.filter(p => {
-                return p.nome.toLowerCase().includes(termo) || 
-                       p.cpf.includes(termo) ||
-                       (termo === "crítico" && (p.criticidade === "crítico" || p.hasPAS > 160 || p.dmHbA1c > 9.0)) ||
-                       (termo === "has" && p.hasSN === "Sim") ||
-                       (termo === "dm" && p.dmSN === "Sim") ||
-                       (termo === "gestante" && p.gestanteSN === "Sim");
-            });
-        }
+        let html = `<div class="busca-ativa-grid">`;
+        resultados.forEach(p => {
+            let badges = "";
+            if (p.has === "Sim") badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span> `;
+            if (p.dm === "Sim") badges += `<span class="tag-clinica" style="background:var(--success)">DM</span> `;
+            if (p.gestante === "Sim") badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span> `;
+            if (p.tb === "Sim") badges += `<span class="tag-clinica" style="background:#701a75">TB</span> `;
+            if (p.hansen === "Sim") badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span> `;
+            
+            // Alerta visual pro prazo expirado
+            if (p.reavaliacaoDias === 0) {
+                badges += `<span class="tag-clinica" style="background:#7c2d12;">⚠️ CRÍTICO (0d)</span> `;
+            } else {
+                badges += `<span class="tag-clinica" style="background:#475569">⏱️ ${p.reavaliacaoDias}d</span> `;
+            }
 
-        renderizarGradeBuscaAtiva(pacientes, container);
+            html += `
+                <div class="busca-ativa-card" onclick="abrirAtendimentoExistente('${p.cpf}')" style="cursor:pointer; padding:15px; margin-bottom:10px; border:1px solid #e2e8f0; border-radius:8px; background:white;">
+                    <h4 style="margin:0 0 5px 0; color:#1e293b;">${p.nome}</h4>
+                    <p style="margin:2px 0; font-size:13px; color:#64748b;"><strong>CPF:</strong> ${p.cpf} | <strong>Idade:</strong> ${p.idade} anos</p>
+                    <p style="margin:2px 0; font-size:13px; color:#64748b;"><strong>UBS:</strong> ${p.ubs || "Não vinculada"} | ${p.equipe || "Sem equipe"}</p>
+                    <div class="badges-container" style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">${badges}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    };
+
+    request.onerror = function() {
+        console.error("Erro ao executar busca avançada no IndexedDB");
     };
 }
 
-function renderizarGradeBuscaAtiva(pacientes, container) {
-    if (pacientes.length === 0) {
-        container.innerHTML = "<p style='color: var(--text-muted); padding:10px;'>Nenhum cidadão localizado para a busca.</p>";
-        return;
-    }
-
-    let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Cidadão</th>
-                    <th>CPF</th>
-                    <th>Linha de Cuidado</th>
-                    <th>Último Monitoramento</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    pacientes.forEach(p => {
-        let dataMoni = p.ultimoMonitoramento || new Date().toLocaleDateString('pt-BR');
-        let tag = "GERAL", cor = "var(--primary-neon)";
-        if (p.hasSN === "Sim") { tag = "HAS"; cor = "var(--danger)"; }
-        else if (p.dmSN === "Sim") { tag = "DM"; cor = "var(--success)"; }
-        else if (p.gestanteSN === "Sim") { tag = "PRÉ-NATAL"; cor = "var(--warning)"; }
-
-        let estiloCritico = (p.criticidade === "crítico" || p.hasPAS > 160 || p.dmHbA1c > 9.0) 
-            ? "background: rgba(239, 68, 68, 0.04); border-left: 4px solid var(--danger);" : "";
-
-        html += `
-            <tr style="${estiloCritico}">
-                <td style="font-weight:bold;">${p.nome}</td>
-                <td style="font-family:monospace; color:var(--text-muted);">${p.cpf}</td>
-                <td><span style="background:${cor}; color:white; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${tag}</span></td>
-                <td>📅 ${dataMoni}</td>
-                <td>
-                    <button class="btn-table-action btn-edit" onclick="carregarProntuarioPaciente('${p.cpf}')">📝 Evoluir</button>
-                    <button class="btn-table-action btn-whatsapp" onclick="executarDisparoAutomatico('${p.telefone}', '${p.nome}', '${tag.toLowerCase()}')">📱 Chamar</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += "</tbody></table>";
-    container.innerHTML = html;
-}
-
-function executarDisparoAutomatico(telefone, nomePaciente, tipoModelo) {
-    if (!telefone) {
-        mostrarToast("Erro: Usuário sem telefone cadastrado.");
-        return;
-    }
-    const chave = ModelosPadraoMensagem[tipoModelo] ? tipoModelo : "geral";
-    const armazenados = JSON.parse(localStorage.getItem("SintaxeHub_ModelosMsg")) || ModelosPadraoMensagem;
-    let msg = (armazenados[chave] || ModelosPadraoMensagem[chave]).replace(/{nome}/g, nomePaciente);
-
-    let foneLimpo = telefone.replace(/\D/g, "");
-    if (foneLimpo.length === 11 && !foneLimpo.startsWith("55")) foneLimpo = "55" + foneLimpo;
-
-    window.open(`https://web.whatsapp.com/send?phone=${foneLimpo}&text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-/* ==========================================================================
-   👥 SEÇÃO IX: PAINEL COLEGIADO E REUNIÃO DE EQUIPE AVANÇADA (PTS & INTERACTION)
-   ========================================================================== */
-
-function renderizarPainelReuniaoEquipe(pacientes) {
-    const container = document.getElementById("tabelaReuniaoContainer");
-    if (!container) return;
-
-    // Filtra casos de instabilidade clínica ou vulnerabilidade para discussão
-    let casosComplexos = pacientes.filter(p => {
-        return p.criticidade === "crítico" || p.hasPAS >= 160 || p.dmHbA1c >= 8.5 || p.tbSN || p.hansenSN;
-    });
-
-    if (casosComplexos.length === 0) {
-        container.innerHTML = `<div style='padding:20px; color:var(--success); text-align:center;'>🎉 Nenhum caso complexo pendente de PTS na equipe.</div>`;
-        return;
-    }
-
-    let html = `
-        <div style="background: #1e1e24; border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="margin-top:0; color: var(--warning);">📋 Painel de Discussão Coletiva (PTS)</h3>
-            <p style="font-size:13px; color:var(--text-muted);">Selecione um caso na listagem abaixo para abrir a mesa de discussões intersetoriais e registrar as deliberações diretamente no prontuário do cidadão.</p>
-            
-            <div id="widgetDiscussaoColegiada" style="display:none; background: #16161a; border-left: 4px solid var(--primary-neon); padding:15px; border-radius:4px; margin-top:15px;">
-                <h4 style="margin:0 0 10px 0; color:white;">Discussão Atual: <span id="nomePacienteDiscussao" style="color:var(--primary-neon);">-</span></h4>
-                <p style="font-size:12px; margin:0 0 10px 0; color:var(--text-muted);">CPF: <span id="cpfPacienteDiscussao">-</span></p>
-                
-                <label style="display:block; font-size:12px; margin-bottom:5px; font-weight:bold;">Diagnóstico de Enfermagem (CIPE®) Prioritário:</label>
-                <input type="text" id="cipeDiscussaoInput" list="listaCIPE" placeholder="Busque ou digite o código/termo CIPE..." style="width:100%; padding:8px; background:var(--bg-input); border:1px solid var(--border); color:white; border-radius:4px; margin-bottom:12px;">
-                
-                <label style="display:block; font-size:12px; margin-bottom:5px; font-weight:bold;">Deliberação do Plano Terapêutico Singular (PTS):</label>
-                <textarea id="textoPlanoDiscussao" rows="3" placeholder="Descreva as ações pactuadas em equipe (ex: Visita conjunta NASF, readequação de metas, busca ativa por ACS...)" style="width:100%; padding:8px; background:var(--bg-input); border:1px solid var(--border); color:white; border-radius:4px; resize:vertical;"></textarea>
-                
-                <div style="margin-top:10px; display:flex; gap:10px;">
-                    <button class="btn-table-action btn-edit" onclick="gravarDiscussaoColegiadaNoPainel()">💾 Registrar Deliberação no Prontuário</button>
-                    <button class="btn-table-action btn-edit" style="background:#4b5563;" onclick="fecharWidgetDiscussao()">Cancelar</button>
-                </div>
-            </div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Cidadão sob Análise</th>
-                    <th>Vulnerabilidade Clínico-Epidemiológica</th>
-                    <th>Equipe / Área</th>
-                    <th>Ações de Prontuário</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    casosComplexos.forEach(p => {
-        let alerta = "Vulnerabilidade Territorial";
-        if (p.hasPAS >= 160) alerta = `🚨 Descompensação HAS (${p.hasPAS}x${p.hasPAD} mmHg)`;
-        else if (p.dmHbA1c >= 8.5) alerta = `🩸 Descompensação Metabólica (HbA1c: ${p.dmHbA1c}%)`;
-        else if (p.tbSN) alerta = "🦠 Monitoramento Ativo - Tuberculose";
-        else if (p.hansenSN) alerta = "🔲 Monitoramento Ativo - Hanseníase";
-
-        html += `
-            <tr>
-                <td style="font-weight:bold; color:var(--danger);">${p.nome}</td>
-                <td><span style="background:#3b1414; color:#fca5a5; padding:2px 6px; border-radius:4px; font-size:12px; border:1px solid #7f1d1d;">${alerta}</span></td>
-                <td>${p.equipePaciente}</td>
-                <td>
-                    <button class="btn-table-action btn-edit" style="background:var(--warning); color:black;" onclick="ativarMesaDiscussao('${p.cpf}', '${p.nome}')">🗣️ Discutir Caso</button>
-                    <button class="btn-table-action btn-edit" onclick="carregarProntuarioPaciente('${p.cpf}')">📂 Abrir Histórico</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += "</tbody></table>";
-    container.innerHTML = html;
-}
-
-function activarMesaDiscussao(cpf, nome) {
-    const widget = document.getElementById("widgetDiscussaoColegiada");
-    const labelNome = document.getElementById("nomePacienteDiscussao");
-    const labelCpf = document.getElementById("cpfPacienteDiscussao");
-    
-    if (!widget || !labelNome || !labelCpf) return;
-
-    labelNome.innerText = nome;
-    labelCpf.innerText = cpf;
-    document.getElementById("cipeDiscussaoInput").value = "";
-    document.getElementById("textoPlanoDiscussao").value = "";
-    
-    widget.style.display = "block";
-    widget.scrollIntoView({ behavior: 'smooth' });
-}
-
-function fecharWidgetDiscussao() {
-    const widget = document.getElementById("widgetDiscussaoColegiada");
-    if (widget) widget.style.display = "none";
-}
-
-function gravarDiscussaoColegiadaNoPainel() {
-    const cpf = document.getElementById("cpfPacienteDiscussao").innerText;
-    const cipe = document.getElementById("cipeDiscussaoInput").value.trim();
-    const plano = document.getElementById("textoPlanoDiscussao").value.trim();
-
-    if (!plano) {
-        mostrarToast("Erro: Impossível salvar um plano deliberativo vazio.");
-        return;
-    }
-
-    const transaction = db.transaction(["pacientes"], "readwrite");
+function abrirAtendimentoExistente(cpf) {
+    const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.get(cpf);
 
     request.onsuccess = function() {
         const p = request.result;
-        if (!p) {
-            mostrarToast("Erro ao localizar prontuário do paciente.");
+        if (!p) return;
+
+        navigate('prontuario');
+        limparFormularioProntuario();
+
+        // Vinculação de dados cadastrais
+        document.getElementById("nomePaciente").value = p.nome;
+        document.getElementById("cpfPaciente").value = p.cpf;
+        document.getElementById("nascPaciente").value = p.nasc;
+        document.getElementById("idadePaciente").value = p.idade;
+        document.getElementById("telPaciente").value = p.tel;
+        document.getElementById("CEP").value = p.cep || "";
+        document.getElementById("endPaciente").value = p.endereco || "";
+        document.getElementById("endNumero").value = p.numero || "";
+        document.getElementById("endComplemento").value = p.complemento || "";
+        document.getElementById("unidadePaciente").value = p.ubs || "";
+        document.getElementById("equipePaciente").value = p.equipe || "";
+
+        // Repovoamento dos Sinais Vitais Estruturados (O)
+        document.getElementById("objPA").value = p.objPA || "";
+        document.getElementById("objFC").value = p.objFC || "";
+        document.getElementById("objFR").value = p.objFR || "";
+        document.getElementById("objSatO2").value = p.objSatO2 || "";
+        document.getElementById("objDor").value = p.objDor || "0";
+
+        // Comportamento dinâmico do Exame Físico Geral
+        if (p.exameFisicoStatus === "Alterado") {
+            document.querySelector('input[name="exameFisicoStatus"][value="Alterado"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "block";
+            document.getElementById("soapObjetivoAlterado").value = p.soapObjetivoAlterado || "";
+        } else {
+            document.querySelector('input[name="exameFisicoStatus"][value="Normal"]').checked = true;
+            document.getElementById("blocoExameAlterado").style.display = "none";
+        }
+
+        // Configuração de Linhas de cuidado
+        document.getElementById("hasSN").value = p.has;
+        mostrarCard('cardHAS', p.has);
+        document.getElementById("hasPAS").value = p.pas || "";
+        document.getElementById("hasPAD").value = p.pad || "";
+        document.getElementById("hasClassif").value = p.classifHas || "";
+
+        document.getElementById("dmSN").value = p.dm;
+        mostrarCard('cardDM', p.dm);
+        document.getElementById("dmHbA1c").value = p.hba1c || "";
+        document.getElementById("dmClassif").value = p.classifDm || "";
+
+        document.getElementById("gestanteSN").value = p.gestante;
+        mostrarCard('cardGestante', p.gestante);
+        document.getElementById("gestDUM").value = p.dum || "";
+        document.getElementById("gestIG").value = p.ig || "";
+        document.getElementById("gestDPP").value = p.dpp || "";
+
+        document.getElementById("tbSN").checked = (p.tb === "Sim");
+        document.getElementById("hansenSN").checked = (p.hansen === "Sim");
+        document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
+        if (parseInt(p.idade) >= 60) document.getElementById("ampiBloco").style.display = "block";
+
+        // Montagem da Linha de Tempo de Atendimentos Anteriores
+        if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
+            let htmlTimeline = `<label style='font-weight:700;'>⏳ Histórico Clínico Digital (Últimas Evoluções):</label><div class='timeline'>`;
+            p.historicoEvolucoes.forEach(evo => {
+                htmlTimeline += `
+                    <div class='timeline-item'>
+                        <div class='timeline-body'>${evo}</div>
+                    </div>
+                `;
+            });
+            htmlTimeline += `</div>`;
+            document.getElementById("linhaTempoEvolucoes").innerHTML = htmlTimeline;
+        }
+
+        // Cabeçalho azul informativo de prontuário ativo
+        document.getElementById("cabecalhoNome").innerText = `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
+        document.getElementById("cabecalhoProntuario").style.display = "block";
+    };
+}
+
+/* ==========================================================================
+   📊 VIGILÂNCIA EPIDEMIOLÓGICA & ATUALIZAÇÃO DO DASHBOARD CENTRAL
+   ========================================================================== */
+function atualizarIndicatorsDashboard() {
+    if (!db) return;
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function() {
+        const dados = request.result;
+        document.getElementById("dashHAS").innerText = dados.filter(p => p.has === "Sim").length;
+        document.getElementById("dashDM").innerText = dados.filter(p => p.dm === "Sim").length;
+        document.getElementById("dashGest").innerText = dados.filter(p => p.gestante === "Sim").length;
+        document.getElementById("dashTB").innerText = dados.filter(p => p.tb === "Sim").length;
+        document.getElementById("dashHansen").innerText = dados.filter(p => p.hansen === "Sim").length;
+    };
+}
+
+function listarTodosBanco() {
+    if (!db) return;
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function() {
+        const dados = request.result;
+        const container = document.getElementById("tabelaBancoContainer");
+
+        if (dados.length === 0) {
+            container.innerHTML = `<p style="color:#64748b;">Nenhum prontuário residente no banco local.</p>`;
             return;
         }
 
-        const dataCarimbo = new Date().toLocaleDateString('pt-BR');
-        const registroFormatado = `\n\n[DISCUSSÃO COLEGIADA / PTS - ${dataCarimbo} por ${usuarioLogado ? usuarioLogado.nome : 'Coordenador'}]\n- Termo de Enfermagem/CIPE: ${cipe || 'Não especificado'}\n- Plano Deliberado: ${plano}`;
-        
-        // Modifica a estrutura SOAP anexando a decisão colegiada ao plano
-        p.soapPlanoConduta = (p.soapPlanoConduta || "") + registroFormatado;
-        p.ultimoMonitoramento = dataCarimbo;
-
-        const updateRequest = store.put(p);
-        updateRequest.onsuccess = function() {
-            mostrarToast(`Sucesso: PTS registrado no histórico de ${p.nome}.`);
-            fecharWidgetDiscussao();
-            carregarDadosIniciaisEServicos();
-        };
-    };
-}
-
-/* ==========================================================================
-   🗄️ SEÇÃO X: VISUALIZAÇÃO CADASTRAL DA BASE TERRITORIAL E PAGINAÇÃO
-   ========================================================================== */
-
-function renderizarTabelaBaseTerritorial(pacientes) {
-    const container = document.getElementById("tabelaPacientesContainer");
-    if (!container) return;
-
-    if (pacientes.length === 0) {
-        container.innerHTML = "<p style='color:var(--text-muted);'>Nenhum prontuário registrado.</p>";
-        return;
-    }
-
-    const totalRegistros = pacientes.length;
-    const totalPaginas = Math.ceil(totalRegistros / registrosPorPagina);
-    if (paginaAtualTabela > totalPaginas) paginaAtualTabela = totalPaginas || 1;
-    
-    const idxInicio = (paginaAtualTabela - 1) * registrosPorPagina;
-    const registrosExibidos = pacientes.slice(idxInicio, idxInicio + registrosPorPagina);
-
-    let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Nome do Cidadão</th>
-                    <th>CPF</th>
-                    <th>Equipe</th>
-                    <th>Unidade</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    registrosExibidos.forEach(p => {
-        html += `
-            <tr>
-                <td style="font-weight:600;">${p.nome}</td>
-                <td style="font-family:monospace;">${p.cpf}</td>
-                <td>${p.equipePaciente}</td>
-                <td>${p.unidadePaciente}</td>
-                <td>
-                    <button class="btn-table-action btn-edit" onclick="carregarProntuarioPaciente('${p.cpf}')">Editar</button>
-                    <button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
-                </td>
-            </tr>
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome do Utente</th>
+                        <th>CPF</th>
+                        <th>Idade</th>
+                        <th>UBS Vinculada</th>
+                        <th>Linhas Ativas</th>
+                        <th>Prazo (Dias)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
-    });
 
-    html += "</tbody></table>";
-    container.innerHTML = html;
+        dados.forEach(p => {
+            let linhas = [];
+            if (p.has === "Sim") linhas.push("HAS");
+            if (p.dm === "Sim") linhas.push("DM");
+            if (p.gestante === "Sim") linhas.push("PN");
+            if (p.tb === "Sim") linhas.push("TB");
+            if (p.hansen === "Sim") lines.push("HANSEN");
+
+            const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
+
+            html += `
+                <tr>
+                    <td><strong>${p.nome}</strong></td>
+                    <td>${p.cpf}</td>
+                    <td>${p.idade} Anos</td>
+                    <td>${p.ubs || "Não informada"}</td>
+                    <td>${linhas.join(", ") || "Nenhuma"}</td>
+                    <td>${badgePrazo}</td>
+                    <td class="action-buttons">
+                        <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente('${p.cpf}')">Abrir</button>
+                        <button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    };
 }
 
 function removerPacienteDoTerritorio(cpf) {
-    if (!usuarioLogado || usuarioLogado.perfil !== "admin") {
-        mostrarToast("Permissão Negada: Operação restrita ao Coordenador.");
-        return;
-    }
-    if (!confirm("Deseja expurgar permanentemente este prontuário da base territorial local?")) return;
-
+    if (!confirm("Tem certeza de que deseja remover permanentemente este utente da base territorial municipal?")) return;
+    
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
-    store.delete(cpf).onsuccess = function() {
-        mostrarToast("Registro removido com sucesso.");
-        carregarDadosIniciaisEServicos();
+    const request = store.delete(cpf);
+
+    request.onsuccess = function() {
+        mostrarToast("🗑️ Registro de cidadão removido com sucesso.");
+        listarTodosBanco();
+        atualizarIndicatorsDashboard();
+        atualizarCentralAvisosSininho();
     };
 }
 
 /* ==========================================================================
-   📝 SEÇÃO XI: FORMULÁRIO OPERACIONAL (SOAP) E PERSISTÊNCIA INTEGRAL
+   📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA
    ========================================================================== */
+let linhaCuidadoAtualVisualizacao = "has";
 
-function mostrarCard(idCard, valor) {
-    const card = document.getElementById(idCard);
-    if (card) card.style.display = valor === "Sim" ? "block" : "none";
+function abrirPainelEpidemiologico(linhaCuidado) {
+    linhaCuidadoAtualVisualizacao = linhaCuidado;
+    document.getElementById("painelEpidemiologicoContainer").style.display = "block";
+    
+    const titulos = {
+        has: "Monitoramento Territorial: Hipertensão Arterial Sistêmica (HAS)",
+        dm: "Monitoramento Territorial: Diabetes Mellitus (DM)",
+        gestante: "Monitoramento Territorial: Vigilância de Pré-Natal (Cegonha)",
+        tuberculose: "Monitoramento Epidemiológico: Tuberculose",
+        hanseniase: "Monitoramento Epidemiológico: Hanseníase",
+        criticos: "🚨 Central de Alertas Rápidos: Utentes com Prazo Expirado (0 Dias)"
+    };
+    
+    document.getElementById("tituloPainelEpidemiologico").innerText = titulos[linhaCuidado] || "Vigilância em Saúde";
+    carregarFiltrosModalUBS();
 }
 
-function calcIdade() {
-    const nascInput = document.getElementById("nascPaciente");
-    const idadeInput = document.getElementById("idadePaciente");
-    if (!nascInput || !idadeInput || !nascInput.value) return;
-
-    const hoje = new Date();
-    const dataNasc = new Date(nascInput.value + "T00:00:00");
-    let idade = hoje.getFullYear() - dataNasc.getFullYear();
-    if (hoje.getMonth() < dataNasc.getMonth() || (hoje.getMonth() === dataNasc.getMonth() && hoje.getDate() < dataNasc.getDate())) {
-        idade--;
-    }
-    idadeInput.value = idade >= 0 ? `${idade} anos` : "";
+function fecharPainelEpidemiologico() {
+    document.getElementById("painelEpidemiologicoContainer").style.display = "none";
 }
 
-function carregarProntuarioPaciente(cpf) {
+function carregarFiltrosModalUBS() {
+    const ubsSelect = document.getElementById("filtroUBS");
+    const equipeSelect = document.getElementById("filtroEquipe");
+    
+    ubsSelect.innerHTML = "<option value='TODAS'>Todas as Unidades</option><option value='UBS Centro Médico'>UBS Centro Médico</option><option value='UBS Vila Nova'>UBS Vila Nova</option><option value='Clínica da Família Zona Sul'>Clínica da Família Zona Sul</option><option value='UBS Integrada Norte'>UBS Integrada Norte</option>";
+    equipeSelect.innerHTML = "<option value='TODAS'>Todas as Equipes</option><option value='Equipe Verde'>Equipe Verde</option><option value='Equipe Azul'>Equipe Azul</option><option value='Equipe Esmeralda'>Equipe Esmeralda</option><option value='Equipe Rubi'>Equipe Rubi</option>";
+    
+    document.getElementById("filtroRisco").value = "TODOS";
+    aplicarFiltrosRelatorio();
+}
+
+function aplicarFiltrosRelatorio() {
     if (!db) return;
+    const ubs = document.getElementById("filtroUBS").value;
+    const equipe = document.getElementById("filtroEquipe").value;
+    const risco = document.getElementById("filtroRisco").value;
 
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
-    
-    store.get(cpf).onsuccess = function(event) {
-        const p = event.target.result;
-        if (!p) return;
+    const request = store.getAll();
 
-        pacienteAtualCpf = p.cpf;
+    request.onsuccess = function() {
+        let filtrados = request.result;
+
+        // Filtro por Linha de Cuidado / Sininho Crítico
+        if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tb === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hansen === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "criticos") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
+
+        // Filtros de Localidade/UBS/Equipe
+        if (ubs !== "TODAS") filtrados = filtrados.filter(p => p.ubs === ubs);
+        if (equipe !== "TODAS") filtrados = filtrados.filter(p => p.equipe === equipe);
         
-        document.getElementById("nomePaciente").value = p.nome || "";
-        document.getElementById("cpfPaciente").value = p.cpf || "";
-        document.getElementById("nascPaciente").value = p.dataNascimento || "";
-        document.getElementById("telPaciente").value = p.telefone || "";
-        
-        calcIdade();
+        // Filtros Rápidos de Risco
+        if (risco === "CRITICO") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
+        else if (risco === "CONTROLADO") filtrados = filtrados.filter(p => p.reavaliacaoDias > 0);
 
-        if (document.getElementById("hasSN")) {
-            document.getElementById("hasSN").value = p.hasSN || "Não";
-            mostrarCard("cardHAS", p.hasSN);
-        }
-        document.getElementById("hasPAS").value = p.hasPAS || "";
-        document.getElementById("hasPAD").value = p.hasPAD || "";
-        document.getElementById("hasClassif").value = p.hasClassif || "";
+        // Renderiza Gráficos Nativos SVG/CSS baseados nos filtrados
+        renderizarGraficosModal(filtrados);
 
-        if (document.getElementById("dmSN")) {
-            document.getElementById("dmSN").value = p.dmSN || "Não";
-            mostrarCard("cardDM", p.dmSN);
-        }
-        document.getElementById("dmHbA1c").value = p.dmHbA1c || "";
-        document.getElementById("dmClassif").value = p.dmClassif || "";
-
-        document.getElementById("tbSN").checked = !!p.tbSN;
-        document.getElementById("hansenSN").checked = !!p.hansenSN;
-
-        document.getElementById("soapSubjetivo").value = p.soapSubjetivo || "";
-        document.getElementById("inputBuscaCIAPS").value = p.ciapPrincipal || "";
-        document.getElementById("soapPlanoConduta").value = p.soapPlanoConduta || "";
-
-        const cabecalho = document.getElementById("cabecalhoProntuario");
-        const cabecalhoNome = document.getElementById("cabecalhoNome");
-        if (cabecalho && cabecalhoNome) {
-            cabecalhoNome.innerText = `🚨 SESSÃO CLÍNICA ATIVA • Cidadão: ${p.nome} (CPF: ${p.cpf})`;
-            cabecalho.style.display = "block";
+        // Constrói tabela interna do modal
+        const tabela = document.getElementById("tabelaPainelEpidemiologico");
+        if (filtrados.length === 0) {
+            tabela.innerHTML = "<p style='color:#64748b; padding:10px;'>Nenhum utente localizado sob estes critérios de filtro territorial.</p>";
+            return;
         }
 
-        navigate("prontuario");
+        let html = "<table><thead><tr><th>Nome</th><th>CPF</th><th>UBS</th><th>Equipe</th><th>Monitoramento</th></tr></thead><tbody>";
+        filtrados.forEach(p => {
+            html += `<tr>
+                <td><b>${p.nome}</b></td>
+                <td>${p.cpf}</td>
+                <td>${p.ubs || "Pendente"}</td>
+                <td>${p.equipe || "Pendente"}</td>
+                <td>${p.reavaliacaoDias === 0 ? "🚨 Reavaliação Urgente" : `Acompanhamento em ${p.reavaliacaoDias}d`}</td>
+            </tr>`;
+        });
+        html += "</tbody></table>";
+        tabela.innerHTML = html;
     };
 }
 
-function salvarProntuario() {
-    const cpf = document.getElementById("cpfPaciente").value.trim();
-    const nome = document.getElementById("nomePaciente").value.trim();
+function renderizarGraficosModal(lista) {
+    const total = lista.length;
+    const criticos = lista.filter(p => p.reavaliacaoDias === 0).length;
+    const controlados = total - criticos;
+    
+    const pctCritico = total > 0 ? Math.round((criticos / total) * 100) : 0;
 
-    if (!cpf || !nome) {
-        mostrarToast("Erro: Nome Completo e CPF são obrigatórios.");
-        return;
-    }
+    // Donut de Criticidade
+    document.getElementById("containerGraficoDonut").innerHTML = `
+        <div class="donut-wrapper">
+            <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut-svg">
+                <circle class="donut-bg" cx="21" cy="21" r="15.915"></circle>
+                <circle class="donut-segment" cx="21" cy="21" r="15.915" stroke="var(--danger)" stroke-dasharray="${pctCritico} ${100 - pctCritico}" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="donut-center-text">
+                <span class="donut-number">${pctCritico}%</span>
+                <span class="donut-label">Críticos</span>
+            </div>
+        </div>
+    `;
+
+    // Barras de Volumetria
+    document.getElementById("containerGraficoBarras").innerHTML = `
+        <div class="bar-chart-container">
+            <div class="bar-row">
+                <div class="bar-label"><span>Críticos (0 Dias)</span><span>${criticos} Utentes</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: ${pctCritico}%; background: var(--danger)"></div></div>
+            </div>
+            <div class="bar-row" style="margin-top:10px;">
+                <div class="bar-label"><span>Controlados / Monitorados</span><span>${controlados} Utentes</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: ${total > 0 ? 100 - pctCritico : 0}%; background: var(--success)"></div></div>
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================================
+   ⚙️ GESTÃO DE ESTRESSE DE MEMÓRIA & INTEROPERABILIDADE ACADÉMICA
+   ========================================================================== */
+function gerarCargaMassaOitoMil() {
+    if (!confirm("Esta ação injetará 8.000 cadastros simulados com strings SOAP completas no seu IndexedDB local para testes de latência. Continuar?")) return;
+    
+    mostrarToast("⏳ Processando matriz de dados... Aguarde.");
+    
+    const nomesFalsos = ["Ana", "Bruno", "Carlos", "Daniela", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana"];
+    const sobrenomesFalsos = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Almeida", "Pereira", "Lima", "Costa"];
+    const ubsFalsas = ["UBS Centro Médico", "UBS Vila Nova", "Clínica da Família Zona Sul", "UBS Integrada Norte"];
+    const equipesFalsas = ["Equipe Verde", "Equipe Azul", "Equipe Esmeralda", "Equipe Rubi"];
 
     const transaction = db.transaction(["pacientes"], "readwrite");
     const store = transaction.objectStore("pacientes");
 
-    const pas = parseInt(document.getElementById("hasPAS").value, 10) || null;
-    const hba1c = parseFloat(document.getElementById("dmHbA1c").value) || null;
+    for (let i = 0; i < 8000; i++) {
+        const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
+        const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
+        const prazoSimulado = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1;
+
+        const payload = {
+            cpf: cpfSimulado,
+            nome: nomeCompleto,
+            nasc: "1985-06-15",
+            idade: "41",
+            tel: "(21) 98888-7711",
+            cep: "20000-000",
+            endereco: "Avenida Central do Município Simulador",
+            numero: String(i),
+            complemento: "Lote Acadêmico",
+            ubs: ubsFalsas[i % 4],
+            equipe: equipesFalsas[i % 4],
+            has: i % 2 === 0 ? "Sim" : "Não",
+            pas: i % 2 === 0 ? "145" : "",
+            pad: i % 2 === 0 ? "95" : "",
+            classifHas: i % 2 === 0 ? "Hipertensão Estágio 1 ou 2" : "",
+            dm: i % 3 === 0 ? "Sim" : "Não",
+            hba1c: i % 3 === 0 ? "7.5" : "",
+            classifDm: i % 3 === 0 ? "Controle Limítrofe" : "",
+            gestante: "Não",
+            tb: "Não",
+            hansen: "Não",
+            ampi: "Idoso Robusto",
+            
+            objPA: i % 2 === 0 ? "140x90" : "120x80",
+            objFC: "76",
+            objFR: "16",
+            objSatO2: "98",
+            objDor: "0",
+            exameFisicoStatus: "Normal",
+            soapObjetivoAlterado: "",
+
+            reavaliacaoDias: prazoSimulado,
+            historicoEvolucoes: [
+                `--- ATENDIMENTO SIMULADO DE ESTRESSE DE MEMÓRIA (LOTE ${i}) ---\nS: Sem queixas aparentes.\nO: [SSVV -> PA: 120x80 | FC: 76 bpm] Exame Físico Normal.\nA: Registro inserido via robô de simulação acadêmica municipal.\nP: Manter monitoramento do território. Prazo: ${prazoSimulado} dias.`
+            ]
+        };
+        store.put(payload);
+    }
+
+    transaction.oncomplete = function() {
+        mostrarToast("🚀 Injeção de 8.000 cadastros concluída com sucesso!");
+        atualizarIndicatorsDashboard();
+        atualizarCentralAvisosSininho();
+        if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
+    };
+}
+
+function processarArquivoEsus(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const dadosImportados = JSON.parse(e.target.result);
+            if (!dadosImportados.cpf || !dadosImportados.nome) {
+                mostrarToast("❌ Falha de interoperabilidade: Estrutura inválida ou sem CPF.");
+                return;
+            }
+
+            const transaction = db.transaction(["pacientes"], "readwrite");
+            const store = transaction.objectStore("pacientes");
+            
+            if (dadosImportados.reavaliacaoDias !== undefined) {
+                dadosImportados.reavaliacaoDias = parseInt(dadosImportados.reavaliacaoDias);
+            } else {
+                dadosImportados.reavaliacaoDias = 30;
+            }
+
+            store.put(dadosImportados);
+
+            transaction.oncomplete = function() {
+                mostrarToast(`📥 Cidadão ${dadosImportados.nome} importado para a base!`);
+                atualizarIndicatorsDashboard();
+                atualizarCentralAvisosSininho();
+                input.value = "";
+            };
+        } catch (err) {
+            mostrarToast("❌ Erro ao decodificar a sintaxe JSON do arquivo e-SUS.");
+        }
+    };
+    reader.readAsText(file);
+}
+
+/* ==========================================================================
+   📞 CENTRAL OPERACIONAL DE BUSCA ATIVA & MENSAGENS TELEFÓNICAS (WHATSAPP)
+   ========================================================================== */
+function alternarCentralDiscagem() {
+    const painel = document.getElementById("painelDiscagemContainer");
+    if (!painel) return;
     
-    let criticidade = "normal";
-    if (pas >= 160 || hba1c >= 9.0) criticidade = "crítico";
-
-    const pacienteObjeto = {
-        cpf, nome,
-        dataNascimento: document.getElementById("nascPaciente").value,
-        telefone: document.getElementById("telPaciente").value,
-        unidadePaciente: document.getElementById("unidadePaciente")?.value || "UBS Vila Nova",
-        equipePaciente: document.getElementById("equipePaciente")?.value || "Equipe Verde",
-        hasSN: document.getElementById("hasSN").value,
-        hasPAS: pas,
-        hasPAD: parseInt(document.getElementById("hasPAD").value, 10) || null,
-        hasClassif: document.getElementById("hasClassif").value,
-        dmSN: document.getElementById("dmSN").value,
-        dmHbA1c: hba1c,
-        dmClassif: document.getElementById("dmClassif").value,
-        tbSN: document.getElementById("tbSN").checked,
-        hansenSN: document.getElementById("hansenSN").checked,
-        soapSubjetivo: document.getElementById("soapSubjetivo").value,
-        ciapPrincipal: document.getElementById("inputBuscaCIAPS").value,
-        soapPlanoConduta: document.getElementById("soapPlanoConduta").value,
-        ultimoMonitoramento: new Date().toLocaleDateString('pt-BR'),
-        criticidade: criticidade
-    };
-
-    store.put(pacienteObjeto).onsuccess = function() {
-        mostrarToast(`Sucesso: Prontuário de ${nome} gravado.`);
-        fecharCabecalhoProntuario();
-        navigate("inicio");
-    };
+    if (painel.style.display === "block") {
+        painel.style.display = "none";
+    } else {
+        painel.style.display = "block";
+        prepararDiscagemPacienteAtivo();
+        escutarTecladoDiscador(); // Inicializa o monitor inteligente do input
+    }
 }
 
-function fecharCabecalhoProntuario() {
-    const cabecalho = document.getElementById("cabecalhoProntuario");
-    if (cabecalho) cabecalho.style.display = "none";
+function prepararDiscagemPacienteAtivo() {
+    const displayStatus = document.getElementById("statusDiscadorPaciente");
+    const nomeAtivo = document.getElementById("nomePaciente").value;
+    const telAtivo = document.getElementById("telPaciente").value;
+
+    if (!displayStatus) return;
+
+    if (nomeAtivo && telAtivo) {
+        displayStatus.innerHTML = `
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px;">
+                <p style="margin: 0; font-size: 11px; color: #166534; font-weight: bold;">👤 Utente Ativo no Prontuário:</p>
+                <strong style="font-size: 13px; color: #14532d; display:block;">${nomeAtivo}</strong>
+                <span style="font-size: 12px; color: #166534;">📞 Contato: ${telAtivo}</span>
+            </div>
+        `;
+    } else {
+        displayStatus.innerHTML = `<em style="color:#94a3b8; font-size:12px;">Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.</em>`;
+    }
 }
 
+/**
+ * Transforma o campo do discador numa barra de filtragem e envio um por um
+ */
+function escutarTecladoDiscador() {
+    const inputDiscador = document.getElementById("inputNumeroDiscador");
+    if (!inputDiscador) return;
+
+    inputDiscador.addEventListener("input", () => {
+        const termo = inputDiscador.value.toLowerCase().trim();
+        const displayStatus = document.getElementById("statusDiscadorPaciente");
+        
+        if (!displayStatus) return;
+
+        if (!termo) {
+            prepararDiscagemPacienteAtivo();
+            return;
+        }
+
+        // Se for inserção manual de um número telefónico avulso longo
+        if (/^\d+$/.test(termo) && termo.length > 5) {
+            renderizarCardMensagemUnica("Usuário Manual", termo, displayStatus);
+            return;
+        }
+
+        // Busca Ativa Multicritério dentro do Widget
+        const transaction = db.transaction(["pacientes"], "readonly");
+        const store = transaction.objectStore("pacientes");
+        const request = store.getAll();
+
+        request.onsuccess = function() {
+            const todosPacientes = request.result;
+            const termoNumerico = termo.replace(/\D/g, "");
+
+            const desejaCritico = termo.includes("critico") || termo.includes("crítico");
+            const desejaHAS = termo.includes("has") || termo.includes("hipertens");
+            const desejaDM = termo.includes("dm") || termo.includes("diabet");
+            const desejaPN = termo.includes("pn") || termo.includes("gestant");
+
+            const filtrados = todosPacientes.filter(p => {
+                if (desejaHAS && p.has !== "Sim") return false;
+                if (desejaDM && p.dm !== "Sim") return false;
+                if (desejaPN && p.gestante !== "Sim") return false;
+                if (desejaCritico && p.reavaliacaoDias !== 0) return false;
+
+                const temFiltroClinico = desejaHAS || desejaDM || desejaPN || desejaCritico;
+                if (!temFiltroClinico) {
+                    const nomeBate = p.nome.toLowerCase().includes(termo);
+                    const cpfLimpo = p.cpf.replace(/\D/g, "");
+                    const cpfBate = termoNumerico !== "" && cpfLimpo.includes(termoNumerico);
+                    return nomeBate || cpfBate;
+                }
+                return true;
+            });
+
+            if (filtrados.length === 0) {
+                displayStatus.innerHTML = `<p style="color:var(--danger); font-size:12px; margin:5px 0;">Nenhum contacto localizado.</p>`;
+                return;
+            }
+
+            // Renderiza um por um com ferramentas individuais de WhatsApp
+            let htmlContatos = `<div style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">`;
+            
+            filtrados.forEach((p, index) => {
+                const foneLimpo = p.tel ? p.tel.replace(/\D/g, '') : '';
+                const prazoTexto = p.reavaliacaoDias === 0 ? '⚠️ CRÍTICO' : `⏱️ ${p.reavaliacaoDias}d`;
+                const corStatus = p.reavaliacaoDias === 0 ? '#b91c1c' : '#475569';
+
+                htmlContatos += `
+                    <div class="card-wpp-individual" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <strong style="font-size: 13px; color: #1e293b; display: block;">${p.nome}</strong>
+                                <span style="font-size: 11px; color: #64748b;">📞 Tel: ${p.tel || 'Não cadastrado'}</span>
+                            </div>
+                            <span style="font-size: 10px; font-weight: bold; background: ${corStatus}; color: white; padding: 2px 6px; border-radius: 4px;">${prazoTexto}</span>
+                        </div>
+                        
+                        ${p.tel ? `
+                            <select id="selectMsg_${index}" onchange="atualizarTextoMensagem(${index})" style="width: 100%; font-size: 11px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; color: #334155;">
+                                <option value="">-- Selecione uma Mensagem Padrão --</option>
+                                <option value="has_critico">🚨 Alerta de HAS Crítico</option>
+                                <option value="dm_controle">🩺 Solicitação de Exames DM</option>
+                                <option value="pn_rotina">🤰 Agendamento de Pré-Natal</option>
+                                <option value="busca_ativa">🏃 Busca Ativa Geral</option>
+                                <option value="custom">✍️ Criar Nova Mensagem / Texto Livre</option>
+                            </select>
+
+                            <textarea id="textMsg_${index}" placeholder="Selecione um padrão ou escreva a mensagem personalizada..." style="width: 100%; height: 50px; font-size: 11px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; resize: none; font-family: sans-serif;"></textarea>
+
+                            <button onclick="enviarWhatsAppTerritorial('${foneLimpo}', ${index})" style="background: #25d366; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                💬 Enviar via WhatsApp
+                            </button>
+                        ` : `
+                            <span style="font-size: 11px; color: var(--danger); font-weight: 500;">🚫 Sem telefone no prontuário.</span>
+                        `}
+                    </div>
+                `;
+            });
+
+            htmlContatos += `</div>`;
+            displayStatus.innerHTML = htmlContatos;
+        };
+    });
+}
+
+function atualizarTextoMensagem(index) {
+    const seletor = document.getElementById(`selectMsg_${index}`);
+    const areaTexto = document.getElementById(`textMsg_${index}`);
+    
+    if (!seletor || !areaTexto) return;
+
+    const chave = seletor.value;
+    if (chave && chave !== "custom") {
+        areaTexto.value = SCRIPTS_WHATSAPP_APS[chave];
+    } else {
+        areaTexto.value = "";
+        if (chave === "custom") areaTexto.focus();
+    }
+}
+
+function enviarWhatsAppTerritorial(telefonePuro, index) {
+    const areaTexto = document.getElementById(`textMsg_${index}`);
+    if (!areaTexto) return;
+
+    const mensagem = encodeURIComponent(areaTexto.value.trim());
+    
+    if (!mensagem) {
+        mostrarToast("⚠️ Insira uma mensagem válida antes de enviar.");
+        return;
+    }
+
+    let telefoneFinal = telefonePuro;
+    if (telefoneFinal.length === 11 || telefoneFinal.length === 10) {
+        telefoneFinal = "55" + telefoneFinal;
+    }
+
+    const urlApiWhatsApp = `https://api.whatsapp.com/send?phone=${telefoneFinal}&text=${mensagem}`;
+    window.open(urlApiWhatsApp, '_blank');
+}
+
+function renderizarCardMensagemUnica(nome, telefone, container) {
+    container.innerHTML = `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left;">
+            <strong style="font-size:12px; color:#1e293b;">📞 Discagem Manual Externa</strong>
+            <span style="font-size:11px; color:#64748b;">Número: ${telefone}</span>
+            <textarea id="textMsg_manual" placeholder="Escreva a mensagem personalizada para este número..." style="width: 100%; height: 50px; font-size: 11px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; resize: none;"></textarea>
+            <button onclick="enviarWhatsAppTerritorial('${telefone}', 'manual')" style="background: #25d366; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;">
+                💬 Enviar para Número Avulso
+            </button>
+        </div>
+    `;
+}
+
+/* ==========================================================================
+   🍞 UTILS: UI INTERFACE NOTIFICATIONS & MASCARAS
+   ========================================================================== */
 function mostrarToast(mensagem) {
     const toast = document.getElementById("toastNotification");
-    if (toast) {
-        toast.innerText = mensaje;
-        toast.style.display = "block";
-        setTimeout(() => { toast.style.display = "none"; }, 4000);
-    }
+    if (!toast) return;
+    toast.innerText = mensagem;
+    toast.style.display = "block";
+    setTimeout(() => { toast.style.display = "none"; }, 3500);
 }
 
-/* ==========================================================================
-   🛢️ SEÇÃO XII: INGESTÃO DE MATRIZ DE TESTES OPERACIONAIS (MOCK)
-   ========================================================================== */
-
-function alimentarBancoDadosMock() {
-    const transaction = db.transaction(["pacientes", "usuarios"], "readwrite");
-    const storePacientes = transaction.objectStore("pacientes");
-    
-    const pacientesMock = [
-        { cpf: "111.111.111-11", nome: "Maria Oliveira de Souza", dataNascimento: "1965-04-12", telefone: "21999998888", unidadePaciente: "UBS Vila Nova", equipePaciente: "Equipe Verde", hasSN: "Sim", hasPAS: 175, hasPAD: 105, hasClassif: "⚠️ HAS Estágio 2", dmSN: "Não", tbSN: false, hansenSN: false, criticidade: "crítico", ultimoMonitoramento: "10/05/2026" },
-        { cpf: "222.222.222-22", nome: "Carlos Eduardo da Silva", dataNascimento: "1972-09-23", telefone: "21988887777", unidadePaciente: "UBS Centro Médico", equipePaciente: "Equipe Azul", hasSN: "Não", dmSN: "Sim", dmHbA1c: 10.5, dmClassif: "⚠️ HbA1c Crítica", tbSN: false, hansenSN: false, criticidade: "crítico", ultimoMonitoramento: "12/05/2026" }
-    ];
-
-    pacientesMock.forEach(p => storePacientes.put(p));
-    transaction.oncomplete = function() {
-        console.log("💥 [Mock Engine] Carga operacional indexada com sucesso.");
-        carregarDadosIniciaisEServicos();
-    };
+function mascaraCPF(campo) {
+    let v = campo.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.substring(0, 11);
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    campo.value = v;
 }
-function alternarVisaoGestor(perfil) {
-    const painelAdm = document.getElementById("blocoConfigAdmin");
-    const btnCargaMassa = document.getElementById("btnInjetarMassa"); // Certifique-se que o ID existe no HTML
-    
-    if (perfil === "admin") {
-        if (painelAdm) painelAdm.style.display = "block";
-        if (btnCargaMassa) btnCargaMassa.style.display = "inline-block"; // Força a exibição
-        console.log("🛡️ [RBAC] Privilégios de Admin restaurados.");
-    } else {
-        if (btnCargaMassa) btnCargaMassa.style.display = "none";
-    }
-}
-
-/* ==========================================================================
-   🎬 SEÇÃO XIII: ACRISTALAMENTO E DISPARO DE INICIALIZAÇÃO
-   ========================================================================== */
-
-document.addEventListener("DOMContentLoaded", function() {
-    inicializarBancoDados();
-});
