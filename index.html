@@ -942,6 +942,64 @@
 <script src="./js/reuniao.js"></script>
 <script src="./js/riscoClinico.js"></script>
 <script src="./js/app.js"></script>
+<script>
+function autenticarUsuario() {
+    const user = document.getElementById('loginUser')?.value.trim();
+    const senha = document.getElementById('loginSenha')?.value.trim();
+    const erro = document.getElementById('loginErro');
 
+    const usuarios = JSON.parse(
+        localStorage.getItem('sintaxehub_usuarios') || '[]'
+    );
+
+    if (usuarios.length === 0) {
+        usuarios.push({
+            id: Date.now(),
+            nome: 'Administrador',
+            usuario: 'admin',
+            senha: 'admin123',
+            perfil: 'admin',
+            ativo: true
+        });
+
+        localStorage.setItem(
+            'sintaxehub_usuarios',
+            JSON.stringify(usuarios)
+        );
+    }
+
+    const encontrado = usuarios.find(u =>
+        u.usuario === user &&
+        u.senha === senha &&
+        u.ativo
+    );
+
+    if (!encontrado) {
+        if (erro) {
+            erro.innerText = 'Usuário ou senha inválidos.';
+            erro.style.display = 'block';
+        }
+        return;
+    }
+
+    localStorage.setItem(
+        'sintaxehub_usuario_logado',
+        JSON.stringify(encontrado)
+    );
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    if (typeof aplicarPermissoesUsuario === 'function') {
+        aplicarPermissoesUsuario();
+    }
+
+    if (typeof navigate === 'function') {
+        navigate('inicio');
+    }
+}
+
+window.autenticarUsuario = autenticarUsuario;
+</script>
 </body>
 </html>
