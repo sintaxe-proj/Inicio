@@ -1,358 +1,69 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SintaxeHub - Central Operational de Busca Ativa</title>
-    <style>
-        /* ==========================================================================
-           🎨 DIRETRICES DE DESIGN: DARK MODE OPERACIONAL (SINTAXEHUB LABS)
-           ========================================================================== */
-        :root {
-            --bg-main: #0f172a;          /* Fundo Escuro Principal (Slate 900) */
-            --bg-card: #1e293b;          /* Fundo de Blocos e Prontuários (Slate 800) */
-            --bg-input: #334155;         /* Inputs e Campos de Texto (Slate 700) */
-            --text-main: #f8fafc;        /* Texto Puro (Slate 50) */
-            --text-muted: #94a3b8;       /* Legendas e Metadados (Slate 400) */
-            --border: #334155;           /* Linhas de Divisão e Contornos */
-            
-            /* Identidade de Cores Clínicas */
-            --primary-neon: #3b82f6;     /* Azul de Navegação Ativa */
-            --success: #25d366;          /* Verde Clássico do WhatsApp */
-            --success-dark: #16a34a;     /* Controle Verde Clínico */
-            --warning: #f59e0b;          /* Alerta Laranja/Amarelo */
-            --danger: #ef4444;           /* Risco Crítico / Notificações */
-        }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-        }
-
-        /* ==========================================================================
-           🔐 TELA DE LOGIN MUNICIPAL (DARK STYLING)
-           ========================================================================== */
-        #loginScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #090d16 0%, var(--bg-main) 100%);
-        }
-
-        .login-card {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            width: 100%;
-            max-width: 360px;
-            text-align: center;
-        }
-
-        .login-card input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        .btn-login {
-            width: 100%;
-            background: var(--primary-neon);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* ==========================================================================
-           🧱 ESTRUTURA E LAYOUT DO PAINEL
-           ========================================================================== */
-        header {
-            background-color: #020617; /* Slate 950 ultra escuro */
-            color: var(--text-main);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }
-
-        nav {
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 0 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .nav-link {
-            padding: 15px 5px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-        }
-
-        .nav-link.active {
-            color: var(--primary-neon);
-            border-bottom-color: var(--primary-neon);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .view { display: none; }
-
-        /* ==========================================================================
-           📋 COMPONENTES: CARDS DO DASHBOARD, GRIDS E FORMULÁRIOS
-           ========================================================================== */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .dash-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-
-        .dash-card:hover { 
-            transform: translateY(-2px);
-            background-color: #24334d;
-        }
-        .dash-card h3 { margin: 0; font-size: 2.5rem; color: var(--text-main); }
-        .dash-card p { margin: 5px 0 0 0; color: var(--text-muted); font-weight: 500; }
-
-        .form-section {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-sizing: border-box;
-            background: var(--bg-input);
-            color: var(--text-main);
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-neon);
-        }
-
-        /* Sub-cards Clínicos Customizados dentro do Tema Escuro */
-        .clinical-card {
-            background: #2d1f1f;
-            border-left: 4px solid var(--danger);
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 0 6px 6px 0;
-            border-top: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-card);
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        th { background-color: #111c2e; color: var(--text-muted); font-weight: 600; }
-        tr:hover { background-color: rgba(255, 255, 255, 0.02); }
-
-        .btn-table-action {
-            padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; color: white; margin-right: 4px;
-        }
-        .btn-edit { background: var(--primary-neon); }
-        .btn-del { background: var(--danger); }
-
-        /* ==========================================================================
-           📞 CENTRAL TELEFÔNICA FLUTUANTE (WIDGET DISCADOR)
-           ========================================================================== */
-        #painelDiscagemContainer {
-            position: fixed;
-            bottom: 85px;
-            right: 25px;
-            width: 320px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            z-index: 9999;
-            display: none;
-            overflow: hidden;
-        }
-
-        .discador-header {
-            background: #020617;
-            color: var(--text-main);
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 14px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .btn-flutuante-discador {
-            position: fixed;
-            bottom: 20px;
-            right: 25px;
-            width: 55px;
-            height: 55px;
-            background-color: var(--success);
-            color: white;
-            border-radius: 50%;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            z-index: 9998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ==========================================================================
-           🖼️ MODAIS EM CAMADA GRÁFICA (ANALYTICS)
-           ========================================================================== */
-        .modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(2, 6, 23, 0.8);
-            display: none;
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 85vh;
-            overflow-y: auto;
-            position: relative;
-            border: 1px solid var(--border);
-        }
-
-        /* Configuração Gráficos SVG/Donut */
-        .donut-wrapper { position: relative; width: 120px; height: 120px; margin: auto; }
-        .donut-svg { transform: rotate(-90deg); }
-        .donut-bg { fill: none; stroke: var(--bg-input); stroke-width: 4; }
-        .donut-segment { fill: none; stroke-width: 4; stroke-linecap: round; }
-        .donut-center-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); text-align: center;
-        }
-        .donut-number { font-size: 18px; font-weight: bold; display: block; color: var(--text-main); }
-        .donut-label { font-size: 10px; color: var(--text-muted); }
-
-        .bar-track { background: var(--bg-input); height: 12px; border-radius: 6px; overflow: hidden; }
-        .bar-fill { height: 100%; transition: width 0.5s; }
-        .bar-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 2px; color: var(--text-main); }
-
-        /* ==========================================================================
-           🍞 NOTIFICAÇÕES TOAST, CRONOLOGIA E EMBLEMAS (BADGES)
-           ========================================================================== */
-        #toastNotification {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #020617; color: var(--text-main); padding: 12px 24px;
-            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 10001; font-weight: 500; display: none; border: 1px solid var(--primary-neon);
-        }
-
-        .timeline { border-left: 2px solid var(--border); padding-left: 15px; margin-top: 10px; }
-        .timeline-item { margin-bottom: 15px; position: relative; }
-        .timeline-body { background: #111c2e; padding: 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--text-main); white-space: pre-wrap; }
-
-        .tag-clinica { font-size: 11px; font-weight: bold; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-    </style>
+    <link rel="stylesheet" href="./css/styles.css">
 </head>
+
 <body>
 
     <div id="loginScreen">
         <div class="login-card">
-            <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight: 800; letter-spacing: 0.5px;">SintaxeHub</h2>
-            <p style="color:var(--text-muted); margin:0 0 20px 0; font-size:14px;">Prontuário de Busca Ativa Territorial</p>
-            <input type="text" id="loginUser" placeholder="Matrícula Municipal (Ex: 440129)">
+            <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight:800;">
+                SintaxeHub
+            </h2>
+
+            <p style="color:var(--text-muted); margin:0 0 20px 0; font-size:14px;">
+                Prontuário de Busca Ativa Territorial
+            </p>
+
+            <input type="text" id="loginUser" placeholder="Matrícula Municipal">
             <input type="password" id="loginSenha" placeholder="Senha de Acesso">
-            <div id="loginErro" style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;"></div>
-            <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
+
+            <div id="loginErro"
+                 style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;">
+            </div>
+
+            <button class="btn-login" onclick="autenticarUsuario()">
+                Entrar no Sistema
+            </button>
         </div>
     </div>
 
     <div id="app" style="display:none;">
-        
+
         <header>
             <div style="display:flex; align-items:center; gap:15px;">
-                <h2 style="margin:0; font-size:20px; letter-spacing:0.5px; font-weight: 700;">🏥 SUS Digital • Territorial</h2>
-                <select id="seletorNivelAcesso" onchange="alternarVisaoGestor(this.value)" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:4px 8px; font-size:12px; border-radius:4px; font-weight:bold; cursor:pointer;">
+                <h2 style="margin:0; font-size:20px; font-weight:700;">
+                    🏥 SUS Digital • Territorial
+                </h2>
+
+                <select id="seletorNivelAcesso"
+                        onchange="alternarVisaoGestor(this.value)"
+                        style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:4px 8px; font-size:12px; border-radius:4px;">
                     <option value="user">Visão Assistencial</option>
                     <option value="admin" selected>Visão Coordenador/Gestor</option>
                 </select>
             </div>
-            
+
             <div style="display:flex; align-items:center; gap:20px;">
-                <span id="nomeUsuarioLogado" style="font-weight:500; font-size:14px; color: var(--text-main);"></span>
-                
-                <div id="centralAvisosContainer" onclick="abrirPainelEpidemiologico('criticos')" style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; position:relative;" title="">
+                <span id="nomeUsuarioLogado"></span>
+
+                <div id="centralAvisosContainer"
+                     onclick="abrirPainelEpidemiologico('criticos')"
+                     style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; gap:6px;">
                     <span>🔔</span>
-                    <span id="contadorAvisosSininho" style="font-weight:bold; font-size:12px;">0</span>
+                    <span id="contadorAvisosSininho">0</span>
                 </div>
 
-                <button onclick="efetuarLogout()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Sair</button>
+                <button onclick="efetuarLogout()"
+                        style="background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:4px;">
+                    Sair
+                </button>
             </div>
         </header>
 
@@ -363,371 +74,200 @@
             <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
         </nav>
 
-        <div id="cabecalhoProntuario" style="background:#1e3a8a; border-bottom:1px solid var(--primary-neon); padding:10px 20px; display:none;">
-            <span id="cabecalhoNome" style="color:var(--text-main); font-weight:700; font-size:14px;"></span>
+        <div id="cabecalhoProntuario"
+             style="background:#1e3a8a; padding:10px 20px; display:none;">
+            <span id="cabecalhoNome"></span>
         </div>
 
         <div class="container">
 
             <div id="view-inicio" class="view" style="display:block;">
                 <div class="dashboard-grid">
-                    <div class="dash-card" style="border-top:4px solid var(--danger);" onclick="abrirPainelEpidemiologico('has')">
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('has')">
                         <h3 id="dashHAS">0</h3>
                         <p>Hipertensos (HAS)</p>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--success);" onclick="abrirPainelEpidemiologico('dm')">
+
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('dm')">
                         <h3 id="dashDM">0</h3>
                         <p>Diabéticos (DM)</p>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--warning);" onclick="abrirPainelEpidemiologico('gestante')">
+
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('gestante')">
                         <h3 id="dashGest">0</h3>
                         <p>Pré-Natal Ativo</p>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid #a21caf;" onclick="abrirPainelEpidemiologico('tuberculose')">
+
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('tuberculose')">
                         <h3 id="dashTB">0</h3>
                         <p>Tuberculose</p>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--primary-neon);" onclick="abrirPainelEpidemiologico('hanseniase')">
+
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('hanseniase')">
                         <h3 id="dashHansen">0</h3>
                         <p>Hanseníase</p>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">📞 Central Operational de Busca Ativa Territorial</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin:-10px 0 15px 0;">Filtre em tempo real por Nome, CPF, Condição de Saúde (has, dm, pn, tb, hansen) ou criticidade ("crítico").</p>
-                    <input type="text" id="buscaNomeInicio" onkeyup="buscarInicio()" placeholder="O que procura no território hoje? (Ex: 'has crítico', 'Maria', '123.456...')">
-                    
+                    <h3>📞 Central Operational de Busca Ativa Territorial</h3>
+
+                    <input type="text"
+                           id="buscaNomeInicio"
+                           onkeyup="buscarInicio()"
+                           placeholder="Busque por Nome, CPF, HAS, DM, PN, TB, Hansen ou crítico">
+
                     <div id="resultadoInicio" style="margin-top:20px;">
-                        <em style="color: var(--text-muted);">Introduza um critério acima para pesquisar (Nome, CPF, Linha de Cuidado ou "Crítico").</em>
+                        <em style="color:var(--text-muted);">
+                            Introduza um critério acima para pesquisar.
+                        </em>
                     </div>
                 </div>
             </div>
 
             <div id="view-prontuario" class="view">
-                <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main); border-bottom:1px solid var(--border); padding-bottom:8px;">📝 Registro Clínico de Admissão / Evolução Territorial</h3>
-                    
-                    <h4 style="color:var(--text-muted); margin:15px 0 10px 0; font-size:15px; text-transform: uppercase; letter-spacing: 0.5px;">A. Dados Cadastrais e Localização</h4>
-                    <div class="form-grid">
-                        <div>
-                            <label>Nome Completo do Cidadão *</label>
-                            <input type="text" id="nomePaciente" placeholder="Nome sem abreviações">
-                        </div>
-                        <div>
-                            <label>CPF *</label>
-                            <input type="text" id="cpfPaciente" oninput="mascaraCPF(this)" placeholder="000.000.000-00">
-                        </div>
-                        <div>
-                            <label>Data de Nascimento</label>
-                            <input type="date" id="nascPaciente" onchange="calcIdade()">
-                        </div>
-                        <div>
-                            <label>Idade Atual</label>
-                            <input type="text" id="idadePaciente" readonly style="background:var(--bg-main); font-weight:bold;">
-                        </div>
-                        <div>
-                            <label>Telefone / Celular de Contato</label>
-                            <input type="text" id="telPaciente" placeholder="(XX) XXXXX-XXXX">
-                        </div>
-                    </div>
-
-                    <div class="form-grid" style="margin-top:15px;">
-                        <div>
-                            <label>CEP</label>
-                            <input type="text" id="CEP" onblur="buscarCEP()" placeholder="Somente números">
-                        </div>
-                        <div style="grid-column: span 2;">
-                            <label>Endereço Residencial Completo</label>
-                            <input type="text" id="endPaciente" placeholder="Rua, Bairro, Cidade (Via CEP)">
-                        </div>
-                        <div>
-                            <label>Número</label>
-                            <input type="text" id="endNumero">
-                        </div>
-                        <div>
-                            <label>Complemento</label>
-                            <input type="text" id="endComplemento">
-                        </div>
-                    </div>
-
-                    <div class="form-grid" style="margin-top:15px; background: #111c2e; padding: 12px; border-radius: 6px; border: 1px solid var(--border);">
-                        <div>
-                            <label>UBS de Vinculação</label>
-                            <select id="unidadePaciente">
-                                <option value="">-- Selecione a UBS --</option>
-                                <option value="UBS Centro Médico">UBS Centro Médico</option>
-                                <option value="UBS Vila Nova">UBS Vila Nova</option>
-                                <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
-                                <option value="UBS Integrada Norte">UBS Integrada Norte</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Equipe de Saúde da Família (eSF)</label>
-                            <select id="equipePaciente">
-                                <option value="">-- Selecione a Equipe --</option>
-                                <option value="Equipe Verde">Equipe Verde</option>
-                                <option value="Equipe Azul">Equipe Azul</option>
-                                <option value="Equipe Esmeralda">Equipe Esmeralda</option>
-                                <option value="Equipe Rubi">Equipe Rubi</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <h4 style="color:var(--text-muted); margin:25px 0 10px 0; font-size:15px; text-transform: uppercase; letter-spacing: 0.5px;">B. Rastreamento e Linhas de Cuidado da APS</h4>
-                    <div class="form-grid">
-                        <div>
-                            <label>Hipertensão (HAS)?</label>
-                            <select id="hasSN" onchange="mostrarCard('cardHAS', this.value)">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Diabetes (DM)?</label>
-                            <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Gestante (Pré-Natal)?</label>
-                            <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div style="display:flex; gap:20px; align-items:center; padding-top:25px;">
-                            <label style="margin:0; cursor:pointer; color: var(--text-main);"><input type="checkbox" id="tbSN" style="width:auto; margin-right:5px;"> Tuberculose</label>
-                            <label style="margin:0; cursor:pointer; color: var(--text-main);"><input type="checkbox" id="hansenSN" style="width:auto; margin-right:5px;"> Hanseníase</label>
-                        </div>
-                    </div>
-
-                    <div id="cardHAS" class="clinical-card" style="display:none;">
-                        <h5 style="margin:0 0 10px 0; color:var(--danger)">🩺 Monitoramento Clínico - Hipertensão Arterial</h5>
-                        <div class="form-grid">
-                            <div><label>PAS (Sistólica)</label><input type="number" id="hasPAS" oninput="classificarHAS()"></div>
-                            <div><label>PAD (Diastólica)</label><input type="number" id="hasPAD" oninput="classificarHAS()"></div>
-                            <div style="grid-column: span 2;"><label>Classificação de Risco</label><input type="text" id="hasClassif" readonly style="background:var(--bg-main); font-weight:bold;"></div>
-                        </div>
-                    </div>
-
-                    <div id="cardDM" class="clinical-card" style="display:none; border-left-color:var(--success); background: #162c1e;">
-                        <h5 style="margin:0 0 10px 0; color:var(--success)">🩸 Monitoramento Clínico - Diabetes Mellitus</h5>
-                        <div class="form-grid">
-                            <div><label>Última HbA1c (%)</label><input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()"></div>
-                            <div style="grid-column: span 3;"><label>Avaliação do Controle Metabólico</label><input type="text" id="dmClassif" readonly style="background:var(--bg-main); font-weight:bold;"></div>
-                        </div>
-                    </div>
-
-                    <div id="cardGestante" class="clinical-card" style="display:none; border-left-color:var(--warning); background: #2e2311;">
-                        <h5 style="margin:0 0 10px 0; color:var(--warning)">🤰 Acompanhamento de Pré-Natal</h5>
-                        <div class="form-grid">
-                            <div><label>Data da DUM (Última Menstruação)</label><input type="date" id="gestDUM" onchange="calcIG()"></div>
-                            <div><label>Idade Gestacional (IG) Atual</label><input type="text" id="gestIG" readonly style="background:var(--bg-main);"></div>
-                            <div><label>Data Provável do Parto (DPP)</label><input type="text" id="gestDPP" readonly style="background:var(--bg-main);"></div>
-                        </div>
-                    </div>
-
-                    <div id="ampiBloco" class="clinical-card" style="display:none; border-left-color:var(--primary-neon); background: #131e36;">
-                        <h5 style="margin:0 0 10px 0; color:var(--primary-neon)">👴 Protocolo Multidimensional do Idoso (AMPI)</h5>
-                        <div class="form-grid">
-                            <div>
-                                <label>Classificação de Fragilidade Funcional</label>
-                                <select id="ampiPaciente">
-                                    <option value="Idoso Robusto">Idoso Robusto (Independente)</option>
-                                    <option value="Idoso em Risco de Fragilização">Idoso em Risco de Fragilização (Limítrofe)</option>
-                                    <option value="Idoso Fragilizado">Idoso Fragilizado (Dependência Funcional)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h4 style="color:var(--text-muted); margin:25px 0 10px 0; font-size:15px; text-transform: uppercase; letter-spacing: 0.5px;">C. Metodologia SOAP (Evolução Clínica)</h4>
-                    
-                    <div style="margin-bottom:15px;">
-                        <label>S - Subjetivo (Queixas, Motivo da Consulta, Relato do Utente)</label>
-                        <textarea id="soapSubjetivo" rows="3" placeholder="Paciente relata..."></textarea>
-                    </div>
-
-                    <div style="margin-bottom:15px; background: #111c2e; padding: 15px; border: 1px solid var(--border); border-radius: 6px;">
-                        <label style="color: var(--primary-neon); margin-bottom: 12px; font-size:14px; text-transform:uppercase;">O - Objetivo: Triagem de Sinais Vitais (SSVV)</label>
-                        <div class="form-grid">
-                            <div><label>PA (Sistólica x Diastólica)</label><input type="text" id="objPA" placeholder="Ex: 120x80 mmHg"></div>
-                            <div><label>FC (Frequência Cardíaca)</label><input type="number" id="objFC" placeholder="bpm"></div>
-                            <div><label>FR (Freq. Respiratória)</label><input type="number" id="objFR" placeholder="irpm"></div>
-                            <div><label>SatO₂ (Saturação de Oxigênio)</label><input type="number" id="objSatO2" placeholder="%"></div>
-                            <div>
-                                <label>Escala Visual Analógica da Dor</label>
-                                <select id="objDor">
-                                    <option value="0">0 - Ausência total de Dor</option>
-                                    <option value="2">2 - Dor de Intensidade Leve</option>
-                                    <option value="5">5 - Dor de Intensidade Moderada</option>
-                                    <option value="8">8 - Dor de Intensidade Severa</option>
-                                    <option value="10">10 - Dor Máxima Insuportável</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
-                            <label>Exame Físico Geral e Clínico</label>
-                            <div style="display:flex; gap:25px; margin-bottom:10px;">
-                                <label style="font-weight:normal; width:auto; color:var(--text-main);"><input type="radio" name="exameFisicoStatus" value="Normal" checked onchange="alternarExameFisico(this.value)"> Fisiológico / Sem particularidades</label>
-                                <label style="font-weight:normal; width:auto; color:var(--text-main);"><input type="radio" name="exameFisicoStatus" value="Alterado" onchange="alternarExameFisico(this.value)"> Apresenta Sinais Clínicos de Alteração</label>
-                            </div>
-                            <div id="blocoExameAlterado" style="display:none;">
-                                <textarea id="soapObjetivoAlterado" rows="2" placeholder="Especifique pormenorizadamente as alterações estruturais ou fisiológicas encontradas..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom:15px;">
-                        <label>A - Avaliação: Codificação Epidemiológica CIAP-2</label>
-                        <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Comece a ditar a patologia ou código CIAP-2 para filtrar...">
-                        <datalist id="listaCIAP"></datalist>
-                    </div>
-
-                    <div style="margin-bottom:15px;">
-                        <label>P - Plano de Conduta (Prescrições, Encaminhamentos, Intervenções APS)</label>
-                        <textarea id="soapPlanoConduta" rows="3" placeholder="Insira o planejamento terapêutico..."></textarea>
-                    </div>
-
-                    <div style="margin-bottom:20px; max-width:300px;">
-                        <label>Agenda do Próximo Contato / Prazo de Monitoramento (Dias)</label>
-                        <input type="number" id="soapReavaliacaoDias" value="30" min="0">
-                    </div>
-
-                    <div id="linhaTempoEvolucoes" style="margin-bottom:20px;"></div>
-
-                    <div style="display:flex; gap:10px; border-top:1px solid var(--border); padding-top:15px;">
-                        <button onclick="salvarProntuario()" style="background:var(--primary-neon); color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">💾 Gravar Atendimento</button>
-                        <button onclick="limparFormularioProntuario(); navigate('inicio');" style="background:var(--bg-input); color:var(--text-muted); border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">Cancelar</button>
-                    </div>
-                </div>
+                <!-- mantenha aqui o seu formulário SOAP completo atual -->
             </div>
 
             <div id="view-banco" class="view">
                 <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">🗄️ Base de Cidadãos Monitorados na Área Operacional</h3>
-                    <div id="tabelaBancoContainer" style="overflow-x:auto;">
-                        <p style="color:var(--text-muted);">Carregando instâncias do IndexedDB local...</p>
-                    </div>
+                    <h3>🗄️ Base de Cidadãos Monitorados</h3>
+                    <div id="tabelaBancoContainer"></div>
                 </div>
             </div>
 
             <div id="view-config" class="view">
                 <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">⚡ Painel Avançado de Interoperabilidade e Testes</h3>
-                    <p style="font-size:13px; color:var(--text-muted);">Ferramentas analíticas voltadas para testes de carga em memória latente e cruzamento e-SUS.</p>
-                    
-                    <div style="display:flex; flex-direction:column; gap:20px; margin-top:20px;">
-                        <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
-                            <h4 style="margin:0 0 10px 0; color:var(--danger);">🚀 Teste de Latência e Estresse (8.000 Prontuários)</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Injeta imediatamente um bloco massivo de 8.000 registros contendo strings SOAP complexas no IndexedDB do navegador.</p>
-                            <button onclick="gerarCargaMassaOitoMil()" style="background:var(--danger); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Injetar Matriz de Dados</button>
-                        </div>
+                    <h3>⚡ Configurações & Carga</h3>
 
-                        <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
-                            <h4 style="margin:0 0 10px 0; color:var(--primary-neon);">📥 Interoperabilidade de Arquivos e-SUS PEC</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Importar arquivo de dados de cadastros estruturados individuais (formato JSON) direto para o ecossistema.</p>
-                            <input type="file" id="arquivoEsus" accept=".json" onchange="processarArquivoEsus(this)" style="background:var(--bg-input); padding:5px; color:var(--text-main);">
-                        </div>
-                    </div>
+                    <button onclick="gerarCargaMassaOitoMil()">
+                        🚀 Injetar 8.000 Prontuários
+                    </button>
+
+                    <br><br>
+
+                    <input type="file"
+                           id="arquivoEsus"
+                           accept=".json,.xml,.pdf"
+                           onchange="processarArquivoEsus(this)">
                 </div>
             </div>
 
         </div>
     </div>
 
-    <button class="btn-flutuante-discador" onclick="alternarCentralDiscagem()" title="Abrir Central Operacional de Contatos">📞</button>
+    <button class="btn-flutuante-discador"
+            onclick="alternarCentralDiscagem()"
+            title="Abrir Central Operacional de Contatos">
+        📞
+    </button>
 
     <div id="painelDiscagemContainer">
         <div class="discador-header">
             <span>📞 Central Operational de Contatos</span>
-            <span onclick="alternarCentralDiscagem()" style="cursor:pointer; font-size:16px; color:var(--text-muted);">✕</span>
+            <span onclick="alternarCentralDiscagem()"
+                  style="cursor:pointer; font-size:16px; color:var(--text-muted);">
+                ✕
+            </span>
         </div>
+
+        <div style="padding:10px 12px 0 12px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button onclick="editarMensagemPadrao()"
+                    style="background:#2563eb; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+                ✏️ Editar mensagens
+            </button>
+
+            <button onclick="restaurarMensagemPadrao()"
+                    style="background:#64748b; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+                🔄 Restaurar padrão
+            </button>
+
+            <button onclick="criarModeloPreSalvo()"
+                    style="background:#16a34a; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
+                ➕ Criar modelo
+            </button>
+        </div>
+
         <div style="padding:12px; text-align:center;">
-            
-            <div id="statusDiscadorPaciente" style="margin-bottom:12px; min-height:50px; font-size:12px; text-align:left;">
-                <em style="color:var(--text-muted);">Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.</em>
+            <div id="statusDiscadorPaciente"
+                 style="margin-bottom:12px; min-height:50px; font-size:12px; text-align:left;">
+                <em style="color:var(--text-muted);">
+                    Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.
+                </em>
             </div>
 
-            <input type="text" id="inputNumeroDiscador" placeholder="Busque por Nome, Linha ou número..." style="width:100%; text-align:center; font-size:14px; padding:10px; font-weight:600; letter-spacing:0.5px; border:1px solid var(--border); background:var(--bg-main); color:var(--text-main); border-radius:6px;">
-            
-            <p style="font-size:10px; color:var(--text-muted); margin:8px 0 0 0;">Dica: Digite <b>has</b>, <b>dm</b> ou <b>critico</b> para carregar listas Rápidas.</p>
+            <input type="text"
+                   id="inputNumeroDiscador"
+                   placeholder="Busque por Nome, Linha ou número..."
+                   style="width:100%; text-align:center; font-size:14px; padding:10px; font-weight:600; border:1px solid var(--border); background:var(--bg-main); color:var(--text-main); border-radius:6px;">
+
+            <p style="font-size:10px; color:var(--text-muted); margin:8px 0 0 0;">
+                Dica: digite <b>has</b>, <b>dm</b> ou <b>critico</b>.
+            </p>
         </div>
     </div>
 
     <div id="painelEpidemiologicoContainer" class="modal">
         <div class="modal-content">
-            <h3 id="tituloPainelEpidemiologico" style="margin-top:0; color:var(--text-main);">Vigilância em Saúde</h3>
-            
-            <div class="form-grid" style="background:#111c2e; padding:12px; border-radius:8px; margin-bottom:20px; border: 1px solid var(--border);">
+            <h3 id="tituloPainelEpidemiologico">Vigilância em Saúde</h3>
+
+            <div class="form-grid">
                 <div>
-                    <label style="font-size:12px;">Unidade (UBS)</label>
-                    <select id="filtroUBS" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);"></select>
+                    <label>Unidade (UBS)</label>
+                    <select id="filtroUBS" onchange="aplicarFiltrosRelatorio()"></select>
                 </div>
+
                 <div>
-                    <label style="font-size:12px;">Filtro de Equipe</label>
-                    <select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);"></select>
+                    <label>Filtro de Equipe</label>
+                    <select id="filtroEquipe" onchange="aplicarFiltrosRelatorio()"></select>
                 </div>
+
                 <div>
-                    <label style="font-size:12px;">Status de Prazo</label>
-                   <select id="filtroRisco"
-        onchange="aplicarFiltrosRelatorio()"
-        style="background:var(--bg-main);">
-
-    <option value="TODOS">
-        Todos os Controles
-    </option>
-
-    <option value="CRITICO">
-        Apenas Críticos (0 Dias)
-    </option>
-
-    <option value="ATENCAO">
-        ⚠️ Próximos 30 Dias
-    </option>
-
-    <option value="CONTROLADO">
-        Apenas Controlados
-    </option>
-
-</select>
+                    <label>Status de Prazo</label>
+                    <select id="filtroRisco"
+                            onchange="aplicarFiltrosRelatorio()"
+                            style="background:var(--bg-main);">
+                        <option value="TODOS">Todos os Controles</option>
+                        <option value="CRITICO">Apenas Críticos (0 Dias)</option>
+                        <option value="ATENCAO">⚠️ Próximos 30 Dias</option>
+                        <option value="CONTROLADO">Apenas Controlados</option>
+                    </select>
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; align-items:center; background:#111c2e; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border);">
+            <div style="display:grid; grid-template-columns:1fr 2fr; gap:20px; margin-top:20px;">
                 <div id="containerGraficoDonut"></div>
                 <div id="containerGraficoBarras"></div>
             </div>
 
-            <div id="tabelaPainelEpidemiologico" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; background:#0b0f19;"></div>
+            <div id="tabelaPainelEpidemiologico"
+                 style="max-height:220px; overflow-y:auto; margin-top:20px;">
+            </div>
 
             <div style="margin-top:20px; text-align:right;">
-                <button onclick="fecharPainelEpidemiologico()" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Fechar Painel</button>
+                <button onclick="fecharPainelEpidemiologico()">
+                    Fechar Painel
+                </button>
             </div>
         </div>
     </div>
 
-<div id="toastNotification"></div>
+    <div id="toastNotification"></div>
 
-<!-- Dados -->
-<script src="./data/ciap2.js"></script>
-<script src="./data/cipe.js"></script>
+    <script src="./data/ciap2.js"></script>
+    <script src="./data/cipe.js"></script>
 
-<!-- Módulos -->
-<script src="./js/database.js"></script>
-<script src="./js/login.js"></script>
-<script src="./js/dashboard.js"></script>
-<script src="./js/soap.js"></script>
-<script src="./js/busca.js"></script>
-<script src="./js/importador.js"></script>
-<script src="./js/monitoramento.js"></script>
-<script src="./js/whatsapp.js"></script>
-<script src="./js/configuracoes.js"></script>
-<script src="./js/utils.js"></script>
-<script src="./js/app.js"></script>
+    <script src="./js/database.js"></script>
+    <script src="./js/login.js"></script>
+    <script src="./js/dashboard.js"></script>
+    <script src="./js/soap.js"></script>
+    <script src="./js/busca.js"></script>
+    <script src="./js/importador.js"></script>
+    <script src="./js/monitoramento.js"></script>
+    <script src="./js/whatsapp.js"></script>
+    <script src="./js/configuracoes.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/app.js"></script>
 
 </body>
 </html>
