@@ -32,7 +32,6 @@ function autenticarUsuario() {
         
         // Inicializa os dados do ecossistema após login
         inicializarAutocompleteCIAP();
-        atualizarIndicatorsDashboard();
         atualizarCentralAvisosSininho();
     } else {
         erroDiv.innerText = "Matrícula ou senha inválida no cadastro municipal.";
