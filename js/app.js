@@ -525,7 +525,7 @@ function buscarInicio() {
     };
 
     request.onerror = function() {
-        console.error("Erro ao executar busca avançada no IndexedDB");
+        console.error("Erro ao executar busca avançada no banco");
     };
 }
 
