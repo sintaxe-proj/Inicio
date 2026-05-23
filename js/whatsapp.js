@@ -201,3 +201,25 @@ function gerarOptionsMensagensWhatsapp() {
 
     return html;
 }
+function alternarCentralDiscagem() {
+    const painel = document.getElementById("painelDiscagemContainer");
+
+    if (!painel) {
+        console.error("painelDiscagemContainer não encontrado.");
+        return;
+    }
+
+    if (painel.style.display === "block") {
+        painel.style.display = "none";
+    } else {
+        painel.style.display = "block";
+
+        if (typeof prepararDiscagemPacienteAtivo === "function") {
+            prepararDiscagemPacienteAtivo();
+        }
+
+        if (typeof escutarTecladoDiscador === "function") {
+            escutarTecladoDiscador();
+        }
+    }
+}
