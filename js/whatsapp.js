@@ -126,3 +126,78 @@ function atualizarTextoMensagem(index) {
         areaTexto.focus();
     }
 }
+
+function carregarModelosPersonalizados() {
+    return JSON.parse(
+        localStorage.getItem("modelosWhatsappPersonalizados")
+    ) || {};
+}
+
+function salvarModelosPersonalizados(modelos) {
+    localStorage.setItem(
+        "modelosWhatsappPersonalizados",
+        JSON.stringify(modelos)
+    );
+}
+
+function criarModeloPreSalvo() {
+    const nome = prompt("Nome do novo modelo:");
+
+    if (!nome) return;
+
+    const texto = prompt("Texto da mensagem:");
+
+    if (!texto) return;
+
+    const chave = nome
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+
+    const modelos = carregarModelosPersonalizados();
+
+    modelos[chave] = texto;
+
+    salvarModelosPersonalizados(modelos);
+
+    mostrarToast("✅ Modelo pré-salvo criado.");
+}
+
+function obterTodasMensagensWhatsapp() {
+    return {
+        ...SCRIPTS_WHATSAPP_APS,
+        ...carregarMensagensEditadas(),
+        ...carregarModelosPersonalizados()
+    };
+}
+
+function gerarOptionsMensagensWhatsapp() {
+    const editadas = carregarMensagensEditadas();
+    const modelos = carregarModelosPersonalizados();
+
+    let html = `<option value="">-- Selecione uma Mensagem Padrão --</option>`;
+
+    Object.keys(SCRIPTS_WHATSAPP_APS).forEach(chave => {
+        const editada = editadas[chave] ? " ✏️" : "";
+
+        html += `
+            <option value="${chave}">
+                ${chave.replaceAll("_", " ").toUpperCase()}${editada}
+            </option>
+        `;
+    });
+
+    Object.keys(modelos).forEach(chave => {
+        html += `
+            <option value="modelo:${chave}">
+                ⭐ ${chave.replaceAll("_", " ").toUpperCase()}
+            </option>
+        `;
+    });
+
+    html += `<option value="custom">✍️ Texto livre</option>`;
+
+    return html;
+}
