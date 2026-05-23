@@ -1,97 +1,61 @@
 /* ==========================================================================
-   🚀 APP PRINCIPAL — INICIALIZAÇÃO E ROTAS
+   🚀 APP
+   Arquivo: js/app.js
    ========================================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
-    configurarIndexedDB();
+document.addEventListener("DOMContentLoaded", function () {
+    if (typeof configurarIndexedDB === "function") {
+        configurarIndexedDB();
+    }
 
     if (typeof verificarSessao === "function") {
         verificarSessao();
     }
 
-    inicializarAutocompleteCIAP();
+    if (typeof inicializarAutocompleteCIAP === "function") {
+        inicializarAutocompleteCIAP();
+    }
 });
 
-/* ==========================================================================
-   🗺️ ROTAS NATIVAS
-   ========================================================================== */
+function navigate(view) {
+    const sessao = JSON.parse(
+        localStorage.getItem("pep_sessao_ativa") || "{}"
+    );
 
-function navigate(viewName) {
-    document
-        .querySelectorAll(".view")
-        .forEach(view => {
-            view.style.display = "none";
-        });
-
-    document
-        .querySelectorAll(".nav-link")
-        .forEach(link => {
-            link.classList.remove("active");
-        });
-
-    const viewAlvo =
-        document.getElementById(`view-${viewName}`);
-
-    if (viewAlvo) {
-        viewAlvo.style.display = "block";
+    if (view === "config" && sessao.perfil !== "admin") {
+        mostrarToast?.("⛔ Acesso restrito ao administrador.");
+        view = "inicio";
     }
 
-    const linkAtivo = Array
-        .from(document.querySelectorAll(".nav-link"))
-        .find(link =>
-            link.innerText
-                .toLowerCase()
-                .includes(
-                    viewName === "prontuario"
-                        ? "novo"
-                        : viewName
-                )
-        );
+    document.querySelectorAll(".view").forEach(v => {
+        v.style.display = "none";
+        v.classList.remove("active-view");
+    });
+
+    const tela = document.getElementById(`view-${view}`);
+
+    if (tela) {
+        tela.style.display = "block";
+        tela.classList.add("active-view");
+    }
+
+    document.querySelectorAll(".nav-link").forEach(link => {
+        link.classList.remove("active");
+    });
+
+    const linkAtivo = Array.from(document.querySelectorAll(".nav-link")).find(link =>
+        link.getAttribute("onclick")?.includes(`'${view}'`)
+    );
 
     if (linkAtivo) {
         linkAtivo.classList.add("active");
     }
 
-    if (
-        viewName === "banco" &&
-        typeof listarTodosBanco === "function"
-    ) {
+    if (view === "banco" && typeof listarTodosBanco === "function") {
         listarTodosBanco();
     }
-}
 
-/* ==========================================================================
-   🧬 AUTOCOMPLETE CIAP-2
-   ========================================================================== */
-
-function inicializarAutocompleteCIAP() {
-    const datalist =
-        document.getElementById("listaCIAP");
-
-    if (!datalist) return;
-
-    if (typeof CATALOGO_CIAPS2 === "undefined") {
-        console.error(
-            "CATALOGO_CIAPS2 não está acessível."
-        );
-        return;
+    if (view === "config" && typeof listarUsuariosSistema === "function") {
+        listarUsuariosSistema();
     }
-
-    datalist.innerHTML = "";
-
-    Object
-        .entries(CATALOGO_CIAPS2)
-        .forEach(([codigo, descricao]) => {
-            const option =
-                document.createElement("option");
-
-            option.value =
-                `${codigo} - ${descricao}`;
-
-            datalist.appendChild(option);
-        });
-
-    console.log(
-        `CIAP-2 carregado: ${Object.keys(CATALOGO_CIAPS2).length} códigos.`
-    );
 }
