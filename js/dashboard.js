@@ -213,3 +213,42 @@ function renderizarGraficosModal(lista) {
         </div>
     `;
 }
+
+function atualizarIndicatorsDashboard() {
+    if (!db) {
+        console.warn("Banco ainda não conectado.");
+        return;
+    }
+
+    const transaction = db.transaction(["pacientes"], "readonly");
+    const store = transaction.objectStore("pacientes");
+    const request = store.getAll();
+
+    request.onsuccess = function() {
+        const dados = request.result || [];
+
+        document.getElementById("dashHAS").innerText =
+            dados.filter(p => p.has === "Sim").length;
+
+        document.getElementById("dashDM").innerText =
+            dados.filter(p => p.dm === "Sim").length;
+
+        document.getElementById("dashGest").innerText =
+            dados.filter(p => p.gestante === "Sim").length;
+
+        document.getElementById("dashTB").innerText =
+            dados.filter(p => p.tb === "Sim").length;
+
+        document.getElementById("dashHansen").innerText =
+            dados.filter(p => p.hansen === "Sim").length;
+
+        console.log("Dashboard atualizado:", {
+            total: dados.length,
+            has: dados.filter(p => p.has === "Sim").length,
+            dm: dados.filter(p => p.dm === "Sim").length,
+            gestantes: dados.filter(p => p.gestante === "Sim").length,
+            tb: dados.filter(p => p.tb === "Sim").length,
+            hansen: dados.filter(p => p.hansen === "Sim").length
+        });
+    };
+}
