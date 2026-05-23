@@ -1704,5 +1704,5 @@ const CATALOGO_CIPE = {
   "Úlcera Venosa",
   "Úlcera por Pressão",
   "Úlcera por Pressão, Ausente"
-];
+  };
 window.CATALOGO_CIPE = CATALOGO_CIPE;
