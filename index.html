@@ -695,17 +695,54 @@
     + Adicionar pauta
 </button>
 
-<!-- BOTÃO VISÍVEL -->
-<h4
-    onclick="abrirModuloSolicitacoesMateriais()"
-    style="
-        margin-top:20px;
-        color:var(--primary-neon);
-        cursor:pointer;
-    "
->
-    📦 Gestão de Estoque — Solicitações de Materiais / Farmácia
-</h4>
+</div>
+
+        <!-- DASHBOARD -->
+
+        <div class="dashboard-grid">
+
+            <div class="dash-card"
+                 style="border-top:4px solid #f59e0b;">
+
+                <h3 id="dashSolicitacoesPendentes">0</h3>
+                <p>Solicitações Pendentes</p>
+
+            </div>
+
+            <div class="dash-card"
+                 style="border-top:4px solid #22c55e;">
+
+                <h3 id="dashSolicitacoesAprovadas">0</h3>
+                <p>Solicitações Aprovadas</p>
+
+            </div>
+
+            <div class="dash-card"
+                 style="border-top:4px solid #3b82f6;">
+
+                <h3 id="dashSolicitacoesEntregues">0</h3>
+                <p>Entregues</p>
+
+            </div>
+
+        </div>
+
+        <!-- HISTÓRICO -->
+
+        <div class="form-section"
+             style="background:#111c2e;">
+
+            <h4 style="margin-top:0;">
+                Histórico de Solicitações
+            </h4>
+
+            <div id="historicoSolicitacoes"></div>
+
+        </div>
+
+    </div>
+
+</div>
 
 <h4>Discussão de Casos</h4>
 
