@@ -337,22 +337,25 @@ function carregarDatalistCIAP() {
     const lista = document.getElementById("listaCIAP");
 
     if (!lista) {
-        console.error("Datalist listaCIAP não encontrada.");
+        console.error("listaCIAP não encontrada.");
         return;
     }
 
     lista.innerHTML = "";
 
-    if (!window.CIAP2 || !Array.isArray(window.CIAP2)) {
+    if (!window.CIAP2 || typeof window.CIAP2 !== "object") {
         console.error("Dicionário CIAP2 não carregado.");
         return;
     }
 
-    window.Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
+    Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
         const option = document.createElement("option");
         option.value = `${codigo} - ${descricao}`;
         lista.appendChild(option);
     });
 
-    console.log("CIAP carregado:", window.CIAP2.length);
+    console.log(
+        "✅ CIAP carregado no datalist:",
+        Object.keys(window.CIAP2).length
+    );
 }
