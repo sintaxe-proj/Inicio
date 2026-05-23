@@ -700,7 +700,6 @@ function processarArquivoEsus(input) {
 
             transaction.oncomplete = function() {
                 mostrarToast(`📥 Cidadão ${dadosImportados.nome} importado para a base!`);
-                atualizarIndicatorsDashboard();
                 atualizarCentralAvisosSininho();
                 input.value = "";
             };
