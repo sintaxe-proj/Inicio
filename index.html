@@ -673,11 +673,27 @@
                 </div>
                 <div>
                     <label style="font-size:12px;">Status de Prazo</label>
-                    <select id="filtroRisco" onchange="aplicarFiltrosRelatorio()" style="background:var(--bg-main);">
-                        <option value="TODOS">Todos os Controles</option>
-                        <option value="CRITICO">Apenas Críticos (0 Dias)</option>
-                        <option value="CONTROLADO">Apenas Monitorados</option>
-                    </select>
+                   <select id="filtroRisco"
+        onchange="aplicarFiltrosRelatorio()"
+        style="background:var(--bg-main);">
+
+    <option value="TODOS">
+        Todos os Controles
+    </option>
+
+    <option value="CRITICO">
+        Apenas Críticos (0 Dias)
+    </option>
+
+    <option value="ATENCAO">
+        ⚠️ Próximos 30 Dias
+    </option>
+
+    <option value="CONTROLADO">
+        Apenas Controlados
+    </option>
+
+</select>
                 </div>
             </div>
 
