@@ -5,14 +5,6 @@ let db;
 const DB_NAME = "SintaxeHubDB";
 const DB_VERSION = 2; // Mantido em 2 para suportar a estrutura SOAP estendida
 
-// Dicionário de Mensagens Padrão para Busca Ativa Territorial via WhatsApp
-const SCRIPTS_WHATSAPP_APS = {
-    "has_critico": "Olá! Aqui é da sua Equipe de Saúde da Família. Notamos que o seu monitoramento de Pressão Arterial precisa ser atualizado. Poderia comparecer à UBS esta semana para aferição e avaliação?",
-    "dm_controle": "Olá! Tudo bem? Passando para lembrar da necessidade de trazer os seus últimos exames de HbA1c (Glicada) para atualizarmos o seu plano de cuidados na unidade.",
-    "pn_rotina": "Olá, mamãe! Estamos aguardando você para a sua próxima consulta programada de Pré-Natal. Não falte, o acompanhamento é fundamental para você e para o bebê!",
-    "busca_ativa": "Olá! Tentamos contato recente para acompanhamento de saúde, mas não conseguimos. Por favor, responda a esta mensagem ou passe na UBS para podermos atualizar o seu cadastro municipal."
-};
-
 // Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
     configurarIndexedDB();
@@ -37,7 +29,7 @@ function configurarIndexedDB() {
         // Verifica se o usuário já está logado para inicializar os dados da tela principal
         if (localStorage.getItem("pep_sessao_ativa")) {
             inicializarAutocompleteCIAP();
-            atualizarIndicatorsDashboard();
+            atualizarIndicadoresDashboard();
             atualizarCentralAvisosSininho();
             listarTodosBanco();
         }
@@ -78,7 +70,7 @@ function autenticarUsuario() {
         
         // Inicializa os dados do ecossistema após login
         inicializarAutocompleteCIAP();
-        atualizarIndicatorsDashboard();
+        atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         listarTodosBanco();
     } else {
@@ -317,8 +309,8 @@ function atualizarCentralAvisosSininho() {
    ========================================================================== */
 
 function salvarProntuario() {
-    const cpf = document.getElementById("cpfPaciente").value;
-    const nome = document.getElementById("nomePaciente").value;
+    const cpf = document.getElementById("cpfPaciente").value.trim();
+    const nome = document.getElementById("nomePaciente").value.trim();
 
     if (!cpf || !nome) {
         mostrarToast("❌ Erro: O preenchimento do Nome e do CPF é obrigatório.");
@@ -335,14 +327,14 @@ function salvarProntuario() {
     const sat = document.getElementById("objSatO2").value;
     const dor = document.getElementById("objDor").value;
 
-    const exameStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
+    const examenStatus = document.querySelector('input[name="exameFisicoStatus"]:checked').value;
     const exameDetalhe = document.getElementById("soapObjetivoAlterado").value;
     
     const ciap = document.getElementById("inputBuscaCIAPS").value;
     const plano = document.getElementById("soapPlanoConduta").value;
     const diasPrazo = document.getElementById("soapReavaliacaoDias").value;
 
-    const exameFisicoTexto = exameStatus === "Normal" ? "Normal / Sem particularidades" : `ALTERADO: ${exameDetalhe}`;
+    const exameFisicoTexto = examenStatus === "Normal" ? "Normal / Sem particularidades" : `ALTERADO: ${exameDetalhe}`;
 
     // Concatenação formatada da evolução para persistência na Linha do Tempo histórica
     const novaEvolucaoFormatada = `--- ATENDIMENTO MUNICIPAL EM ${new Date().toLocaleDateString('pt-BR')} ---\n` +
@@ -364,13 +356,13 @@ function salvarProntuario() {
         }
         historicoEvolucoes.unshift(novaEvolucaoFormatada); // Adiciona a mais recente no início
 
-        // Montagem do payload completo do Utente com os sinais vitais persistidos individualmente
+        // Montagem do payload completo do Utente mapeado com chaves padronizadas
         const pacientePayload = {
             cpf: cpf,
             nome: nome,
-            nasc: document.getElementById("nascPaciente").value,
+            nascimento: document.getElementById("nascPaciente").value,
             idade: document.getElementById("idadePaciente").value,
-            tel: document.getElementById("telPaciente").value,
+            telefone: document.getElementById("telPaciente").value,
             cep: document.getElementById("CEP").value,
             endereco: document.getElementById("endPaciente").value,
             numero: document.getElementById("endNumero").value,
@@ -379,8 +371,8 @@ function salvarProntuario() {
             equipe: document.getElementById("equipePaciente").value,
             
             has: document.getElementById("hasSN").value,
-            pas: document.getElementById("hasPAS").value,
-            pad: document.getElementById("hasPAD").value,
+            hasPAS: document.getElementById("hasPAS").value,
+            hasPAD: document.getElementById("hasPAD").value,
             classifHas: document.getElementById("hasClassif").value,
             
             dm: document.getElementById("dmSN").value,
@@ -388,12 +380,12 @@ function salvarProntuario() {
             classifDm: document.getElementById("dmClassif").value,
             
             gestante: document.getElementById("gestanteSN").value,
-            dum: document.getElementById("gestDUM").value,
-            ig: document.getElementById("gestIG").value,
-            dpp: document.getElementById("gestDPP").value,
+            gestDUM: document.getElementById("gestDUM").value,
+            gestIG: document.getElementById("gestIG").value,
+            gestDPP: document.getElementById("gestDPP").value,
             
-            tb: document.getElementById("tbSN").checked ? "Sim" : "Não",
-            hansen: document.getElementById("hansenSN").checked ? "Sim" : "Não",
+            tuberculose: document.getElementById("tbSN").checked ? "Sim" : "Não",
+            hanseniase: document.getElementById("hansenSN").checked ? "Sim" : "Não",
             ampi: document.getElementById("ampiPaciente").value,
             
             // Persistência dos campos de Sinais Vitais no objeto
@@ -402,7 +394,7 @@ function salvarProntuario() {
             objFR: fr,
             objSatO2: sat,
             objDor: dor,
-            exameFisicoStatus: exameStatus,
+            exameFisicoStatus: examenStatus,
             soapObjetivoAlterado: exameDetalhe,
             
             reavaliacaoDias: parseInt(diasPrazo) || 0, // Metadado indexador do sininho
@@ -416,8 +408,9 @@ function salvarProntuario() {
         requestSalvar.onsuccess = function() {
             mostrarToast("💾 Prontuário SOAP gravado na base territorial!");
             limparFormularioProntuario();
-            atualizarIndicatorsDashboard();
+            atualizarIndicadoresDashboard();
             atualizarCentralAvisosSininho();
+            listarTodosBanco();
             navigate('inicio');
         };
     };
@@ -464,27 +457,14 @@ function limparFormularioProntuario() {
 }
 
 /* ==========================================================================
-   🔍 MECANISMO DE CONSULTA E BUSCA ATIVA EPIDEMIOLÓGICA (PÁGINA INICIAL)
+   🔍 MECANISMO DE CONSULTA E BUSCA ATIVA EPIDEMIOLÓGICA
    ========================================================================== */
 function buscarInicio() {
-    const inputBusca = document.getElementById("buscaNomeInicio");
-    if (!inputBusca) {
-        console.error("Erro: O elemento HTML 'buscaNomeInicio' não foi encontrado.");
-        return;
-    }
-
-    const termoOriginal = inputBusca.value.toLowerCase().trim();
+    const termo = document.getElementById("buscaNomeInicio").value.toLowerCase().trim();
     const container = document.getElementById("resultadoInicio");
 
-    if (!container) return;
-
-    if (!termoOriginal) {
-        container.innerHTML = `<em style="color: #94a3b8;">Introduza um critério acima para pesquisar (Nome, CPF, Linha de Cuidado ou "Crítico").</em>`;
-        return;
-    }
-
-    if (!db) {
-        container.innerHTML = `<p style="color: var(--danger);">⚠️ Banco de dados local não conectado.</p>`;
+    if (!termo) {
+        container.innerHTML = `<em style="color: #94a3b8;">Introduza um critério acima para pesquisar.</em>`;
         return;
     }
 
@@ -493,90 +473,57 @@ function buscarInicio() {
     const request = store.getAll();
 
     request.onsuccess = function() {
-        const todosPacientes = request.result;
-        const termoNumerico = termoOriginal.replace(/\D/g, "");
+        const resultados = request.result.filter(p => {
+            const nomeMatch = p.nome.toLowerCase().includes(termo);
+            const cpfMatch = p.cpf.includes(termo);
+            const hasMatch = (termo === "has" || termo === "hipertensão") && p.has === "Sim";
+            const dmMatch = (termo === "dm" || termo === "diabetes") && p.dm === "Sim";
+            const pnMatch = (termo === "pn" || termo === "pré-natal" || termo === "gestante") && p.gestante === "Sim";
+            const tbMatch = (termo === "tb" || termo === "tuberculose") && p.tuberculose === "Sim";
+            const hansenMatch = (termo === "hansen" || termo === "hanseníase") && p.hanseniase === "Sim";
+            const criticoMatch = termo === "crítico" && p.reavaliacaoDias === 0;
 
-        // Identifica palavras-chave de criticidade no termo digitado
-        const desejaCritico = termoOriginal.includes("critico") || termoOriginal.includes("crítico");
-        const desejaControlado = termoOriginal.includes("controlado");
-
-        // Identifica palavras-chave de linhas de cuidado no termo digitado
-        const desejaHAS = termoOriginal.includes("has") || termoOriginal.includes("hipertens");
-        const desejaDM = termoOriginal.includes("dm") || termoOriginal.includes("diabet");
-        const desejaPN = termoOriginal.includes("pn") || termoOriginal.includes("gestant") || termoOriginal.includes("natal");
-        const desejaTB = termoOriginal.includes("tb") || termoOriginal.includes("tuberculose");
-        const desejaHansen = termoOriginal.includes("hansen");
-
-        // Executa o filtro avançado multi-critério
-        const resultados = todosPacientes.filter(p => {
-            
-            // 1. Se o usuário digitou uma linha de cuidado específica, verifica se o paciente pertence a ela
-            if (desejaHAS && p.has !== "Sim") return false;
-            if (desejaDM && p.dm !== "Sim") return false;
-            if (desejaPN && p.gestante !== "Sim") return false;
-            if (desejaTB && p.tb !== "Sim") return false;
-            if (desejaHansen && p.hansen !== "Sim") return false;
-
-            // 2. Verifica o status do prazo (Criticidade)
-            if (desejaCritico && p.reavaliacaoDias !== 0) return false;
-            if (desejaControlado && p.reavaliacaoDias <= 0) return false;
-
-            // 3. Se NÃO digitou nenhuma linha de cuidado nem criticidade, assume que é busca por Nome ou CPF
-            const digitouApenasFiltros = desejaHAS || desejaDM || desejaPN || desejaTB || desejaHansen || desejaCritico || desejaControlado;
-            
-            if (!digitouApenasFiltros) {
-                const nomeBate = p.nome.toLowerCase().includes(termoOriginal);
-                const cpfLimpoBanco = p.cpf.replace(/\D/g, "");
-                const cpfBate = termoNumerico !== "" && cpfLimpoBanco.includes(termoNumerico);
-                
-                return nomeBate || cpfBate;
-            }
-
-            // Se caiu aqui, passou nos filtros de linha de cuidado/criticidade digitados
-            return true;
+            return nomeMatch || cpfMatch || hasMatch || dmMatch || pnMatch || tbMatch || hansenMatch || criticoMatch;
         });
         
-        // Renderização dos Resultados na Interface (Grid da APS)
         if (resultados.length === 0) {
-            container.innerHTML = `<p style="color: var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado para o critério aplicado.</p>`;
+            container.innerHTML = `<p style="color: var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado com este critério no território.</p>`;
             return;
         }
 
-        let html = `<div class="busca-ativa-grid">`;
+        let html = '<table><thead><tr><th>Cidadão / CPF</th><th>Vínculo Operacional</th><th>Linhas de Cuidado Ativas</th><th>Ações</th></tr></thead><tbody>';
         resultados.forEach(p => {
-            let badges = "";
-            if (p.has === "Sim") badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span> `;
-            if (p.dm === "Sim") badges += `<span class="tag-clinica" style="background:var(--success)">DM</span> `;
-            if (p.gestante === "Sim") badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span> `;
-            if (p.tb === "Sim") badges += `<span class="tag-clinica" style="background:#701a75">TB</span> `;
-            if (p.hansen === "Sim") badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span> `;
-            
-            // Alerta visual pro prazo expirado
-            if (p.reavaliacaoDias === 0) {
-                badges += `<span class="tag-clinica" style="background:#7c2d12;">⚠️ CRÍTICO (0d)</span> `;
-            } else {
-                badges += `<span class="tag-clinica" style="background:#475569">⏱️ ${p.reavaliacaoDias}d</span> `;
-            }
+            let tags = "";
+            if (p.has === "Sim") tags += `<span class="tag-clinica" style="background:var(--danger); margin-right:4px;">HAS</span> `;
+            if (p.dm === "Sim") tags += `<span class="tag-clinica" style="background:var(--success-dark); margin-right:4px;">DM</span> `;
+            if (p.gestante === "Sim") tags += `<span class="tag-clinica" style="background:var(--warning); color:#000; margin-right:4px;">PRÉ-NATAL</span> `;
+            if (p.tuberculose === "Sim") tags += `<span class="tag-clinica" style="background:#a21caf; margin-right:4px;">TB</span> `;
+            if (p.hanseniase === "Sim") tags += `<span class="tag-clinica" style="background:var(--primary-neon); margin-right:4px;">HANSEN</span> `;
+            if (p.reavaliacaoDias === 0) tags += `<span class="tag-clinica" style="background:#7c2d12; margin-right:4px;">🔔 CRÍTICO</span> `;
 
             html += `
-                <div class="busca-ativa-card" onclick="abrirAtendimentoExistente('${p.cpf}')" style="cursor:pointer; padding:15px; margin-bottom:10px; border:1px solid #e2e8f0; border-radius:8px; background:white;">
-                    <h4 style="margin:0 0 5px 0; color:#1e293b;">${p.nome}</h4>
-                    <p style="margin:2px 0; font-size:13px; color:#64748b;"><strong>CPF:</strong> ${p.cpf} | <strong>Idade:</strong> ${p.idade} anos</p>
-                    <p style="margin:2px 0; font-size:13px; color:#64748b;"><strong>UBS:</strong> ${p.ubs || "Não vinculada"} | ${p.equipe || "Sem equipe"}</p>
-                    <div class="badges-container" style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">${badges}</div>
-                </div>
+                <tr>
+                    <td>
+                        <b>${p.nome}</b><br>
+                        <small style="color:var(--text-muted); font-mono">${p.cpf}</small>
+                    </td>
+                    <td>
+                        <small style="display:block; font-weight:600;">${p.ubs || "Não vinculada"}</small>
+                        <small style="color:var(--text-muted);">${p.equipe || "Sem equipe"}</small>
+                    </td>
+                    <td>${tags || '<span class="tag-clinica" style="background:var(--bg-input); color:var(--text-muted);">Geral</span>'}</td>
+                    <td>
+                        <button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">🩺 Abrir SOAP</button>
+                    </td>
+                </tr>
             `;
         });
-        html += `</div>`;
+        html += `</tbody></table>`;
         container.innerHTML = html;
-    };
-
-    request.onerror = function() {
-        console.error("Erro ao executar busca avançada no IndexedDB");
     };
 }
 
-function abrirAtendimentoExistente(cpf) {
+function carregarPacienteProntuario(cpf) {
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
     const request = store.get(cpf);
@@ -591,9 +538,9 @@ function abrirAtendimentoExistente(cpf) {
         // Vinculação de dados cadastrais
         document.getElementById("nomePaciente").value = p.nome;
         document.getElementById("cpfPaciente").value = p.cpf;
-        document.getElementById("nascPaciente").value = p.nasc;
-        document.getElementById("idadePaciente").value = p.idade;
-        document.getElementById("telPaciente").value = p.tel;
+        document.getElementById("nascPaciente").value = p.nascimento || "";
+        document.getElementById("idadePaciente").value = p.idade || "";
+        document.getElementById("telPaciente").value = p.telefone || "";
         document.getElementById("CEP").value = p.cep || "";
         document.getElementById("endPaciente").value = p.endereco || "";
         document.getElementById("endNumero").value = p.numero || "";
@@ -619,25 +566,25 @@ function abrirAtendimentoExistente(cpf) {
         }
 
         // Configuração de Linhas de cuidado
-        document.getElementById("hasSN").value = p.has;
-        mostrarCard('cardHAS', p.has);
-        document.getElementById("hasPAS").value = p.pas || "";
-        document.getElementById("hasPAD").value = p.pad || "";
+        document.getElementById("hasSN").value = p.has || "Não";
+        mostrarCard('cardHAS', p.has || "Não");
+        document.getElementById("hasPAS").value = p.hasPAS || "";
+        document.getElementById("hasPAD").value = p.hasPAD || "";
         document.getElementById("hasClassif").value = p.classifHas || "";
 
-        document.getElementById("dmSN").value = p.dm;
-        mostrarCard('cardDM', p.dm);
+        document.getElementById("dmSN").value = p.dm || "Não";
+        mostrarCard('cardDM', p.dm || "Não");
         document.getElementById("dmHbA1c").value = p.hba1c || "";
         document.getElementById("dmClassif").value = p.classifDm || "";
 
-        document.getElementById("gestanteSN").value = p.gestante;
-        mostrarCard('cardGestante', p.gestante);
-        document.getElementById("gestDUM").value = p.dum || "";
-        document.getElementById("gestIG").value = p.ig || "";
-        document.getElementById("gestDPP").value = p.dpp || "";
+        document.getElementById("gestanteSN").value = p.gestante || "Não";
+        mostrarCard('cardGestante', p.gestante || "Não");
+        document.getElementById("gestDUM").value = p.gestDUM || "";
+        document.getElementById("gestIG").value = p.gestIG || "";
+        document.getElementById("gestDPP").value = p.gestDPP || "";
 
-        document.getElementById("tbSN").checked = (p.tb === "Sim");
-        document.getElementById("hansenSN").checked = (p.hansen === "Sim");
+        document.getElementById("tbSN").checked = (p.tuberculose === "Sim");
+        document.getElementById("hansenSN").checked = (p.hanseniase === "Sim");
         document.getElementById("ampiPaciente").value = p.ampi || "Idoso Robusto";
         if (parseInt(p.idade) >= 60) document.getElementById("ampiBloco").style.display = "block";
 
@@ -656,15 +603,20 @@ function abrirAtendimentoExistente(cpf) {
         }
 
         // Cabeçalho azul informativo de prontuário ativo
-        document.getElementById("cabecalhoNome").innerText = `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
+        document.getElementById("cabecalhoNome").innerText = `👤 UTENTE EM ATENDIMENTO ATIVO: ${p.nome.toUpperCase()} (${p.cpf})`;
         document.getElementById("cabecalhoProntuario").style.display = "block";
     };
+}
+
+// Apelido para manter compatibilidade com cliques antigos do card de busca
+function abrirAtendimentoExistente(cpf) {
+    carregarPacienteProntuario(cpf);
 }
 
 /* ==========================================================================
    📊 VIGILÂNCIA EPIDEMIOLÓGICA & ATUALIZAÇÃO DO DASHBOARD CENTRAL
    ========================================================================== */
-function atualizarIndicatorsDashboard() {
+function atualizarIndicadoresDashboard() {
     if (!db) return;
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
@@ -675,8 +627,8 @@ function atualizarIndicatorsDashboard() {
         document.getElementById("dashHAS").innerText = dados.filter(p => p.has === "Sim").length;
         document.getElementById("dashDM").innerText = dados.filter(p => p.dm === "Sim").length;
         document.getElementById("dashGest").innerText = dados.filter(p => p.gestante === "Sim").length;
-        document.getElementById("dashTB").innerText = dados.filter(p => p.tb === "Sim").length;
-        document.getElementById("dashHansen").innerText = dados.filter(p => p.hansen === "Sim").length;
+        document.getElementById("dashTB").innerText = dados.filter(p => p.tuberculose === "Sim").length;
+        document.getElementById("dashHansen").innerText = dados.filter(p => p.hanseniase === "Sim").length;
     };
 }
 
@@ -716,8 +668,8 @@ function listarTodosBanco() {
             if (p.has === "Sim") linhas.push("HAS");
             if (p.dm === "Sim") linhas.push("DM");
             if (p.gestante === "Sim") linhas.push("PN");
-            if (p.tb === "Sim") linhas.push("TB");
-            if (p.hansen === "Sim") lines.push("HANSEN");
+            if (p.tuberculose === "Sim") linhas.push("TB");
+            if (p.hanseniase === "Sim") linhas.push("HANSEN");
 
             const badgePrazo = p.reavaliacaoDias === 0 ? `<b style="color:var(--danger)">🔔 0 Dias</b>` : `${p.reavaliacaoDias} Dias`;
 
@@ -730,7 +682,7 @@ function listarTodosBanco() {
                     <td>${linhas.join(", ") || "Nenhuma"}</td>
                     <td>${badgePrazo}</td>
                     <td class="action-buttons">
-                        <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente('${p.cpf}')">Abrir</button>
+                        <button class="btn-table-action btn-edit" onclick="carregarPacienteProntuario('${p.cpf}')">Abrir</button>
                         <button class="btn-table-action btn-del" onclick="removerPacienteDoTerritorio('${p.cpf}')">Excluir</button>
                     </td>
                 </tr>
@@ -752,13 +704,13 @@ function removerPacienteDoTerritorio(cpf) {
     request.onsuccess = function() {
         mostrarToast("🗑️ Registro de cidadão removido com sucesso.");
         listarTodosBanco();
-        atualizarIndicatorsDashboard();
+        atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
     };
 }
 
 /* ==========================================================================
-   📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA
+   📈 MODAL ANALYTICS: MONITORAMENTO EM SAÚDE DA FAMÍLIA (EXEMPLO DE FILTRO)
    ========================================================================== */
 let linhaCuidadoAtualVisualizacao = "has";
 
@@ -811,8 +763,8 @@ function aplicarFiltrosRelatorio() {
         if (linhaCuidadoAtualVisualizacao === "has") filtrados = filtrados.filter(p => p.has === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "dm") filtrados = filtrados.filter(p => p.dm === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "gestante") filtrados = filtrados.filter(p => p.gestante === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tb === "Sim");
-        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hansen === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "tuberculose") filtrados = filtrados.filter(p => p.tuberculose === "Sim");
+        else if (linhaCuidadoAtualVisualizacao === "hanseniase") filtrados = filtrados.filter(p => p.hanseniase === "Sim");
         else if (linhaCuidadoAtualVisualizacao === "criticos") filtrados = filtrados.filter(p => p.reavaliacaoDias === 0);
 
         // Filtros de Localidade/UBS/Equipe
@@ -903,14 +855,14 @@ function gerarCargaMassaOitoMil() {
     for (let i = 0; i < 8000; i++) {
         const cpfSimulado = `999.${String(i).padStart(3, '0')}.778-${String(i % 100).padStart(2, '0')}`;
         const nomeCompleto = `${nomesFalsos[i % 10]} ${sobrenomesFalsos[(i + 3) % 10]} ${sobrenomesFalsos[(i + 7) % 10]}`;
-        const prazoSimulado = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1;
+        const prazoSimulado = i % 15 === 0 ? 0 : Math.floor(Math.random() * 90) + 1; // Distribui alguns críticos
 
         const payload = {
             cpf: cpfSimulado,
             nome: nomeCompleto,
-            nasc: "1985-06-15",
+            nascimento: "1985-06-15",
             idade: "41",
-            tel: "(21) 98888-7711",
+            telefone: "(21) 98888-7711",
             cep: "20000-000",
             endereco: "Avenida Central do Município Simulador",
             numero: String(i),
@@ -918,17 +870,21 @@ function gerarCargaMassaOitoMil() {
             ubs: ubsFalsas[i % 4],
             equipe: equipesFalsas[i % 4],
             has: i % 2 === 0 ? "Sim" : "Não",
-            pas: i % 2 === 0 ? "145" : "",
-            pad: i % 2 === 0 ? "95" : "",
+            hasPAS: i % 2 === 0 ? "145" : "",
+            hasPAD: i % 2 === 0 ? "95" : "",
             classifHas: i % 2 === 0 ? "Hipertensão Estágio 1 ou 2" : "",
             dm: i % 3 === 0 ? "Sim" : "Não",
             hba1c: i % 3 === 0 ? "7.5" : "",
             classifDm: i % 3 === 0 ? "Controle Limítrofe" : "",
             gestante: "Não",
-            tb: "Não",
-            hansen: "Não",
+            gestDUM: "",
+            gestIG: "",
+            gestDPP: "",
+            tuberculose: "Não",
+            hanseniase: "Não",
             ampi: "Idoso Robusto",
             
+            // Sinais Vitais Falsos para Massa de Teste
             objPA: i % 2 === 0 ? "140x90" : "120x80",
             objFC: "76",
             objFR: "16",
@@ -947,7 +903,7 @@ function gerarCargaMassaOitoMil() {
 
     transaction.oncomplete = function() {
         mostrarToast("🚀 Injeção de 8.000 cadastros concluída com sucesso!");
-        atualizarIndicatorsDashboard();
+        atualizarIndicadoresDashboard();
         atualizarCentralAvisosSininho();
         if (document.getElementById("view-banco").style.display === "block") listarTodosBanco();
     };
@@ -969,214 +925,26 @@ function processarArquivoEsus(input) {
             const transaction = db.transaction(["pacientes"], "readwrite");
             const store = transaction.objectStore("pacientes");
             
+            // Força o tipo numérico do aprazamento para indexação correta
             if (dadosImportados.reavaliacaoDias !== undefined) {
                 dadosImportados.reavaliacaoDias = parseInt(dadosImportados.reavaliacaoDias);
             } else {
-                dadosImportados.reavaliacaoDias = 30;
+                dadosImportados.reavaliacaoDias = 30; // Padrão se ausente
             }
 
             store.put(dadosImportados);
 
             transaction.oncomplete = function() {
                 mostrarToast(`📥 Cidadão ${dadosImportados.nome} importado para a base!`);
-                atualizarIndicatorsDashboard();
+                atualizarIndicadoresDashboard();
                 atualizarCentralAvisosSininho();
-                input.value = "";
+                input.value = ""; // Limpa campo de arquivo
             };
         } catch (err) {
             mostrarToast("❌ Erro ao decodificar a sintaxe JSON do arquivo e-SUS.");
         }
     };
     reader.readAsText(file);
-}
-
-/* ==========================================================================
-   📞 CENTRAL OPERACIONAL DE BUSCA ATIVA & MENSAGENS TELEFÓNICAS (WHATSAPP)
-   ========================================================================== */
-function alternarCentralDiscagem() {
-    const painel = document.getElementById("painelDiscagemContainer");
-    if (!painel) return;
-    
-    if (painel.style.display === "block") {
-        painel.style.display = "none";
-    } else {
-        painel.style.display = "block";
-        prepararDiscagemPacienteAtivo();
-        escutarTecladoDiscador(); // Inicializa o monitor inteligente do input
-    }
-}
-
-function prepararDiscagemPacienteAtivo() {
-    const displayStatus = document.getElementById("statusDiscadorPaciente");
-    const nomeAtivo = document.getElementById("nomePaciente").value;
-    const telAtivo = document.getElementById("telPaciente").value;
-
-    if (!displayStatus) return;
-
-    if (nomeAtivo && telAtivo) {
-        displayStatus.innerHTML = `
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px;">
-                <p style="margin: 0; font-size: 11px; color: #166534; font-weight: bold;">👤 Utente Ativo no Prontuário:</p>
-                <strong style="font-size: 13px; color: #14532d; display:block;">${nomeAtivo}</strong>
-                <span style="font-size: 12px; color: #166534;">📞 Contato: ${telAtivo}</span>
-            </div>
-        `;
-    } else {
-        displayStatus.innerHTML = `<em style="color:#94a3b8; font-size:12px;">Nenhum paciente selecionado no prontuário. Digite abaixo para pesquisar no território.</em>`;
-    }
-}
-
-/**
- * Transforma o campo do discador numa barra de filtragem e envio um por um
- */
-function escutarTecladoDiscador() {
-    const inputDiscador = document.getElementById("inputNumeroDiscador");
-    if (!inputDiscador) return;
-
-    inputDiscador.addEventListener("input", () => {
-        const termo = inputDiscador.value.toLowerCase().trim();
-        const displayStatus = document.getElementById("statusDiscadorPaciente");
-        
-        if (!displayStatus) return;
-
-        if (!termo) {
-            prepararDiscagemPacienteAtivo();
-            return;
-        }
-
-        // Se for inserção manual de um número telefónico avulso longo
-        if (/^\d+$/.test(termo) && termo.length > 5) {
-            renderizarCardMensagemUnica("Usuário Manual", termo, displayStatus);
-            return;
-        }
-
-        // Busca Ativa Multicritério dentro do Widget
-        const transaction = db.transaction(["pacientes"], "readonly");
-        const store = transaction.objectStore("pacientes");
-        const request = store.getAll();
-
-        request.onsuccess = function() {
-            const todosPacientes = request.result;
-            const termoNumerico = termo.replace(/\D/g, "");
-
-            const desejaCritico = termo.includes("critico") || termo.includes("crítico");
-            const desejaHAS = termo.includes("has") || termo.includes("hipertens");
-            const desejaDM = termo.includes("dm") || termo.includes("diabet");
-            const desejaPN = termo.includes("pn") || termo.includes("gestant");
-
-            const filtrados = todosPacientes.filter(p => {
-                if (desejaHAS && p.has !== "Sim") return false;
-                if (desejaDM && p.dm !== "Sim") return false;
-                if (desejaPN && p.gestante !== "Sim") return false;
-                if (desejaCritico && p.reavaliacaoDias !== 0) return false;
-
-                const temFiltroClinico = desejaHAS || desejaDM || desejaPN || desejaCritico;
-                if (!temFiltroClinico) {
-                    const nomeBate = p.nome.toLowerCase().includes(termo);
-                    const cpfLimpo = p.cpf.replace(/\D/g, "");
-                    const cpfBate = termoNumerico !== "" && cpfLimpo.includes(termoNumerico);
-                    return nomeBate || cpfBate;
-                }
-                return true;
-            });
-
-            if (filtrados.length === 0) {
-                displayStatus.innerHTML = `<p style="color:var(--danger); font-size:12px; margin:5px 0;">Nenhum contacto localizado.</p>`;
-                return;
-            }
-
-            // Renderiza um por um com ferramentas individuais de WhatsApp
-            let htmlContatos = `<div style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">`;
-            
-            filtrados.forEach((p, index) => {
-                const foneLimpo = p.tel ? p.tel.replace(/\D/g, '') : '';
-                const prazoTexto = p.reavaliacaoDias === 0 ? '⚠️ CRÍTICO' : `⏱️ ${p.reavaliacaoDias}d`;
-                const corStatus = p.reavaliacaoDias === 0 ? '#b91c1c' : '#475569';
-
-                htmlContatos += `
-                    <div class="card-wpp-individual" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <strong style="font-size: 13px; color: #1e293b; display: block;">${p.nome}</strong>
-                                <span style="font-size: 11px; color: #64748b;">📞 Tel: ${p.tel || 'Não cadastrado'}</span>
-                            </div>
-                            <span style="font-size: 10px; font-weight: bold; background: ${corStatus}; color: white; padding: 2px 6px; border-radius: 4px;">${prazoTexto}</span>
-                        </div>
-                        
-                        ${p.tel ? `
-                            <select id="selectMsg_${index}" onchange="atualizarTextoMensagem(${index})" style="width: 100%; font-size: 11px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; color: #334155;">
-                                <option value="">-- Selecione uma Mensagem Padrão --</option>
-                                <option value="has_critico">🚨 Alerta de HAS Crítico</option>
-                                <option value="dm_controle">🩺 Solicitação de Exames DM</option>
-                                <option value="pn_rotina">🤰 Agendamento de Pré-Natal</option>
-                                <option value="busca_ativa">🏃 Busca Ativa Geral</option>
-                                <option value="custom">✍️ Criar Nova Mensagem / Texto Livre</option>
-                            </select>
-
-                            <textarea id="textMsg_${index}" placeholder="Selecione um padrão ou escreva a mensagem personalizada..." style="width: 100%; height: 50px; font-size: 11px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; resize: none; font-family: sans-serif;"></textarea>
-
-                            <button onclick="enviarWhatsAppTerritorial('${foneLimpo}', ${index})" style="background: #25d366; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                💬 Enviar via WhatsApp
-                            </button>
-                        ` : `
-                            <span style="font-size: 11px; color: var(--danger); font-weight: 500;">🚫 Sem telefone no prontuário.</span>
-                        `}
-                    </div>
-                `;
-            });
-
-            htmlContatos += `</div>`;
-            displayStatus.innerHTML = htmlContatos;
-        };
-    });
-}
-
-function atualizarTextoMensagem(index) {
-    const seletor = document.getElementById(`selectMsg_${index}`);
-    const areaTexto = document.getElementById(`textMsg_${index}`);
-    
-    if (!seletor || !areaTexto) return;
-
-    const chave = seletor.value;
-    if (chave && chave !== "custom") {
-        areaTexto.value = SCRIPTS_WHATSAPP_APS[chave];
-    } else {
-        areaTexto.value = "";
-        if (chave === "custom") areaTexto.focus();
-    }
-}
-
-function enviarWhatsAppTerritorial(telefonePuro, index) {
-    const areaTexto = document.getElementById(`textMsg_${index}`);
-    if (!areaTexto) return;
-
-    const mensagem = encodeURIComponent(areaTexto.value.trim());
-    
-    if (!mensagem) {
-        mostrarToast("⚠️ Insira uma mensagem válida antes de enviar.");
-        return;
-    }
-
-    let telefoneFinal = telefonePuro;
-    if (telefoneFinal.length === 11 || telefoneFinal.length === 10) {
-        telefoneFinal = "55" + telefoneFinal;
-    }
-
-    const urlApiWhatsApp = `https://api.whatsapp.com/send?phone=${telefoneFinal}&text=${mensagem}`;
-    window.open(urlApiWhatsApp, '_blank');
-}
-
-function renderizarCardMensagemUnica(nome, telefone, container) {
-    container.innerHTML = `
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left;">
-            <strong style="font-size:12px; color:#1e293b;">📞 Discagem Manual Externa</strong>
-            <span style="font-size:11px; color:#64748b;">Número: ${telefone}</span>
-            <textarea id="textMsg_manual" placeholder="Escreva a mensagem personalizada para este número..." style="width: 100%; height: 50px; font-size: 11px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; resize: none;"></textarea>
-            <button onclick="enviarWhatsAppTerritorial('${telefone}', 'manual')" style="background: #25d366; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;">
-                💬 Enviar para Número Avulso
-            </button>
-        </div>
-    `;
 }
 
 /* ==========================================================================
