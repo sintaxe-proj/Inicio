@@ -361,7 +361,7 @@
             <a class="nav-link" onclick="navigate('prontuario')">Novo Atendimento (SOAP)</a>
             <a class="nav-link" onclick="navigate('banco')">Base Territorial</a>
             <a class="nav-link" onclick="navigate('reuniao')">Reunião de Equipe</a>
-            <a class="nav-link" onclick="estoque('estoque')">Estoque</a>
+            <a class="nav-link" onclick="navigate('estoque')">Estoque</a>
             <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
         </nav>
 
@@ -651,6 +651,233 @@
                 </div>
             </div>
 
+<div id="view-reuniao" class="view">
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">
+            🗓️ Reunião de Equipe
+        </h3>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Data</label>
+                <input type="date" id="reuniaoData">
+            </div>
+
+            <div>
+                <label>Horário</label>
+                <input type="time" id="reuniaoHorario">
+            </div>
+
+            <div>
+                <label>Local</label>
+                <input type="text" id="reuniaoLocal">
+            </div>
+
+            <div>
+                <label>Coordenação</label>
+                <input type="text" id="reuniaoCoordenador">
+            </div>
+
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Participantes</label>
+            <textarea id="reuniaoParticipantes" rows="2"></textarea>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Informes gerais</label>
+            <textarea id="reuniaoInformes" rows="2"></textarea>
+        </div>
+
+        <!-- PAUTAS -->
+
+        <h4>Pautas</h4>
+
+        <div id="listaItensPauta"></div>
+
+        <button onclick="adicionarItemPauta()">
+            + Adicionar pauta
+        </button>
+
+        <!-- DISCUSSÃO -->
+
+        <h4 style="margin-top:25px;">
+            Discussão de Casos
+        </h4>
+
+        <div class="form-section" style="background:#111c2e;">
+
+            <div class="form-grid">
+
+                <div style="grid-column: span 2;">
+                    <label>Selecionar paciente do banco</label>
+                    <select id="reuniaoPacienteCaso"></select>
+                </div>
+
+                <div style="grid-column: span 2;">
+                    <label>Discussão do caso</label>
+
+                    <textarea
+                        id="reuniaoDiscussaoCaso"
+                        rows="2"
+                        placeholder="Descreva a discussão clínica..."
+                    ></textarea>
+                </div>
+
+                <div style="grid-column: span 4;">
+                    <label>Conduta / Encaminhamento definido</label>
+
+                    <textarea
+                        id="reuniaoCondutaCaso"
+                        rows="2"
+                        placeholder="Ex: ACS fará visita..."
+                    ></textarea>
+                </div>
+
+            </div>
+
+            <button
+                onclick="registrarDiscussaoCasoNoProntuario()"
+                style="margin-top:10px;"
+            >
+                Registrar discussão no prontuário
+            </button>
+
+        </div>
+
+        <div id="listaCasosDiscussao" style="margin-top:15px;"></div>
+
+        <!-- ENCAMINHAMENTOS -->
+
+        <h4>Encaminhamentos</h4>
+
+        <div id="listaEncaminhamentos"></div>
+
+        <button onclick="adicionarEncaminhamento()">
+            + Adicionar encaminhamento
+        </button>
+
+        <!-- CONSIDERAÇÕES -->
+
+        <div style="margin-top:15px;">
+
+            <label>Considerações finais</label>
+
+            <textarea
+                id="reuniaoConsideracoes"
+                rows="2"
+            ></textarea>
+
+        </div>
+
+        <!-- BOTÕES -->
+
+        <div style="margin-top:15px; display:flex; gap:10px;">
+
+            <button onclick="salvarReuniaoEquipe()">
+                Salvar reunião
+            </button>
+
+            <button onclick="gerarAtaReuniao()">
+                Gerar ata
+            </button>
+
+            <button onclick="copiarAtaReuniao()">
+                Copiar ata
+            </button>
+
+            <button onclick="imprimirAtaReuniao()">
+                Imprimir ata
+            </button>
+
+            <button onclick="limparFormularioReuniao()">
+                Limpar
+            </button>
+
+        </div>
+
+        <!-- ATA -->
+
+        <div style="margin-top:20px;">
+
+            <label>Ata gerada</label>
+
+            <textarea
+                id="ataReuniaoGerada"
+                rows="12"
+            ></textarea>
+
+        </div>
+
+        <!-- HISTÓRICO -->
+
+        <h4>Histórico</h4>
+
+        <div id="historicoReunioes"></div>
+
+    </div>
+
+</div>
+
+<!-- ==========================================================
+     📦 VIEW ESTOQUE
+     ========================================================== -->
+
+<div id="view-estoque" class="view">
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">
+            📦 Gestão de Estoque e Farmácia
+        </h3>
+
+        <button onclick="abrirModuloSolicitacoesMateriais()">
+            ➕ Nova Solicitação
+        </button>
+
+        <div class="dashboard-grid" style="margin-top:20px;">
+
+            <div class="dash-card"
+                 style="border-top:4px solid #f59e0b;">
+
+                <h3 id="dashSolicitacoesPendentes">0</h3>
+
+                <p>Solicitações Pendentes</p>
+
+            </div>
+
+            <div class="dash-card"
+                 style="border-top:4px solid #22c55e;">
+
+                <h3 id="dashSolicitacoesAprovadas">0</h3>
+
+                <p>Solicitações Aprovadas</p>
+
+            </div>
+
+            <div class="dash-card"
+                 style="border-top:4px solid #3b82f6;">
+
+                <h3 id="dashSolicitacoesEntregues">0</h3>
+
+                <p>Entregues</p>
+
+            </div>
+
+        </div>
+
+        <h4>Histórico de Solicitações</h4>
+
+        <div id="historicoSolicitacoes"></div>
+
+    </div>
+
+</div>
+        
             <div id="view-reuniao" class="view">
     <div class="form-section">
         <h3 style="margin-top:0;">🗓️ Reunião de Equipe</h3>
@@ -687,7 +914,7 @@
             <textarea id="reuniaoInformes" rows="2"></textarea>
         </div>
 
-       <h4>Pautas</h4>
+     <h4>Pautas</h4>
 
 <div id="listaItensPauta"></div>
 
@@ -695,7 +922,32 @@
     + Adicionar pauta
 </button>
 
+<h4>Discussão de Casos</h4>
+
+<div class="form-section" style="background:#111c2e;">
+    <div class="form-grid">
+        <div style="grid-column: span 2;">
+            <label>Selecionar paciente do banco</label>
+            <select id="reuniaoPacienteCaso"></select>
+        </div>
+
+        <div style="grid-column: span 2;">
+            <label>Discussão do caso</label>
+            <textarea id="reuniaoDiscussaoCaso" rows="2"></textarea>
+        </div>
+
+        <div style="grid-column: span 4;">
+            <label>Conduta / Encaminhamento definido</label>
+            <textarea id="reuniaoCondutaCaso" rows="2"></textarea>
+        </div>
+    </div>
+
+    <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
+        Registrar discussão no prontuário
+    </button>
 </div>
+
+<div id="listaCasosDiscussao" style="margin-top:15px;"></div>
 
         <!-- DASHBOARD -->
 
@@ -867,8 +1119,7 @@
             border-radius:6px;
             font-weight:bold;
             cursor:pointer;
-        "
-    >
+    
         Criar usuário
     </button>
 
