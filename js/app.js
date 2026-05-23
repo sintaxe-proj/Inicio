@@ -15,7 +15,6 @@ const SCRIPTS_WHATSAPP_APS = {
 
 // Inicialização Automática ao Carregar a Página
 document.addEventListener("DOMContentLoaded", () => {
-    configurarIndexedDB();
     verificarSessao();
 });
 
@@ -42,7 +41,6 @@ function autenticarUsuario() {
         inicializarAutocompleteCIAP();
         atualizarIndicatorsDashboard();
         atualizarCentralAvisosSininho();
-        listarTodosBanco();
     } else {
         erroDiv.innerText = "Matrícula ou senha inválida no cadastro municipal.";
         erroDiv.style.display = "block";
