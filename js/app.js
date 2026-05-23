@@ -368,7 +368,6 @@ function salvarProntuario() {
 
         requestSalvar.onsuccess = function() {
             mostrarToast("💾 Prontuário SOAP gravado na base territorial!");
-            limparFormularioProntuario();
             atualizarIndicatorsDashboard();
             atualizarCentralAvisosSininho();
             navigate('inicio');
@@ -539,7 +538,6 @@ function abrirAtendimentoExistente(cpf) {
         if (!p) return;
 
         navigate('prontuario');
-        limparFormularioProntuario();
 
         // Vinculação de dados cadastrais
         document.getElementById("nomePaciente").value = p.nome;
