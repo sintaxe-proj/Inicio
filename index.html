@@ -407,8 +407,8 @@
 
                 <div class="form-section">
                     <h3 style="margin-top:0; color:var(--text-main);">📞 Central Operational de Busca Ativa Territorial</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin:-10px 0 15px 0;">Filtre em tempo real por Nome, CPF, Condição de Saúde (has, dm, pn, tb, hansen) ou criticidade ("crítico").</p>
-                    <input type="text" id="buscaNomeInicio" onkeyup="buscarInicio()" placeholder="O que procura no território hoje? (Ex: 'has crítico', 'Maria', '123.456...')">
+                    <p style="font-size:13px; color:var(--text-muted); margin:-10px 0 15px 0;">Filtre em tempo real por Nome, CPF, CNS, Condição de Saúde (has, dm, pn, tb, hansen) ou criticidade ("crítico").</p>
+                    <input type="text" id="buscaNomeInicio" onkeyup="buscarInicio()" placeholder="Busque por nome, CPF, CNS, HAS, DM, PN, TB, Hansen ou crítico...">
                     
                     <div id="resultadoInicio" style="margin-top:20px;">
                         <em style="color: var(--text-muted);">Introduza um critério acima para pesquisar (Nome, CPF, Linha de Cuidado ou "Crítico").</em>
@@ -1136,380 +1136,6 @@
 
 <div id="toastNotification"></div>
 
-    /* ============================================================
-   📞 CENTRAL OPERATIONAL DE BUSCA ATIVA TERRITORIAL
-   Busca integrada Supabase + fallback local
-============================================================ */
-
-async function carregarPacientesCentral() {
-    try {
-        if (typeof supabaseClient !== "undefined") {
-            const { data, error } = await supabaseClient
-                .from("pacientes")
-                .select("*")
-                .order("nome", { ascending: true });
-
-            if (error) {
-                console.error("Erro ao carregar pacientes Supabase:", error);
-                return Array.isArray(window.pacientes) ? window.pacientes : [];
-            }
-
-            return data || [];
-        }
-
-        return Array.isArray(window.pacientes) ? window.pacientes : [];
-
-    } catch (erro) {
-        console.error("Erro geral ao carregar pacientes:", erro);
-        return Array.isArray(window.pacientes) ? window.pacientes : [];
-    }
-}
-
-async function buscarPacientesCentral() {
-    const campoBusca = document.getElementById("buscaCentral");
-    const resultadoDiv = document.getElementById("resultadoCentralBusca");
-
-    if (!resultadoDiv) {
-        console.error("Elemento #resultadoCentralBusca não encontrado.");
-        return;
-    }
-
-    const termo = campoBusca ? campoBusca.value.toLowerCase().trim() : "";
-
-    resultadoDiv.innerHTML = `
-        <div style="padding:12px; color:var(--text-muted);">
-            Buscando pacientes...
-        </div>
-    `;
-
-    const pacientes = await carregarPacientesCentral();
-
-    const filtrados = pacientes.filter(p => {
-        const texto = `
-            ${p.nome || ""}
-            ${p.nome_completo || ""}
-            ${p.cpf || ""}
-            ${p.cns || ""}
-            ${p.telefone || ""}
-            ${p.celular || ""}
-            ${p.endereco || ""}
-            ${p.microarea || ""}
-            ${p.micro_area || ""}
-            ${p.equipe || ""}
-            ${p.condicoes || ""}
-            ${p.condicao || ""}
-            ${p.classificacao_risco || ""}
-            ${p.risco || ""}
-            ${p.status || ""}
-            ${p.usuario_perfil || ""}
-        `.toLowerCase();
-
-        return termo === "" || texto.includes(termo);
-    });
-
-    renderizarResultadosCentral(filtrados, termo);
-}
-
-function renderizarResultadosCentral(pacientes, termo = "") {
-    const resultadoDiv = document.getElementById("resultadoCentralBusca");
-
-    if (!resultadoDiv) return;
-
-    if (!pacientes || pacientes.length === 0) {
-        resultadoDiv.innerHTML = `
-            <div style="padding:15px; color:var(--text-muted); border:1px solid var(--border); border-radius:8px;">
-                Nenhum paciente encontrado${termo ? ` para: <strong>${termo}</strong>` : ""}.
-            </div>
-        `;
-        return;
-    }
-
-    resultadoDiv.innerHTML = pacientes.map(p => {
-        const id = p.id || p.paciente_id || p.uuid || "";
-        const nome = p.nome || p.nome_completo || "Paciente sem nome";
-        const cpf = p.cpf || "Não informado";
-        const cns = p.cns || "Não informado";
-        const telefone = p.telefone || p.celular || "";
-        const microarea = p.microarea || p.micro_area || "Não informada";
-        const equipe = p.equipe || "Não informada";
-        const risco = p.classificacao_risco || p.risco || "Não classificado";
-        const endereco = p.endereco || "Endereço não informado";
-
-        return `
-            <div 
-                class="card-monitoramento central-card-paciente" 
-                style="
-                    margin-bottom:10px;
-                    padding:12px;
-                    border:1px solid var(--border);
-                    border-radius:10px;
-                    background:var(--bg-card);
-                "
-            >
-                <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-                    
-                    <div style="flex:1; min-width:240px;">
-                        <strong style="color:var(--primary-neon); font-size:15px;">
-                            ${nome}
-                        </strong>
-
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
-                            CPF: ${cpf} | CNS: ${cns}
-                        </div>
-
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
-                            Tel: ${telefone || "Não informado"} | Microárea: ${microarea}
-                        </div>
-
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
-                            Equipe: ${equipe} | Risco: ${risco}
-                        </div>
-
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
-                            ${endereco}
-                        </div>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
-                        <button class="btn-small" onclick="abrirJanelaInteracaoCentral('${id}', '${escaparTexto(nome)}')">
-                            📝 Interação
-                        </button>
-
-                        <button class="btn-small" onclick="acionarDiscadorPaciente('${telefone}', '${escaparTexto(nome)}', '${id}')">
-                            📞 Ligar
-                        </button>
-
-                        <button class="btn-small" onclick="abrirWhatsAppPaciente('${telefone}', '${escaparTexto(nome)}', '${id}')">
-                            WhatsApp
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join("");
-}
-
-function escaparTexto(texto) {
-    return String(texto || "")
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "\\'")
-        .replace(/"/g, "&quot;")
-        .replace(/\n/g, " ");
-}
-
-function limparTelefone(numero) {
-    return String(numero || "").replace(/\D/g, "");
-}
-
-function acionarDiscadorPaciente(telefone, nome = "", pacienteId = "") {
-    const numeroLimpo = limparTelefone(telefone);
-
-    if (!numeroLimpo) {
-        alert("Paciente sem telefone cadastrado.");
-        return;
-    }
-
-    abrirJanelaInteracaoCentral(pacienteId, nome);
-
-    window.location.href = `tel:${numeroLimpo}`;
-}
-
-function abrirWhatsAppPaciente(telefone, nome = "", pacienteId = "") {
-    const numeroLimpo = limparTelefone(telefone);
-
-    if (!numeroLimpo) {
-        alert("Paciente sem telefone cadastrado.");
-        return;
-    }
-
-    abrirJanelaInteracaoCentral(pacienteId, nome);
-
-    let numeroFinal = numeroLimpo;
-
-    if (!numeroFinal.startsWith("55")) {
-        numeroFinal = "55" + numeroFinal;
-    }
-
-    const mensagem = encodeURIComponent(
-        `Olá, ${nome || "paciente"}. Entramos em contato pela equipe de saúde para acompanhamento territorial.`
-    );
-
-    window.open(`https://wa.me/${numeroFinal}?text=${mensagem}`, "_blank");
-}
-
-function abrirJanelaInteracaoCentral(pacienteId = "", nomePaciente = "") {
-    let modal = document.getElementById("modalInteracaoCentral");
-
-    if (!modal) {
-        modal = document.createElement("div");
-        modal.id = "modalInteracaoCentral";
-        modal.style.cssText = `
-            position:fixed;
-            top:0;
-            left:0;
-            width:100%;
-            height:100%;
-            background:rgba(0,0,0,0.65);
-            z-index:9999;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-        `;
-
-        modal.innerHTML = `
-            <div style="
-                width:95%;
-                max-width:650px;
-                background:var(--bg-card);
-                border:1px solid var(--border);
-                border-radius:14px;
-                padding:20px;
-                box-shadow:0 20px 60px rgba(0,0,0,0.4);
-            ">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h3 style="margin:0; color:var(--primary-neon);">
-                        📝 Registro de Interação
-                    </h3>
-                    <button onclick="fecharJanelaInteracaoCentral()" class="btn-small">
-                        ✕
-                    </button>
-                </div>
-
-                <input type="hidden" id="interacaoPacienteId">
-
-                <label style="font-size:12px; color:var(--text-muted);">Paciente</label>
-                <input 
-                    id="interacaoPacienteNome" 
-                    type="text" 
-                    readonly
-                    style="width:100%; margin-bottom:10px;"
-                >
-
-                <label style="font-size:12px; color:var(--text-muted);">Tipo de contato</label>
-                <select id="interacaoTipo" style="width:100%; margin-bottom:10px;">
-                    <option value="ligacao">Ligação</option>
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="visita">Visita domiciliar</option>
-                    <option value="sem_resposta">Sem resposta</option>
-                    <option value="agendamento">Agendamento</option>
-                    <option value="orientacao">Orientação</option>
-                </select>
-
-                <label style="font-size:12px; color:var(--text-muted);">Resultado</label>
-                <select id="interacaoResultado" style="width:100%; margin-bottom:10px;">
-                    <option value="contato_realizado">Contato realizado</option>
-                    <option value="nao_atendeu">Não atendeu</option>
-                    <option value="numero_invalido">Número inválido</option>
-                    <option value="recusou_contato">Recusou contato</option>
-                    <option value="agendado">Agendado</option>
-                    <option value="encaminhado">Encaminhado</option>
-                    <option value="pendente">Pendente</option>
-                </select>
-
-                <label style="font-size:12px; color:var(--text-muted);">Observações</label>
-                <textarea 
-                    id="interacaoObservacao" 
-                    rows="5" 
-                    placeholder="Descreva a interação realizada..."
-                    style="width:100%; margin-bottom:15px;"
-                ></textarea>
-
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button class="btn-small" onclick="fecharJanelaInteracaoCentral()">
-                        Cancelar
-                    </button>
-
-                    <button class="btn-small" onclick="salvarInteracaoCentral()">
-                        Salvar interação
-                    </button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-    }
-
-    document.getElementById("interacaoPacienteId").value = pacienteId || "";
-    document.getElementById("interacaoPacienteNome").value = nomePaciente || "Paciente não identificado";
-    document.getElementById("interacaoObservacao").value = "";
-
-    modal.style.display = "flex";
-}
-
-function fecharJanelaInteracaoCentral() {
-    const modal = document.getElementById("modalInteracaoCentral");
-    if (modal) {
-        modal.style.display = "none";
-    }
-}
-
-async function salvarInteracaoCentral() {
-    const pacienteId = document.getElementById("interacaoPacienteId")?.value || "";
-    const pacienteNome = document.getElementById("interacaoPacienteNome")?.value || "";
-    const tipo = document.getElementById("interacaoTipo")?.value || "";
-    const resultado = document.getElementById("interacaoResultado")?.value || "";
-    const observacao = document.getElementById("interacaoObservacao")?.value || "";
-
-    const registro = {
-        paciente_id: pacienteId || null,
-        paciente_nome: pacienteNome,
-        tipo_contato: tipo,
-        resultado: resultado,
-        observacao: observacao,
-        data_interacao: new Date().toISOString()
-    };
-
-    try {
-        if (typeof supabaseClient !== "undefined") {
-            const { error } = await supabaseClient
-                .from("interacoes")
-                .insert([registro]);
-
-            if (error) {
-                console.error("Erro ao salvar interação no Supabase:", error);
-                salvarInteracaoLocal(registro);
-                alert("Interação salva localmente. Verifique a tabela interacoes no Supabase.");
-            } else {
-                alert("Interação registrada com sucesso.");
-            }
-        } else {
-            salvarInteracaoLocal(registro);
-            alert("Interação salva localmente.");
-        }
-
-        fecharJanelaInteracaoCentral();
-
-    } catch (erro) {
-        console.error("Erro geral ao salvar interação:", erro);
-        salvarInteracaoLocal(registro);
-        alert("Interação salva localmente por falha no Supabase.");
-        fecharJanelaInteracaoCentral();
-    }
-}
-
-function salvarInteracaoLocal(registro) {
-    const lista = JSON.parse(localStorage.getItem("interacoes_central") || "[]");
-    lista.push(registro);
-    localStorage.setItem("interacoes_central", JSON.stringify(lista));
-}
-
-function inicializarCentralBuscaAtiva() {
-    const campoBusca = document.getElementById("buscaCentral");
-
-    if (campoBusca) {
-        campoBusca.addEventListener("input", buscarPacientesCentral);
-    }
-
-    buscarPacientesCentral();
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(() => {
-        inicializarCentralBuscaAtiva();
-    }, 500);
-});
-
-
 <!-- ==========================================================
      SCRIPTS — ORDEM CORRETA PARA SUPABASE
      ========================================================== -->
@@ -1553,6 +1179,341 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="./js/riscoClinico.js"></script>
 <script src="./js/materiais.js"></script>
 <script src="./js/app.js"></script>
+
+<!-- Central de Busca Ativa Territorial corrigida -->
+<script>
+(function () {
+    "use strict";
+
+    const CAMPOS_BUSCA_TEXTO = [
+        "nome", "nome_completo", "cpf", "cns", "telefone", "celular",
+        "endereco", "microarea", "micro_area", "equipe", "unidade",
+        "classificacao_risco", "risco", "status", "condicoes", "condicao",
+        "linha_cuidado", "diagnosticos", "observacoes"
+    ];
+
+    function normalizarTexto(valor) {
+        return String(valor ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+    }
+
+    function somenteNumeros(valor) {
+        return String(valor ?? "").replace(/\D/g, "");
+    }
+
+    function valorSim(valor) {
+        const v = normalizarTexto(valor);
+        return valor === true || valor === 1 || v === "sim" || v === "s" || v === "true" || v === "1" || v === "ativo" || v === "positiva" || v === "positivo";
+    }
+
+    function campoSim(p, nomes) {
+        return nomes.some(nome => valorSim(p?.[nome]));
+    }
+
+    function textoPaciente(p) {
+        return CAMPOS_BUSCA_TEXTO
+            .map(campo => p?.[campo] ?? "")
+            .join(" ");
+    }
+
+    function pacienteTemHAS(p) {
+        const texto = normalizarTexto(textoPaciente(p));
+        return campoSim(p, ["has", "hasSN", "has_sn", "hipertensao", "hipertenso", "hipertensa"]) ||
+               texto.includes("hipertens") ||
+               texto.includes("has");
+    }
+
+    function pacienteTemDM(p) {
+        const texto = normalizarTexto(textoPaciente(p));
+        return campoSim(p, ["dm", "dmSN", "dm_sn", "diabetes", "diabetico", "diabetica"]) ||
+               texto.includes("diabetes") ||
+               texto.includes("diabet") ||
+               texto.includes("dm");
+    }
+
+    function pacienteTemPN(p) {
+        const texto = normalizarTexto(textoPaciente(p));
+        return campoSim(p, ["pn", "pre_natal", "prenatal", "gestante", "gestanteSN", "gestante_sn"]) ||
+               texto.includes("gestante") ||
+               texto.includes("pre natal") ||
+               texto.includes("prenatal") ||
+               texto.includes("pn");
+    }
+
+    function pacienteTemTB(p) {
+        const texto = normalizarTexto(textoPaciente(p));
+        return campoSim(p, ["tb", "tbSN", "tb_sn", "tuberculose"]) ||
+               texto.includes("tuberculose") ||
+               texto.includes(" tb ") ||
+               texto === "tb";
+    }
+
+    function pacienteTemHansen(p) {
+        const texto = normalizarTexto(textoPaciente(p));
+        return campoSim(p, ["hansen", "hansenSN", "hansen_sn", "hanseniase", "hanseniaseSN", "hanseniase_sn"]) ||
+               texto.includes("hansen") ||
+               texto.includes("hanseniase");
+    }
+
+    function pacienteCritico(p) {
+        const texto = normalizarTexto(`${p?.classificacao_risco ?? ""} ${p?.risco ?? ""} ${p?.status ?? ""} ${p?.condicoes ?? ""} ${p?.condicao ?? ""}`);
+        return texto.includes("crit") || texto.includes("grave") || texto.includes("alto risco") || texto.includes("risco alto") || texto.includes("vermelho");
+    }
+
+    function obterLinhasPaciente(p) {
+        const linhas = [];
+        if (pacienteTemHAS(p)) linhas.push({ sigla: "HAS", cor: "#dc2626" });
+        if (pacienteTemDM(p)) linhas.push({ sigla: "DM", cor: "#16a34a" });
+        if (pacienteTemPN(p)) linhas.push({ sigla: "PN", cor: "#d97706" });
+        if (pacienteTemTB(p)) linhas.push({ sigla: "TB", cor: "#9333ea" });
+        if (pacienteTemHansen(p)) linhas.push({ sigla: "HANSEN", cor: "#2563eb" });
+        return linhas;
+    }
+
+    function escaparHtml(valor) {
+        return String(valor ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function escaparParametro(valor) {
+        return String(valor ?? "")
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'")
+            .replace(/"/g, "&quot;")
+            .replace(/\n/g, " ");
+    }
+
+    async function carregarPacientesCentral() {
+        try {
+            if (typeof supabaseClient !== "undefined") {
+                const { data, error } = await supabaseClient
+                    .from("pacientes")
+                    .select("*")
+                    .order("nome", { ascending: true });
+
+                if (error) {
+                    console.error("Erro ao buscar pacientes no Supabase:", error);
+                    if (Array.isArray(window.pacientes)) return window.pacientes;
+                    return [];
+                }
+
+                window.pacientes = data || [];
+                return window.pacientes;
+            }
+
+            return Array.isArray(window.pacientes) ? window.pacientes : [];
+
+        } catch (erro) {
+            console.error("Erro geral na Central de Busca:", erro);
+            return Array.isArray(window.pacientes) ? window.pacientes : [];
+        }
+    }
+
+    function filtrarPacientesCentral(pacientes, termoOriginal) {
+        const termo = normalizarTexto(termoOriginal);
+        const termoNumerico = somenteNumeros(termoOriginal);
+
+        if (!termo && !termoNumerico) return pacientes;
+
+        const tokens = termo.split(/\s+/).filter(Boolean);
+
+        return pacientes.filter(p => {
+            const nome = normalizarTexto(p.nome || p.nome_completo || "");
+            const cpf = somenteNumeros(p.cpf || "");
+            const cns = somenteNumeros(p.cns || "");
+            const telefone = somenteNumeros(p.telefone || p.celular || "");
+
+            const mapa = {
+                has: pacienteTemHAS(p),
+                hipertensao: pacienteTemHAS(p),
+                hipertenso: pacienteTemHAS(p),
+                hipertensa: pacienteTemHAS(p),
+                dm: pacienteTemDM(p),
+                diabetes: pacienteTemDM(p),
+                diabetico: pacienteTemDM(p),
+                diabetica: pacienteTemDM(p),
+                pn: pacienteTemPN(p),
+                gestante: pacienteTemPN(p),
+                prenatal: pacienteTemPN(p),
+                "pre-natal": pacienteTemPN(p),
+                tb: pacienteTemTB(p),
+                tuberculose: pacienteTemTB(p),
+                hansen: pacienteTemHansen(p),
+                hanseniase: pacienteTemHansen(p),
+                critico: pacienteCritico(p),
+                critica: pacienteCritico(p),
+                crítico: pacienteCritico(p),
+                crítica: pacienteCritico(p)
+            };
+
+            const textoLivre = normalizarTexto(`
+                ${textoPaciente(p)}
+                ${pacienteTemHAS(p) ? "has hipertensao hipertenso hipertensa" : ""}
+                ${pacienteTemDM(p) ? "dm diabetes diabetico diabetica" : ""}
+                ${pacienteTemPN(p) ? "pn gestante prenatal pre natal" : ""}
+                ${pacienteTemTB(p) ? "tb tuberculose" : ""}
+                ${pacienteTemHansen(p) ? "hansen hanseniase" : ""}
+                ${pacienteCritico(p) ? "critico critica grave alto risco" : ""}
+            `);
+
+            if (termoNumerico) {
+                if (cpf.includes(termoNumerico) || cns.includes(termoNumerico) || telefone.includes(termoNumerico)) return true;
+            }
+
+            return tokens.every(token => {
+                if (Object.prototype.hasOwnProperty.call(mapa, token)) return mapa[token];
+                return nome.includes(token) || textoLivre.includes(token);
+            });
+        });
+    }
+
+    function renderizarResultadoInicio(pacientes, termo) {
+        const resultadoDiv = document.getElementById("resultadoInicio");
+        if (!resultadoDiv) return;
+
+        if (!pacientes || pacientes.length === 0) {
+            resultadoDiv.innerHTML = `
+                <div style="padding:15px; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); background:#111c2e;">
+                    Nenhum paciente encontrado${termo ? ` para: <strong>${escaparHtml(termo)}</strong>` : ""}.
+                </div>
+            `;
+            return;
+        }
+
+        resultadoDiv.innerHTML = `
+            <div style="margin-bottom:10px; color:var(--text-muted); font-size:12px;">
+                ${pacientes.length} paciente(s) encontrado(s).
+            </div>
+            ${pacientes.map(p => {
+                const id = p.id || p.paciente_id || p.uuid || "";
+                const nome = p.nome || p.nome_completo || "Paciente sem nome";
+                const cpf = p.cpf || "Não informado";
+                const cns = p.cns || "Não informado";
+                const telefone = p.telefone || p.celular || "Não informado";
+                const equipe = p.equipe || "Não informada";
+                const microarea = p.microarea || p.micro_area || "Não informada";
+                const risco = p.classificacao_risco || p.risco || "Não classificado";
+                const linhas = obterLinhasPaciente(p);
+                const corRisco = pacienteCritico(p) ? "#ef4444" : "#22c55e";
+
+                return `
+                    <div class="card-monitoramento" style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:flex-start;">
+                            <div style="flex:1; min-width:260px;">
+                                <div style="font-size:16px; font-weight:800; color:var(--primary-neon); margin-bottom:8px;">
+                                    ${escaparHtml(nome)}
+                                </div>
+
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                                    CPF: ${escaparHtml(cpf)} | CNS: ${escaparHtml(cns)}
+                                </div>
+
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                                    📞 ${escaparHtml(telefone)} | Equipe: ${escaparHtml(equipe)} | Microárea: ${escaparHtml(microarea)}
+                                </div>
+
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin:8px 0;">
+                                    ${linhas.length ? linhas.map(l => `<span class="tag-clinica" style="background:${l.cor};">${l.sigla}</span>`).join("") : `<span class="tag-clinica" style="background:#64748b;">SEM LINHA</span>`}
+                                </div>
+
+                                <div style="font-size:12px; font-weight:800; color:${corRisco};">
+                                    Risco: ${escaparHtml(risco)}
+                                </div>
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+                                <button class="btn-table-action btn-edit" onclick="abrirPacienteCentral('${escaparParametro(id)}')">Abrir</button>
+                                <button class="btn-table-action" style="background:var(--success-dark);" onclick="ligarPacienteCentral('${escaparParametro(telefone)}')">📞 Ligar</button>
+                                <button class="btn-table-action" style="background:var(--success);" onclick="whatsPacienteCentral('${escaparParametro(telefone)}', '${escaparParametro(nome)}')">WhatsApp</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("")}
+        `;
+    }
+
+    window.buscarInicio = async function buscarInicio() {
+        const campoBusca = document.getElementById("buscaNomeInicio");
+        const resultadoDiv = document.getElementById("resultadoInicio");
+        if (!resultadoDiv) return;
+
+        const termo = campoBusca ? campoBusca.value.trim() : "";
+
+        resultadoDiv.innerHTML = `
+            <div style="padding:15px; color:var(--text-muted);">
+                Buscando no território...
+            </div>
+        `;
+
+        const pacientes = await carregarPacientesCentral();
+        const filtrados = filtrarPacientesCentral(pacientes, termo);
+        renderizarResultadoInicio(filtrados, termo);
+    };
+
+    window.abrirPacienteCentral = function abrirPacienteCentral(id) {
+        if (typeof abrirProntuarioPaciente === "function") {
+            abrirProntuarioPaciente(id);
+            return;
+        }
+        if (typeof abrirPaciente === "function") {
+            abrirPaciente(id);
+            return;
+        }
+        if (typeof editarPaciente === "function") {
+            editarPaciente(id);
+            return;
+        }
+        if (typeof carregarPacienteNoProntuario === "function") {
+            carregarPacienteNoProntuario(id);
+            return;
+        }
+        if (typeof navigate === "function") navigate("prontuario");
+        alert("Paciente localizado. Não encontrei a função de abrir prontuário neste index.");
+    };
+
+    window.ligarPacienteCentral = function ligarPacienteCentral(telefone) {
+        const numero = somenteNumeros(telefone);
+        if (!numero) {
+            alert("Paciente sem telefone cadastrado.");
+            return;
+        }
+        window.location.href = `tel:${numero}`;
+    };
+
+    window.whatsPacienteCentral = function whatsPacienteCentral(telefone, nome) {
+        let numero = somenteNumeros(telefone);
+        if (!numero) {
+            alert("Paciente sem telefone cadastrado.");
+            return;
+        }
+        if (!numero.startsWith("55")) numero = `55${numero}`;
+        const mensagem = encodeURIComponent(`Olá, ${nome || "paciente"}. Entramos em contato pela equipe de saúde para acompanhamento territorial.`);
+        window.open(`https://wa.me/${numero}?text=${mensagem}`, "_blank");
+    };
+
+    function inicializarCentralBuscaAtiva() {
+        const campo = document.getElementById("buscaNomeInicio");
+        if (!campo) return;
+
+        campo.removeAttribute("onkeyup");
+        campo.addEventListener("input", window.buscarInicio);
+
+        if (campo.value.trim()) window.buscarInicio();
+    }
+
+    document.addEventListener("DOMContentLoaded", inicializarCentralBuscaAtiva);
+    window.addEventListener("load", inicializarCentralBuscaAtiva);
+})();
+</script>
+
 
 <!-- Oculta o discador na tela de login e mostra somente quando o app estiver visível -->
 <script>
