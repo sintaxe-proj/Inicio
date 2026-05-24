@@ -2,20 +2,45 @@
    🔍 BUSCA ATIVA E ABERTURA DE PRONTUÁRIO
    ========================================================================== */
 
+function escaparTexto(valor) {
+    return String(valor || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;");
+}
+
+function normalizarTexto(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function somenteNumeros(valor) {
+    return String(valor || "").replace(/\D/g, "");
+}
+
+/* ==========================================================================
+   BUSCA NA TELA INICIAL
+   ========================================================================== */
+
 function buscarInicio() {
     const inputBusca = document.getElementById("buscaNomeInicio");
+    const container = document.getElementById("resultadoInicio");
 
     if (!inputBusca) {
         console.error("Erro: elemento buscaNomeInicio não encontrado.");
         return;
     }
 
-    const termoOriginal = inputBusca.value.toLowerCase().trim();
-    const container = document.getElementById("resultadoInicio");
-
     if (!container) return;
 
-    if (!termoOriginal) {
+    const termoOriginal = inputBusca.value.trim();
+    const termoBusca = normalizarTexto(termoOriginal);
+    const termoNumerico = somenteNumeros(termoOriginal);
+
+    if (!termoBusca) {
         container.innerHTML =
             `<em style="color:#94a3b8;">Introduza um critério acima para pesquisar.</em>`;
         return;
@@ -32,38 +57,46 @@ function buscarInicio() {
     const request = store.getAll();
 
     request.onsuccess = function () {
-
-        const todosPacientes = request.result;
-        const termoNumerico = termoOriginal.replace(/\D/g, "");
+        const todosPacientes = request.result || [];
 
         const desejaCritico =
-            termoOriginal.includes("critico") ||
-            termoOriginal.includes("crítico");
+            termoBusca.includes("critico");
 
         const desejaControlado =
-            termoOriginal.includes("controlado");
+            termoBusca.includes("controlado");
 
         const desejaHAS =
-            termoOriginal.includes("has") ||
-            termoOriginal.includes("hipertens");
+            termoBusca.includes("has") ||
+            termoBusca.includes("hipertens");
 
         const desejaDM =
-            termoOriginal.includes("dm") ||
-            termoOriginal.includes("diabet");
+            termoBusca.includes("dm") ||
+            termoBusca.includes("diabet");
 
         const desejaPN =
-            termoOriginal.includes("pn") ||
-            termoOriginal.includes("gestant") ||
-            termoOriginal.includes("natal");
+            termoBusca.includes("pn") ||
+            termoBusca.includes("gestant") ||
+            termoBusca.includes("natal");
 
         const desejaTB =
-            termoOriginal.includes("tb") ||
-            termoOriginal.includes("tuberculose");
+            termoBusca.includes("tb") ||
+            termoBusca.includes("tuberculose");
 
         const desejaHansen =
-            termoOriginal.includes("hansen");
+            termoBusca.includes("hansen");
+
+        const usouFiltros =
+            desejaHAS ||
+            desejaDM ||
+            desejaPN ||
+            desejaTB ||
+            desejaHansen ||
+            desejaCritico ||
+            desejaControlado;
 
         const resultados = todosPacientes.filter(p => {
+            const reavaliacao =
+                parseInt(p.reavaliacaoDias || 0);
 
             if (desejaHAS && p.has !== "Sim") return false;
             if (desejaDM && p.dm !== "Sim") return false;
@@ -71,331 +104,391 @@ function buscarInicio() {
             if (desejaTB && p.tb !== "Sim") return false;
             if (desejaHansen && p.hansen !== "Sim") return false;
 
-            if (desejaCritico && p.reavaliacaoDias !== 0) return false;
-            if (desejaControlado && p.reavaliacaoDias <= 0) return false;
+            if (desejaCritico && reavaliacao !== 0) return false;
+            if (desejaControlado && reavaliacao <= 0) return false;
 
-            const digitouApenasFiltros =
-                desejaHAS ||
-                desejaDM ||
-                desejaPN ||
-                desejaTB ||
-                desejaHansen ||
-                desejaCritico ||
-                desejaControlado;
-
-            if (!digitouApenasFiltros) {
-
+            if (!usouFiltros) {
                 const nomeBate =
-                    p.nome &&
-                    p.nome.toLowerCase().includes(termoOriginal);
-
-                const cpfLimpoBanco =
-                    p.cpf ? p.cpf.replace(/\D/g, "") : "";
+                    normalizarTexto(p.nome).includes(termoBusca);
 
                 const cpfBate =
                     termoNumerico !== "" &&
-                    cpfLimpoBanco.includes(termoNumerico);
+                    somenteNumeros(p.cpf).includes(termoNumerico);
 
-                return nomeBate || cpfBate;
+                const cnsBate =
+                    termoNumerico !== "" &&
+                    somenteNumeros(p.cns).includes(termoNumerico);
+
+                return nomeBate || cpfBate || cnsBate;
             }
 
             return true;
         });
 
-        if (resultados.length === 0) {
-
-            container.innerHTML =
-                `<p style="color:var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado.</p>`;
-
-            return;
-        }
-
-        let html = `<div class="busca-ativa-grid">`;
-
-        resultados.forEach(p => {
-
-            let badges = "";
-
-            if (p.has === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span>`;
-            }
-
-            if (p.dm === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--success)">DM</span>`;
-            }
-
-            if (p.gestante === "Sim") {
-                badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span>`;
-            }
-
-            if (p.tb === "Sim") {
-                badges += `<span class="tag-clinica" style="background:#701a75">TB</span>`;
-            }
-
-            if (p.hansen === "Sim") {
-                badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span>`;
-            }
-
-            if (parseInt(p.reavaliacaoDias) === 0) {
-
-                badges += `
-                    <span class="tag-clinica"
-                          style="background:#7c2d12;">
-                          ⚠️ CRÍTICO (0d)
-                    </span>
-                `;
-
-            } else {
-
-                badges += `
-                    <span class="tag-clinica"
-                          style="background:#475569">
-                          ⏱️ ${p.reavaliacaoDias}d
-                    </span>
-                `;
-            }
-
-            html += `
-                <div class="busca-ativa-card"
-                     onclick="abrirAtendimentoExistente('${p.cpf}')"
-                     style="
-                        cursor:pointer;
-                        padding:15px;
-                        margin-bottom:12px;
-                        border:1px solid #e2e8f0;
-                        border-radius:10px;
-                        background:white;
-                        box-shadow:0 2px 4px rgba(0,0,0,0.04);
-                     ">
-
-                    <h4 style="margin:0 0 6px 0; color:#1e293b;">
-                        ${p.nome}
-                    </h4>
-
-                    <p style="margin:2px 0; font-size:13px; color:#64748b;">
-                        <strong>CPF:</strong> ${p.cpf}
-                        |
-                        <strong>Idade:</strong> ${p.idade || "-"} anos
-                    </p>
-
-                    <p style="margin:2px 0; font-size:13px; color:#64748b;">
-                        <strong>UBS:</strong> ${p.ubs || "Não vinculada"}
-                        |
-                        ${p.equipe || "Sem equipe"}
-                    </p>
-
-                    <p style="
-                        margin-top:8px;
-                        font-size:12px;
-                        color:#334155;
-                        font-weight:600;
-                    ">
-                        ⏱️ Revisão:
-                        ${
-                            parseInt(p.reavaliacaoDias) === 0
-                            ? `<span style="color:#b91c1c;">URGENTE HOJE</span>`
-                            : `${p.reavaliacaoDias} dias`
-                        }
-                    </p>
-
-                    <p style="
-                        margin-top:4px;
-                        font-size:12px;
-                        color:#475569;
-                    ">
-                        📅 Último monitoramento:
-                        ${
-                            p.historicoEvolucoes &&
-                            p.historicoEvolucoes.length > 0
-                                ? p.historicoEvolucoes[0]
-                                    .split("\\n")[0]
-                                    .replace("--- ", "")
-                                : "Sem registros"
-                        }
-                    </p>
-
-                    <div style="
-                        margin-top:10px;
-                        display:flex;
-                        gap:4px;
-                        flex-wrap:wrap;
-                    ">
-                        ${badges}
-                    </div>
-
-                    <div style="
-                        margin-top:14px;
-                        display:flex;
-                        gap:8px;
-                        flex-wrap:wrap;
-                    ">
-
-                        <button
-                            onclick="event.stopPropagation(); abrirAtendimentoExistente('${p.cpf}')"
-                            style="
-                                background:#2563eb;
-                                color:white;
-                                border:none;
-                                padding:8px 12px;
-                                border-radius:6px;
-                                font-size:12px;
-                                font-weight:bold;
-                                cursor:pointer;
-                            ">
-                            📋 Abrir Prontuário
-                        </button>
-
-                        <button
-                            onclick="event.stopPropagation(); abrirDiscadorParaPaciente('${p.cpf}')"
-                            style="
-                                background:#25d366;
-                                color:white;
-                                border:none;
-                                padding:8px 12px;
-                                border-radius:6px;
-                                font-size:12px;
-                                font-weight:bold;
-                                cursor:pointer;
-                            ">
-                            💬 WhatsApp
-                        </button>
-
-                    </div>
-
-                </div>
-            `;
-        });
-
-        html += `</div>`;
-
-        container.innerHTML = html;
+        renderizarResultadosBusca(resultados, container);
     };
 
     request.onerror = function () {
         console.error("Erro ao executar busca no IndexedDB");
+
+        container.innerHTML =
+            `<p style="color:var(--danger); font-weight:600;">⚠️ Erro ao executar busca.</p>`;
     };
 }
 
+/* ==========================================================================
+   RENDERIZAÇÃO DOS RESULTADOS
+   ========================================================================== */
+
+function renderizarResultadosBusca(resultados, container) {
+    if (!resultados || resultados.length === 0) {
+        container.innerHTML =
+            `<p style="color:var(--danger); font-weight:600;">⚠️ Nenhum cidadão localizado.</p>`;
+        return;
+    }
+
+    let html = `<div class="busca-ativa-grid">`;
+
+    resultados.forEach(p => {
+        const cpfSeguro = escaparTexto(p.cpf);
+        const reavaliacao = parseInt(p.reavaliacaoDias || 0);
+
+        let badges = "";
+
+        if (p.has === "Sim") {
+            badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span>`;
+        }
+
+        if (p.dm === "Sim") {
+            badges += `<span class="tag-clinica" style="background:var(--success)">DM</span>`;
+        }
+
+        if (p.gestante === "Sim") {
+            badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span>`;
+        }
+
+        if (p.tb === "Sim") {
+            badges += `<span class="tag-clinica" style="background:#701a75">TB</span>`;
+        }
+
+        if (p.hansen === "Sim") {
+            badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span>`;
+        }
+
+        if (reavaliacao === 0) {
+            badges += `
+                <span class="tag-clinica" style="background:#7c2d12;">
+                    ⚠️ CRÍTICO (0d)
+                </span>
+            `;
+        } else {
+            badges += `
+                <span class="tag-clinica" style="background:#475569;">
+                    ⏱️ ${reavaliacao}d
+                </span>
+            `;
+        }
+
+        const ultimoMonitoramento =
+            p.historicoEvolucoes &&
+            p.historicoEvolucoes.length > 0
+                ? String(p.historicoEvolucoes[0])
+                    .split("\n")[0]
+                    .replace("--- ", "")
+                : "Sem registros";
+
+        html += `
+            <div class="busca-ativa-card"
+                 onclick="abrirAtendimentoExistente('${cpfSeguro}')"
+                 style="
+                    cursor:pointer;
+                    padding:15px;
+                    margin-bottom:12px;
+                    border:1px solid var(--border);
+                    border-radius:10px;
+                    background:var(--bg-card);
+                    box-shadow:0 2px 4px rgba(0,0,0,0.15);
+                 ">
+
+                <h4 style="margin:0 0 6px 0; color:var(--text-main);">
+                    ${p.nome || "Sem nome"}
+                </h4>
+
+                <p style="margin:2px 0; font-size:13px; color:var(--text-muted);">
+                    <strong>CPF:</strong> ${p.cpf || "-"}
+                    |
+                    <strong>CNS:</strong> ${p.cns || "-"}
+                    |
+                    <strong>Idade:</strong> ${p.idade || "-"} anos
+                </p>
+
+                <p style="margin:2px 0; font-size:13px; color:var(--text-muted);">
+                    <strong>UBS:</strong> ${p.ubs || "Não vinculada"}
+                    |
+                    ${p.equipe || "Sem equipe"}
+                </p>
+
+                <p style="
+                    margin-top:8px;
+                    font-size:12px;
+                    color:var(--text-main);
+                    font-weight:600;
+                ">
+                    ⏱️ Revisão:
+                    ${
+                        reavaliacao === 0
+                        ? `<span style="color:#f87171;">URGENTE HOJE</span>`
+                        : `${reavaliacao} dias`
+                    }
+                </p>
+
+                <p style="
+                    margin-top:4px;
+                    font-size:12px;
+                    color:var(--text-muted);
+                ">
+                    📅 Último monitoramento:
+                    ${ultimoMonitoramento}
+                </p>
+
+                <div style="
+                    margin-top:10px;
+                    display:flex;
+                    gap:4px;
+                    flex-wrap:wrap;
+                ">
+                    ${badges}
+                </div>
+
+                <div style="
+                    margin-top:14px;
+                    display:flex;
+                    gap:8px;
+                    flex-wrap:wrap;
+                ">
+
+                    <button
+                        onclick="event.stopPropagation(); abrirAtendimentoExistente('${cpfSeguro}')"
+                        style="
+                            background:#2563eb;
+                            color:white;
+                            border:none;
+                            padding:8px 12px;
+                            border-radius:6px;
+                            font-size:12px;
+                            font-weight:bold;
+                            cursor:pointer;
+                        ">
+                        📋 Abrir Prontuário
+                    </button>
+
+                    <button
+                        onclick="event.stopPropagation(); abrirDiscadorParaPaciente('${cpfSeguro}')"
+                        style="
+                            background:#25d366;
+                            color:white;
+                            border:none;
+                            padding:8px 12px;
+                            border-radius:6px;
+                            font-size:12px;
+                            font-weight:bold;
+                            cursor:pointer;
+                        ">
+                        💬 WhatsApp
+                    </button>
+
+                </div>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+
+    container.innerHTML = html;
+}
 
 /* ==========================================================================
    📋 ABRIR PRONTUÁRIO
    ========================================================================== */
 
 function abrirAtendimentoExistente(cpf) {
+    if (!db) {
+        mostrarToast?.("⚠️ Banco local não conectado.");
+        return;
+    }
+
+    const cpfLimpo = String(cpf || "");
 
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
-    const request = store.get(cpf);
+    const request = store.get(cpfLimpo);
 
-    request.onsuccess = function() {
-
+    request.onsuccess = function () {
         const p = request.result;
 
-        if (!p) return;
+        if (!p) {
+            mostrarToast?.("⚠️ Paciente não encontrado.");
+            return;
+        }
 
         navigate("prontuario");
 
-        limparFormularioProntuario();
-
-        document.getElementById("nomePaciente").value = p.nome || "";
-        document.getElementById("cpfPaciente").value = p.cpf || "";
-        document.getElementById("nascPaciente").value = p.nasc || "";
-        document.getElementById("idadePaciente").value = p.idade || "";
-        document.getElementById("telPaciente").value = p.tel || "";
-        document.getElementById("CEP").value = p.cep || "";
-        document.getElementById("endPaciente").value = p.endereco || "";
-        document.getElementById("endNumero").value = p.numero || "";
-        document.getElementById("endComplemento").value = p.complemento || "";
-        document.getElementById("unidadePaciente").value = p.ubs || "";
-        document.getElementById("equipePaciente").value = p.equipe || "";
-
-        document.getElementById("objPA").value = p.objPA || "";
-        document.getElementById("objFC").value = p.objFC || "";
-        document.getElementById("objFR").value = p.objFR || "";
-        document.getElementById("objSatO2").value = p.objSatO2 || "";
-        document.getElementById("objDor").value = p.objDor || "0";
-
-        document.getElementById("hasSN").value = p.has || "Não";
-        mostrarCard("cardHAS", p.has);
-
-        document.getElementById("dmSN").value = p.dm || "Não";
-        mostrarCard("cardDM", p.dm);
-
-        document.getElementById("gestanteSN").value = p.gestante || "Não";
-        mostrarCard("cardGestante", p.gestante);
-
-        document.getElementById("tbSN").checked = p.tb === "Sim";
-        document.getElementById("hansenSN").checked = p.hansen === "Sim";
-
-        if (p.historicoEvolucoes && p.historicoEvolucoes.length > 0) {
-
-            let htmlTimeline = `
-                <label style="font-weight:700;">
-                    ⏳ Histórico Clínico Digital:
-                </label>
-                <div class="timeline">
-            `;
-
-            p.historicoEvolucoes.forEach(evo => {
-
-                htmlTimeline += `
-                    <div class="timeline-item">
-                        <div class="timeline-body">${evo}</div>
-                    </div>
-                `;
-            });
-
-            htmlTimeline += `</div>`;
-
-            document.getElementById("linhaTempoEvolucoes").innerHTML =
-                htmlTimeline;
+        if (typeof limparFormularioProntuario === "function") {
+            limparFormularioProntuario();
         }
 
-        document.getElementById("cabecalhoNome").innerText =
-            `📋 Prontuário Ativo: ${p.nome} (CPF: ${p.cpf})`;
+        preencherCampo("nomePaciente", p.nome);
+        preencherCampo("cpfPaciente", p.cpf);
+        preencherCampo("nascPaciente", p.nasc);
+        preencherCampo("idadePaciente", p.idade);
+        preencherCampo("telPaciente", p.tel);
+        preencherCampo("CEP", p.cep);
+        preencherCampo("endPaciente", p.endereco);
+        preencherCampo("endNumero", p.numero);
+        preencherCampo("endComplemento", p.complemento);
+        preencherCampo("unidadePaciente", p.ubs);
+        preencherCampo("equipePaciente", p.equipe);
 
-        document.getElementById("cabecalhoProntuario").style.display = "block";
+        preencherCampo("objPA", p.objPA);
+        preencherCampo("objFC", p.objFC);
+        preencherCampo("objFR", p.objFR);
+        preencherCampo("objSatO2", p.objSatO2);
+        preencherCampo("objDor", p.objDor || "0");
+
+        preencherCampo("objpeso", p.objpeso);
+        preencherCampo("objaltura", p.objaltura);
+        preencherCampo("objIMC", p.objIMC);
+
+        preencherCampo("hasSN", p.has || "Não");
+        mostrarCard?.("cardHAS", p.has || "Não");
+
+        preencherCampo("dmSN", p.dm || "Não");
+        mostrarCard?.("cardDM", p.dm || "Não");
+
+        preencherCampo("gestanteSN", p.gestante || "Não");
+        mostrarCard?.("cardGestante", p.gestante || "Não");
+
+        const tbSN = document.getElementById("tbSN");
+        if (tbSN) tbSN.checked = p.tb === "Sim";
+
+        const hansenSN = document.getElementById("hansenSN");
+        if (hansenSN) hansenSN.checked = p.hansen === "Sim";
+
+        renderizarHistoricoEvolucoes(p);
+
+        const cabecalhoNome =
+            document.getElementById("cabecalhoNome");
+
+        if (cabecalhoNome) {
+            cabecalhoNome.innerText =
+                `📋 Prontuário Ativo: ${p.nome || "-"} (CPF: ${p.cpf || "-"})`;
+        }
+
+        const cabecalhoProntuario =
+            document.getElementById("cabecalhoProntuario");
+
+        if (cabecalhoProntuario) {
+            cabecalhoProntuario.style.display = "block";
+        }
+    };
+
+    request.onerror = function () {
+        mostrarToast?.("⚠️ Erro ao abrir prontuário.");
+        console.error("Erro ao abrir paciente:", request.error);
     };
 }
 
+/* ==========================================================================
+   AUXILIAR PREENCHER CAMPO
+   ========================================================================== */
+
+function preencherCampo(id, valor) {
+    const campo = document.getElementById(id);
+
+    if (campo) {
+        campo.value = valor || "";
+    }
+}
+
+/* ==========================================================================
+   HISTÓRICO
+   ========================================================================== */
+
+function renderizarHistoricoEvolucoes(p) {
+    const container =
+        document.getElementById("linhaTempoEvolucoes");
+
+    if (!container) return;
+
+    if (!p.historicoEvolucoes || p.historicoEvolucoes.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    let htmlTimeline = `
+        <label style="font-weight:700;">
+            ⏳ Histórico Clínico Digital:
+        </label>
+        <div class="timeline">
+    `;
+
+    p.historicoEvolucoes.forEach(evo => {
+        htmlTimeline += `
+            <div class="timeline-item">
+                <div class="timeline-body">${evo}</div>
+            </div>
+        `;
+    });
+
+    htmlTimeline += `</div>`;
+
+    container.innerHTML = htmlTimeline;
+}
 
 /* ==========================================================================
    💬 ABRIR WHATSAPP RÁPIDO
    ========================================================================== */
 
 function abrirDiscadorParaPaciente(cpf) {
+    if (!db) {
+        mostrarToast?.("⚠️ Banco local não conectado.");
+        return;
+    }
+
+    const cpfLimpo = String(cpf || "");
 
     const transaction = db.transaction(["pacientes"], "readonly");
     const store = transaction.objectStore("pacientes");
-    const request = store.get(cpf);
+    const request = store.get(cpfLimpo);
 
     request.onsuccess = function () {
-
         const p = request.result;
 
         if (!p || !p.tel) {
-            mostrarToast("⚠️ Paciente sem telefone cadastrado.");
+            mostrarToast?.("⚠️ Paciente sem telefone cadastrado.");
             return;
         }
 
         navigate("prontuario");
 
         setTimeout(() => {
-
-            alternarCentralDiscagem();
+            alternarCentralDiscagem?.();
 
             const input =
                 document.getElementById("inputNumeroDiscador");
 
             if (input) {
-
-                input.value = p.nome;
+                input.value = p.nome || p.tel;
 
                 input.dispatchEvent(
                     new Event("input")
                 );
             }
-
         }, 300);
+    };
+
+    request.onerror = function () {
+        mostrarToast?.("⚠️ Erro ao abrir WhatsApp.");
+        console.error("Erro ao localizar paciente:", request.error);
     };
 }
