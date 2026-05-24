@@ -326,6 +326,29 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+
+
+        /* ==========================================================================
+           AUTH / USUÁRIO LOGADO
+           ========================================================================== */
+        .usuario-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        #nomeUsuarioLogado {
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+        }
+
+        #cargoUsuarioLogado {
+            font-size: 11px;
+            color: rgba(255,255,255,.68);
+        }
+
     </style>
 </head>
 <body>
@@ -338,16 +361,6 @@
             <input type="password" id="loginSenha" placeholder="Senha">
             <div id="loginErro" style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;"></div>
             <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
-        <button
-        onclick="testarSalvarPacienteSupabase()"
-        style="
-            background:#2563eb;
-            color:white;
-            border:none;
-            padding:10px;
-            border-radius:6px;
-            cursor:pointer;
-            font-weight:bold;
 
 </div>
 
@@ -365,7 +378,10 @@
             </div>
             
             <div style="display:flex; align-items:center; gap:20px;">
-                <span id="nomeUsuarioLogado" style="font-weight:500; font-size:14px; color: var(--text-main);"></span>
+                <div class="usuario-info">
+                    <div id="nomeUsuarioLogado">Usuário</div>
+                    <div id="cargoUsuarioLogado">Perfil</div>
+                </div>
                 
                 <div id="centralAvisosContainer" onclick="abrirPainelEpidemiologico('criticos')" style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; position:relative;" title="">
                     <span>🔔</span>
@@ -1134,84 +1150,7 @@
 
 <div id="toastNotification"></div>
 
-<!-- Dados -->
-<script src="./data/ciap2.js"></script>
-
-<!-- Banco -->
-<script src="./js/database.js"></script>
-
-<!-- Usuários e login -->
-<script src="./js/usuarios.js"></script>
-
-<script>
-function autenticarUsuario() {
-    const user = document.getElementById('loginUser')?.value.trim();
-    const senha = document.getElementById('loginSenha')?.value.trim();
-    const erro = document.getElementById('loginErro');
-
-    let usuarios = JSON.parse(
-        localStorage.getItem('sintaxehub_usuarios') || '[]'
-    );
-
-    if (usuarios.length === 0) {
-        usuarios.push({
-            id: Date.now(),
-            nome: 'Administrador',
-            usuario: 'admin',
-            senha: 'admin123',
-            perfil: 'admin',
-            ativo: true
-        });
-
-        localStorage.setItem(
-            'sintaxehub_usuarios',
-            JSON.stringify(usuarios)
-        );
-    }
-
-    const encontrado = usuarios.find(u =>
-        u.usuario === user &&
-        u.senha === senha &&
-        u.ativo
-    );
-
-    if (!encontrado) {
-        if (erro) {
-            erro.innerText = 'Usuário ou senha inválidos.';
-            erro.style.display = 'block';
-        }
-        return;
-    }
-
-    localStorage.setItem(
-        'sintaxehub_usuario_logado',
-        JSON.stringify(encontrado)
-    );
-
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-
-    if (typeof aplicarPermissoesUsuario === 'function') {
-        aplicarPermissoesUsuario();
-    }
-
-    if (typeof atualizarIndicatorsDashboard === 'function') {
-        atualizarIndicatorsDashboard();
-    }
-
-    if (typeof atualizarCentralAvisosSininho === 'function') {
-        atualizarCentralAvisosSininho();
-    }
-
-    if (typeof navigate === 'function') {
-        navigate('inicio');
-    }
-
-    console.log('✅ Login realizado.');
-}
-
-    window.autenticarUsuario = autenticarUsuario;
-</script>
+<!-- Scripts principais -->
 
     <div style="position:fixed; bottom:90px; right:20px; z-index:99999; display:flex; flex-direction:column; gap:10px;">
 
@@ -1223,6 +1162,9 @@ function autenticarUsuario() {
 <script src="./js/auth.js"></script>
 <script src="./js/teste-supabase.js"></script>
 
+<script src="./data/ciap2.js"></script>
+
+<script src="./js/database.js"></script>
 <script src="./js/dashboard.js"></script>
 <script src="./js/soap.js"></script>
 <script src="./js/busca.js"></script>
@@ -1240,3 +1182,6 @@ function autenticarUsuario() {
 <script src="./js/riscoClinico.js"></script>
 <script src="./js/materiais.js"></script>
 <script src="./js/app.js"></script>
+
+</body>
+</html>
