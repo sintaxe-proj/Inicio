@@ -189,31 +189,20 @@ async function autenticarUsuario() {
    ========================================================== */
 
 async function buscarPerfilUsuarioPorEmail(email) {
+    const emailLimpo = String(email || "").trim().toLowerCase();
 
-    const {
-        data,
-        error
-    } =
-    await supabaseClient
+    console.log("🔎 Buscando perfil:", emailLimpo);
+
+    const { data, error } = await supabaseClient
         .from("users")
-        .select(`
-            id,
-            login,
-            nome,
-            email,
-            perfil,
-            ativo
-        `)
-        .ilike("email", email)
+        .select("id, login, nome, email, perfil, ativo")
+        .eq("email", emailLimpo)
         .maybeSingle();
 
+    console.log("👤 Perfil encontrado:", data, error);
+
     if (error) {
-
-        console.error(
-            "Erro perfil:",
-            error
-        );
-
+        console.error("Erro perfil:", error);
         return null;
     }
 
