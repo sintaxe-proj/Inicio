@@ -178,3 +178,41 @@ async function autenticarUsuario() {
     verificarSessao();
 }
 
+async function registrarUsuarioPublico(
+    user,
+    usuario,
+    login
+) {
+
+    if (!user) return;
+
+    const { error } =
+        await supabaseClient
+            .from("users")
+            .upsert([{
+
+                id: user.id,
+
+                matricula: login,
+
+                nome: usuario.nome,
+
+                email: user.email,
+
+                perfil: usuario.perfil,
+
+                ativo: true,
+
+                criado_em:
+                    new Date().toISOString()
+
+            }]);
+
+    if (error) {
+
+        console.error(
+            "Erro ao registrar usuário:",
+            error
+        );
+    }
+}
