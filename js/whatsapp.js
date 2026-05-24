@@ -145,8 +145,7 @@ function prepararDiscagemPacienteAtivo() {
     } else {
         displayStatus.innerHTML = `
             <em style="color:#94a3b8; font-size:12px;">
-                Digite nome, CPF, CNS ou telefone para pesquisar no território.
-                Para contato externo, digite o número completo.
+                Digite nome, CPF, CNS, telefone ou filtro: HAS, hipertensão, DM, diabetes, gestante, crítico.
             </em>
         `;
     }
@@ -187,11 +186,51 @@ async function buscarContatosSupabase(termo) {
     const termoNumerico =
         termo.replace(/\D/g, "");
 
+    const termoLower =
+        termo
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+    const desejaHAS =
+        termoLower.includes("has") ||
+        termoLower.includes("hipertens");
+
+    const desejaDM =
+        termoLower.includes("dm") ||
+        termoLower.includes("diabet");
+
+    const desejaGestante =
+        termoLower.includes("gest") ||
+        termoLower.includes("prenatal") ||
+        termoLower.includes("pre natal");
+
+    const desejaTB =
+        termoLower.includes("tb") ||
+        termoLower.includes("tubercul");
+
+    const desejaHansen =
+        termoLower.includes("hansen");
+
+    const desejaCritico =
+        termoLower.includes("critico") ||
+        termoLower.includes("urgente") ||
+        termoLower.includes("vencido");
+
+    const temFiltroClinico =
+        desejaHAS ||
+        desejaDM ||
+        desejaGestante ||
+        desejaTB ||
+        desejaHansen ||
+        desejaCritico;
+
     /* ======================================================
        DISCAGEM EXTERNA / MANUAL
        ====================================================== */
 
     if (
+        !temFiltroClinico &&
         /^\d+$/.test(termoNumerico) &&
         termoNumerico.length >= 8 &&
         termoNumerico.length <= 13
@@ -233,10 +272,36 @@ async function buscarContatosSupabase(termo) {
     let query =
         supabaseClient
             .from("vw_prontuario_completo")
-            .select("nome, cpf, cns, telefone, endereco, ubs, equipe")
-            .limit(15);
+            .select(`
+                nome,
+                cpf,
+                cns,
+                telefone,
+                endereco,
+                ubs,
+                equipe,
+                has,
+                dm,
+                gestante,
+                tb,
+                hansen,
+                "reavaliacaoDias"
+            `)
+            .limit(30);
 
-    if (termoNumerico.length >= 3) {
+    if (desejaHAS) {
+        query = query.eq("has", "Sim");
+    } else if (desejaDM) {
+        query = query.eq("dm", "Sim");
+    } else if (desejaGestante) {
+        query = query.eq("gestante", "Sim");
+    } else if (desejaTB) {
+        query = query.eq("tb", "Sim");
+    } else if (desejaHansen) {
+        query = query.eq("hansen", "Sim");
+    } else if (desejaCritico) {
+        query = query.eq("reavaliacaoDias", 0);
+    } else if (termoNumerico.length >= 3) {
         query = query.or(
             `cpf.ilike.%${termoNumerico}%,cns.ilike.%${termoNumerico}%,telefone.ilike.%${termoNumerico}%`
         );
@@ -265,7 +330,10 @@ async function buscarContatosSupabase(termo) {
     }
 
     if (!data || data.length === 0) {
-        if (termoNumerico.length >= 8) {
+        if (
+            !temFiltroClinico &&
+            termoNumerico.length >= 8
+        ) {
             renderizarContatosDiscador(
                 [
                     {
@@ -346,6 +414,16 @@ function renderizarContatosDiscador(contatos, container) {
         const externo =
             p.externo === true;
 
+        const dias =
+            parseInt(p.reavaliacaoDias ?? 999);
+
+        const status =
+            dias === 0
+                ? "🚨 CRÍTICO"
+                : dias <= 30
+                    ? `⚠️ ${dias} dias`
+                    : "";
+
         html += `
             <div style="
                 background:#f8fafc;
@@ -361,6 +439,20 @@ function renderizarContatosDiscador(contatos, container) {
                 <strong style="font-size:13px; color:#1e293b;">
                     ${p.nome || "Sem nome"}
                 </strong>
+
+                ${
+                    status
+                    ? `
+                        <span style="
+                            font-size:10px;
+                            font-weight:bold;
+                            color:#b91c1c;
+                        ">
+                            ${status}
+                        </span>
+                    `
+                    : ""
+                }
 
                 ${
                     externo
