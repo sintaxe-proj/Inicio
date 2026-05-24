@@ -203,15 +203,27 @@ function verificarLoginSalvo() {
 // LOGOUT
 // ======================================================
 
-function efetuarLogout() {
+async function efetuarLogout() {
 
-    localStorage.removeItem("usuarioLogado");
+    if (
+        !confirm(
+            "Deseja realmente sair do sistema?"
+        )
+    ) {
+        return;
+    }
 
-    document.getElementById("loginScreen")
-        .style.display = "flex";
+    await supabaseClient.auth.signOut();
 
-    document.getElementById("app")
-        .style.display = "none";
+    localStorage.removeItem(
+        "pep_sessao_ativa"
+    );
+
+    mostrarToast(
+        "👋 Sessão encerrada."
+    );
+
+    location.reload();
 }
 
 // ======================================================
