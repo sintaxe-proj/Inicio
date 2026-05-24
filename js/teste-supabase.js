@@ -41,5 +41,4 @@ async function testarSalvarPacienteSupabase() {
     }
 
     alert("Paciente salvo online com sucesso!");
-}");
 }
