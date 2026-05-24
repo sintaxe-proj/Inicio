@@ -194,7 +194,7 @@ async function buscarContatosSupabase(termo) {
     if (
         /^\d+$/.test(termoNumerico) &&
         termoNumerico.length >= 8 &&
-        termoNumerico.length < 11
+        termoNumerico.length <= 13
     ) {
         renderizarContatosDiscador(
             [
@@ -265,6 +265,25 @@ async function buscarContatosSupabase(termo) {
     }
 
     if (!data || data.length === 0) {
+        if (termoNumerico.length >= 8) {
+            renderizarContatosDiscador(
+                [
+                    {
+                        externo: true,
+                        nome: "Contato Externo",
+                        cpf: "",
+                        cns: "",
+                        telefone: termoNumerico,
+                        ubs: "Discagem Externa",
+                        equipe: "-"
+                    }
+                ],
+                displayStatus
+            );
+
+            return;
+        }
+
         displayStatus.innerHTML = `
             <p style="color:var(--danger); font-size:12px;">
                 Nenhum contato localizado.
