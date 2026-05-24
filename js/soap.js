@@ -1088,12 +1088,6 @@ document.addEventListener(
 
         iniciarAutocompletePaciente();
 
-        if (
-            typeof carregarDatalistCIAP === "function"
-        ) {
-            carregarDatalistCIAP();
-        }
-
         mostrarCardsLinhasCuidado();
     }
 );
