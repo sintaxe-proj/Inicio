@@ -566,12 +566,13 @@ function mostrarSistema() {
             "block";
     }
 
-    atualizarIndicatorsDashboard?.();
-
-    atualizarCentralAvisosSininho?.();
-
     navigate?.("inicio");
-}
+
+setTimeout(() => {
+    atualizarIndicatorsDashboard?.();
+    atualizarCentralAvisosSininho?.();
+}, 500);
+
 
 /* ==========================================================
    MOSTRAR LOGIN
