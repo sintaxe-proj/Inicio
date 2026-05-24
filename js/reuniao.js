@@ -438,3 +438,73 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('listaEncaminhamentos')) adicionarEncaminhamento();
     carregarHistoricoReunioes();
 });
+async function salvarReuniaoEquipe() {
+
+    const usuarioAtual =
+        await supabaseClient.auth.getUser();
+
+    if (
+        usuarioAtual.error ||
+        !usuarioAtual.data.user
+    ) {
+
+        alert("Faça login novamente.");
+        return;
+
+    }
+
+    const usuario = usuarioAtual.data.user;
+
+    const reuniao = {
+
+        usuario_id: usuario.id,
+
+        data_reuniao:
+            document.getElementById("reuniaoData")?.value || "",
+
+        horario:
+            document.getElementById("reuniaoHorario")?.value || "",
+
+        local:
+            document.getElementById("reuniaoLocal")?.value || "",
+
+        coordenador:
+            document.getElementById("reuniaoCoordenador")?.value || "",
+
+        participantes:
+            document.getElementById("reuniaoParticipantes")?.value || "",
+
+        informes:
+            document.getElementById("reuniaoInformes")?.value || "",
+
+        pautas:
+            JSON.stringify(window.listaPautas || []),
+
+        discussoes:
+            JSON.stringify(window.listaCasos || []),
+
+        encaminhamentos:
+            JSON.stringify(window.listaEncaminhamentos || []),
+
+        consideracoes:
+            document.getElementById("reuniaoConsideracoes")?.value || ""
+
+    };
+
+    const resultado =
+        await supabaseClient
+            .from("reunioes")
+            .insert([reuniao]);
+
+    if (resultado.error) {
+
+        console.error(resultado.error);
+
+        alert("Erro ao salvar reunião.");
+        return;
+
+    }
+
+    mostrarToast("✅ Reunião salva.");
+
+}
