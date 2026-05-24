@@ -1,11 +1,22 @@
 /* ==========================================================
    CONFIGURAÇÕES — SUPABASE PURO
-   Sem IndexedDB
+   Pacientes = identificação
+   Atendimentos = dados clínicos
+   Com auditoria do usuário logado
    ========================================================== */
 
+function getUsuarioAuditoria() {
+    const usuario = window.usuarioLogado || {};
+
+    return {
+        usuario_id: usuario?.id || null,
+        usuario_nome: usuario?.nome || usuario?.email || null,
+        usuario_perfil: usuario?.perfil || null
+    };
+}
+
 /* ==========================================================
-   CRIAR USUÁRIO NA TABELA users
-   Observação: o usuário também precisa existir no Supabase Auth.
+   USUÁRIOS
    ========================================================== */
 
 async function salvarNovoUsuario() {
@@ -18,6 +29,8 @@ async function salvarNovoUsuario() {
         return;
     }
 
+    const auditoria = getUsuarioAuditoria();
+
     const { error } = await supabaseClient
         .from("users")
         .upsert(
@@ -25,11 +38,10 @@ async function salvarNovoUsuario() {
                 nome,
                 email,
                 perfil,
-                ativo: true
+                ativo: true,
+                ...auditoria
             },
-            {
-                onConflict: "email"
-            }
+            { onConflict: "email" }
         );
 
     if (error) {
@@ -38,21 +50,17 @@ async function salvarNovoUsuario() {
         return;
     }
 
-    mostrarToast?.("✅ Usuário salvo na tabela users.");
+    mostrarToast?.("✅ Usuário salvo.");
 
     document.getElementById("novoUsuarioNome").value = "";
     document.getElementById("novoUsuarioLogin").value = "";
+    document.getElementById("novoUsuarioSenha").value = "";
 
     listarUsuariosSistema();
 }
 
-/* ==========================================================
-   LISTAR USUÁRIOS
-   ========================================================== */
-
 async function listarUsuariosSistema() {
     const container = document.getElementById("listaUsuariosSistema");
-
     if (!container) return;
 
     const { data, error } = await supabaseClient
@@ -62,14 +70,12 @@ async function listarUsuariosSistema() {
 
     if (error) {
         console.error("Erro ao listar usuários:", error);
-        container.innerHTML =
-            `<p style="color:var(--danger);">Erro ao carregar usuários.</p>`;
+        container.innerHTML = `<p style="color:var(--danger);">Erro ao carregar usuários.</p>`;
         return;
     }
 
     if (!data || data.length === 0) {
-        container.innerHTML =
-            `<p style="color:var(--text-muted);">Nenhum usuário cadastrado.</p>`;
+        container.innerHTML = `<p style="color:var(--text-muted);">Nenhum usuário cadastrado.</p>`;
         return;
     }
 
@@ -103,17 +109,9 @@ async function listarUsuariosSistema() {
         `;
     });
 
-    html += `
-            </tbody>
-        </table>
-    `;
-
+    html += `</tbody></table>`;
     container.innerHTML = html;
 }
-
-/* ==========================================================
-   ATIVAR / BLOQUEAR USUÁRIO
-   ========================================================== */
 
 async function alternarUsuarioAtivo(id, ativo) {
     const { error } = await supabaseClient
@@ -127,17 +125,14 @@ async function alternarUsuarioAtivo(id, ativo) {
         return;
     }
 
-    mostrarToast?.(
-        ativo
-            ? "✅ Usuário ativado."
-            : "🚫 Usuário bloqueado."
-    );
-
+    mostrarToast?.(ativo ? "✅ Usuário ativado." : "🚫 Usuário bloqueado.");
     listarUsuariosSistema();
 }
 
 /* ==========================================================
-   CARGA DE MASSA — 8.000 PACIENTES NO SUPABASE
+   CARGA DE MASSA — SUPABASE
+   pacientes = identificação
+   atendimentos = registro clínico
    ========================================================== */
 
 async function gerarCargaMassaOitoMil() {
@@ -146,13 +141,16 @@ async function gerarCargaMassaOitoMil() {
         return;
     }
 
-    if (!confirm("Injetar 8.000 prontuários simulados no Supabase?")) {
+    if (!confirm("Injetar 8.000 pacientes e atendimentos simulados no Supabase?")) {
         return;
     }
 
-    mostrarToast?.("⏳ Gerando pacientes...");
+    mostrarToast?.("⏳ Gerando dados...");
+
+    const auditoria = getUsuarioAuditoria();
 
     const pacientes = [];
+    const atendimentos = [];
 
     const nomes = [
         "Ana", "Bruno", "Carlos", "Daniela", "Eduardo",
@@ -179,6 +177,10 @@ async function gerarCargaMassaOitoMil() {
     ];
 
     for (let i = 0; i < 8000; i++) {
+        const cpf = `999${String(i).padStart(6, "0")}${String(i % 100).padStart(2, "0")}`;
+        const cns = `700${String(i).padStart(12, "0")}`;
+        const nome = `${nomes[i % 10]} ${sobrenomes[(i + 3) % 10]} ${sobrenomes[(i + 7) % 10]}`;
+
         const isHAS = i % 2 === 0;
         const isDM = i % 3 === 0;
         const isGestante = i % 5 === 0;
@@ -186,7 +188,6 @@ async function gerarCargaMassaOitoMil() {
         const isHansen = i % 25 === 0;
 
         let prazo = Math.floor(Math.random() * 120) + 1;
-
         if (i % 15 === 0) prazo = 0;
         if (i % 17 === 0) prazo = 20;
         if (i % 19 === 0) prazo = 10;
@@ -198,34 +199,40 @@ async function gerarCargaMassaOitoMil() {
         dpp.setDate(dpp.getDate() + 280);
 
         pacientes.push({
-            cpf: `999${String(i).padStart(6, "0")}${String(i % 100).padStart(2, "0")}`,
-            nome: `${nomes[i % 10]} ${sobrenomes[(i + 3) % 10]} ${sobrenomes[(i + 7) % 10]}`,
-            nasc: isGestante ? "1998-04-12" : "1985-06-15",
-            idade: isGestante ? "28" : "41",
-            tel: "(21) 98888-7711",
-            cep: "20000-000",
+            nome,
+            cpf,
+            cns,
             endereco: "Avenida Central do Município Simulador",
             numero: String(i),
             complemento: "Lote Acadêmico",
+            cep: "20000-000",
             ubs: ubs[i % 4],
             equipe: equipes[i % 4],
+            ...auditoria
+        });
+
+        atendimentos.push({
+            cpf,
+            cns,
+            nome_paciente: nome,
 
             has: isHAS ? "Sim" : "Não",
-            hasPAS: isHAS ? "145" : "",
-            hasPAD: isHAS ? "95" : "",
-            hasClassif: isHAS ? "Hipertensão Estágio 1 ou 2" : "",
+            hasPAS: isHAS ? "145" : null,
+            hasPAD: isHAS ? "95" : null,
+            hasClassif: isHAS ? "Hipertensão Estágio 1 ou 2" : null,
 
             dm: isDM ? "Sim" : "Não",
-            dmHbA1c: isDM ? "7.5" : "",
-            dmClassif: isDM ? "Controle Limítrofe" : "",
+            dmHbA1c: isDM ? "7.5" : null,
+            dmClassif: isDM ? "Controle Limítrofe" : null,
 
             gestante: isGestante ? "Sim" : "Não",
-            gestDUM: isGestante ? dataDum.toISOString().split("T")[0] : "",
-            gestIG: isGestante ? `${12 + (i % 24)} semanas` : "",
-            gestDPP: isGestante ? dpp.toLocaleDateString("pt-BR") : "",
+            gestDUM: isGestante ? dataDum.toISOString().split("T")[0] : null,
+            gestIG: isGestante ? `${12 + (i % 24)} semanas` : null,
+            gestDPP: isGestante ? dpp.toLocaleDateString("pt-BR") : null,
 
             tb: isTB ? "Sim" : "Não",
             hansen: isHansen ? "Sim" : "Não",
+            ampi: "Idoso Robusto",
 
             objPA: isHAS ? "140x90" : "120x80",
             objFC: "76",
@@ -236,65 +243,83 @@ async function gerarCargaMassaOitoMil() {
             objaltura: "170",
             objIMC: "24.2",
 
-            exameFisicoStatus: "Normal",
+            soapSubjetivo: "Sem queixas.",
             soapObjetivoAlterado: "",
+            inputBuscaCIAPS: "A98 - Medicina preventiva/manutenção da saúde",
+            soapPlanoConduta: `Monitoramento em ${prazo} dias.`,
             reavaliacaoDias: prazo,
 
-            historicoEvolucoes: [
-                `--- ATENDIMENTO SIMULADO (${i}) ---
-S: Sem queixas.
-O: PA 120x80 | FC 76.
-A: Simulação APS.
-P: Monitoramento em ${prazo} dias.`
-            ]
+            ...auditoria
         });
     }
 
-    await salvarPacientesEmLotesSupabase(pacientes);
-}
+    await salvarEmLotes("pacientes", pacientes, 500, { upsert: true, conflito: "cpf" });
+    await salvarEmLotes("atendimentos", atendimentos, 500, { upsert: false });
 
-/* ==========================================================
-   SALVAR PACIENTES EM LOTES
-   ========================================================== */
-
-async function salvarPacientesEmLotesSupabase(pacientes) {
-    const tamanhoLote = 500;
-
-    for (let i = 0; i < pacientes.length; i += tamanhoLote) {
-        const lote = pacientes.slice(i, i + tamanhoLote);
-
-        const { error } = await supabaseClient
-            .from("pacientes")
-            .upsert(lote, {
-                onConflict: "cpf"
-            });
-
-        if (error) {
-            console.error("Erro no lote Supabase:", error);
-            mostrarToast?.("❌ Erro ao salvar lote no Supabase.");
-            return;
-        }
-
-        mostrarToast?.(`⏳ Enviado ${Math.min(i + tamanhoLote, pacientes.length)} de ${pacientes.length}`);
-    }
-
-    mostrarToast?.("✅ 8.000 pacientes enviados ao Supabase.");
+    mostrarToast?.("✅ 8.000 pacientes e atendimentos enviados ao Supabase.");
 
     atualizarIndicatorsDashboard?.();
     atualizarCentralAvisosSininho?.();
 }
 
+async function salvarEmLotes(tabela, dados, tamanhoLote = 500, opcoes = {}) {
+    for (let i = 0; i < dados.length; i += tamanhoLote) {
+        const lote = dados.slice(i, i + tamanhoLote);
+
+        let resposta;
+
+        if (opcoes.upsert) {
+            resposta = await supabaseClient
+                .from(tabela)
+                .upsert(lote, { onConflict: opcoes.conflito });
+        } else {
+            resposta = await supabaseClient
+                .from(tabela)
+                .insert(lote);
+        }
+
+        if (resposta.error) {
+            console.error(`Erro ao salvar lote em ${tabela}:`, resposta.error);
+            mostrarToast?.(`❌ Erro ao salvar ${tabela}.`);
+            throw resposta.error;
+        }
+
+        mostrarToast?.(`⏳ ${tabela}: ${Math.min(i + tamanhoLote, dados.length)} de ${dados.length}`);
+    }
+}
+
 /* ==========================================================
    IMPORTADOR e-SUS
+   Recebe lista já tratada e salva identificação em pacientes
    ========================================================== */
 
-async function salvarPacientesImportadosSupabase(pacientes) {
-    if (!pacientes || pacientes.length === 0) {
+async function salvarPacientesImportadosSupabase(lista) {
+    if (!lista || lista.length === 0) {
         mostrarToast?.("⚠️ Nenhum paciente para importar.");
         return;
     }
 
-    await salvarPacientesEmLotesSupabase(pacientes);
+    const auditoria = getUsuarioAuditoria();
+
+    const pacientes = lista.map(p => ({
+        nome: p.nome || p.nome_paciente || null,
+        cpf: p.cpf || null,
+        cns: p.cns || null,
+        endereco: p.endereco || null,
+        numero: p.numero || null,
+        complemento: p.complemento || null,
+        cep: p.cep || null,
+        ubs: p.ubs || p.unidade || null,
+        equipe: p.equipe || null,
+        ...auditoria
+    }));
+
+    await salvarEmLotes("pacientes", pacientes, 500, {
+        upsert: true,
+        conflito: "cpf"
+    });
+
+    mostrarToast?.("✅ Pacientes importados para o Supabase.");
 }
 
 /* ==========================================================
