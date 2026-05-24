@@ -399,31 +399,76 @@ async function salvarPacienteSupabaseSilencioso(paciente) {
         return false;
     }
 }
-async function salvarProntuario() {
-    const paciente = {
-        nome: document.getElementById("nomePaciente")?.value || "",
-        cpf: document.getElementById("cpfPaciente")?.value || "",
-        telefone: document.getElementById("telPaciente")?.value || "",
-        endereco: document.getElementById("endPaciente")?.value || "",
-        cns: document.getElementById("cnsPaciente")?.value || ""
-    };
 
-    if (!paciente.nome || !paciente.cpf) {
-        alert("Informe nome e CPF do paciente.");
+async function salvarProntuario() {
+    const usuarioAtual = await supabaseClient.auth.getUser();
+
+    if (usuarioAtual.error || !usuarioAtual.data.user) {
+        alert("Faça login novamente.");
         return;
     }
 
-    // Salvar localmente no IndexedDB, se a função existir
-    if (typeof salvarPaciente === "function") {
-        await salvarPaciente(paciente);
-    } else if (typeof adicionarPaciente === "function") {
-        await adicionarPaciente(paciente);
-    } else {
-        console.warn("Nenhuma função local de salvamento encontrada.");
+    const usuario = usuarioAtual.data.user;
+
+    const paciente = {
+        usuario_id: usuario.id,
+        nome: document.getElementById("nomePaciente")?.value || "",
+        cpf: document.getElementById("cpfPaciente")?.value || "",
+        telefone: document.getElementById("telPaciente")?.value || "",
+        endereco: document.getElementById("endPaciente")?.value || ""
+    };
+
+    if (!paciente.nome || !paciente.cpf) {
+        alert("Informe nome e CPF.");
+        return;
     }
 
-    // Salvar silenciosamente no Supabase
-    await salvarPacienteSupabaseSilencioso(paciente);
+    const salvarPaciente = await supabaseClient
+        .from("pacientes")
+        .upsert([paciente], {
+            onConflict: "cpf"
+        })
+        .select()
+        .single();
+
+    if (salvarPaciente.error) {
+        console.error(salvarPaciente.error);
+        alert("Erro ao salvar paciente online.");
+        return;
+    }
+
+    const atendimento = {
+        usuario_id: usuario.id,
+        paciente_id: salvarPaciente.data.id,
+        paciente_cpf: paciente.cpf,
+
+        subjetivo: document.getElementById("soapSubjetivo")?.value || "",
+        objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
+        avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
+        plano: document.getElementById("soapPlanoConduta")?.value || "",
+
+        pa: document.getElementById("objPA")?.value || "",
+        fc: document.getElementById("objFC")?.value || "",
+        fr: document.getElementById("objFR")?.value || "",
+        sat_o2: document.getElementById("objSatO2")?.value || "",
+        dor: document.getElementById("objDor")?.value || "",
+        peso: document.getElementById("objpeso")?.value || "",
+        altura: document.getElementById("objaltura")?.value || "",
+        imc: document.getElementById("objIMC")?.value || "",
+
+        ciap: document.getElementById("inputBuscaCIAPS")?.value || "",
+        retorno_dias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0)
+    };
+
+    const salvarAtendimento = await supabaseClient
+        .from("atendimentos")
+        .insert([atendimento]);
+
+    if (salvarAtendimento.error) {
+        console.error(salvarAtendimento.error);
+        alert("Paciente salvo, mas erro ao salvar atendimento.");
+        return;
+    }
 
     alert("Prontuário salvo com sucesso.");
 }
