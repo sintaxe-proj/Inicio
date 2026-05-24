@@ -1,218 +1,355 @@
 /* ==========================================================================
-   🔐 AUTENTICAÇÃO SUPABASE + PERFIL LOCAL
+   🔐 LOGIN SUPABASE PURO
    ========================================================================== */
 
 async function autenticarUsuario() {
 
-    const login =
+    const email =
         document.getElementById("loginUser")
-            .value
-            .trim();
+            ?.value
+            ?.trim()
+            ?.toLowerCase();
 
     const senha =
         document.getElementById("loginSenha")
-            .value
-            .trim();
+            ?.value
+            ?.trim();
 
     const erro =
         document.getElementById("loginErro");
 
-    erro.style.display = "none";
+    if (erro) {
+        erro.style.display = "none";
+        erro.innerText = "";
+    }
 
-    if (!login || !senha) {
+    if (!email || !senha) {
 
-        erro.innerText =
-            "⚠️ Informe usuário e senha.";
+        if (erro) {
 
-        erro.style.display = "block";
+            erro.innerText =
+                "⚠️ Informe e-mail e senha.";
+
+            erro.style.display =
+                "block";
+        }
 
         return;
     }
 
-    /* ======================================================
-       LOCALIZA USUÁRIO MUNICIPAL
-       ====================================================== */
+    try {
 
-    const usuario =
-        USUARIOS_MUNICIPAIS[login];
+        /* ==================================================
+           LOGIN SUPABASE AUTH
+           ================================================== */
 
-    if (!usuario) {
-
-        erro.innerText =
-            "❌ Usuário não encontrado.";
-
-        erro.style.display = "block";
-
-        return;
-    }
-
-    /* ======================================================
-       VALIDA SENHA LOCAL
-       ====================================================== */
-
-    if (usuario.senha !== senha) {
-
-        erro.innerText =
-            "❌ Senha inválida.";
-
-        erro.style.display = "block";
-
-        return;
-    }
-
-    /* ======================================================
-       EMAIL FAKE PADRÃO SUPABASE
-       ====================================================== */
-
-    const emailSupabase =
-        `${login}@sintaxe.local`;
-
-    /* ======================================================
-       TENTA LOGIN SUPABASE
-       ====================================================== */
-
-    let authResult =
+        const {
+            data,
+            error
+        } =
         await supabaseClient.auth.signInWithPassword({
-            email: emailSupabase,
+
+            email,
             password: senha
+
         });
 
-    /* ======================================================
-       SE NÃO EXISTIR → CRIA
-       ====================================================== */
+        if (error) {
 
-    if (authResult.error) {
+            console.error(
+                "Erro login:",
+                error
+            );
 
-        const cadastro =
-            await supabaseClient.auth.signUp({
-                email: emailSupabase,
-                password: senha,
-                options: {
-                    data: {
-                        nome: usuario.nome,
-                        perfil: usuario.perfil,
-                        matricula: login
-                    }
-                }
-            });
+            if (erro) {
 
-        if (cadastro.error) {
+                erro.innerText =
+                    "❌ Usuário ou senha inválidos.";
 
-            console.error(cadastro.error);
-
-            erro.innerText =
-                "❌ Erro Supabase: " +
-                cadastro.error.message;
-
-            erro.style.display = "block";
+                erro.style.display =
+                    "block";
+            }
 
             return;
         }
 
-        /* ==============================================
-           LOGIN NOVAMENTE
-           ============================================== */
+        const user =
+            data.user;
 
-        authResult =
-            await supabaseClient.auth.signInWithPassword({
-                email: emailSupabase,
-                password: senha
-            });
+        /* ==================================================
+           PERFIL PUBLIC.users
+           ================================================== */
 
-        if (authResult.error) {
-
-            console.error(authResult.error);
-
-            erro.innerText =
-                "❌ Erro ao autenticar Supabase.";
-
-            erro.style.display = "block";
-
-            return;
-        }
-    }
-
-    /* ======================================================
-       USUÁRIO SUPABASE
-       ====================================================== */
-
-    const user =
-        authResult.data.user;
-
-    /* ======================================================
-       GARANTE TABELA USERS
-       ====================================================== */
-
-    await registrarUsuarioPublico(
-        user,
-        usuario,
-        login
-    );
-
-    /* ======================================================
-       SESSÃO LOCAL
-       ====================================================== */
-
-    localStorage.setItem(
-        "pep_sessao_ativa",
-        JSON.stringify({
-            login,
-            nome: usuario.nome,
-            perfil: usuario.perfil,
-            supabase_user_id: user.id,
-            email: user.email
-        })
-    );
-
-    window.usuarioLogado = {
-        ...usuario,
-        id: user.id,
-        email: user.email,
-        login
-    };
-
-    mostrarToast(
-        `✅ Bem-vindo(a), ${usuario.nome}`
-    );
-
-    verificarSessao();
-}
-
-async function registrarUsuarioPublico(
-    user,
-    usuario,
-    login
-) {
-
-    if (!user) return;
-
-    const { error } =
+        const {
+            data: perfil,
+            error: erroPerfil
+        } =
         await supabaseClient
             .from("users")
-            .upsert([{
+            .select(`
+                id,
+                nome,
+                email,
+                perfil,
+                ativo
+            `)
+            .eq("id", user.id)
+            .maybeSingle();
 
-                id: user.id,
+        if (erroPerfil) {
 
-                matricula: login,
+            console.error(
+                "Erro perfil:",
+                erroPerfil
+            );
 
-                nome: usuario.nome,
+            if (erro) {
 
-                email: user.email,
+                erro.innerText =
+                    "❌ Erro ao carregar perfil.";
 
-                perfil: usuario.perfil,
+                erro.style.display =
+                    "block";
+            }
 
-                ativo: true,
+            return;
+        }
 
-                criado_em:
-                    new Date().toISOString()
+        if (!perfil) {
 
-            }]);
+            if (erro) {
 
-    if (error) {
+                erro.innerText =
+                    "❌ Usuário sem perfil cadastrado.";
+
+                erro.style.display =
+                    "block";
+            }
+
+            return;
+        }
+
+        if (!perfil.ativo) {
+
+            if (erro) {
+
+                erro.innerText =
+                    "🚫 Usuário bloqueado.";
+
+                erro.style.display =
+                    "block";
+            }
+
+            return;
+        }
+
+        /* ==================================================
+           SESSÃO LOCAL
+           ================================================== */
+
+        const sessao = {
+
+            id:
+                user.id,
+
+            nome:
+                perfil.nome,
+
+            email:
+                perfil.email,
+
+            perfil:
+                perfil.perfil,
+
+            login_em:
+                new Date().toISOString()
+        };
+
+        localStorage.setItem(
+            "pep_sessao_ativa",
+            JSON.stringify(sessao)
+        );
+
+        window.usuarioLogado =
+            sessao;
+
+        /* ==================================================
+           HEADER
+           ================================================== */
+
+        const nomeUsuario =
+            document.getElementById(
+                "nomeUsuarioLogado"
+            );
+
+        if (nomeUsuario) {
+
+            nomeUsuario.innerText =
+                "👤 " + perfil.nome;
+        }
+
+        /* ==================================================
+           SISTEMA
+           ================================================== */
+
+        document.getElementById(
+            "loginScreen"
+        ).style.display = "none";
+
+        document.getElementById(
+            "app"
+        ).style.display = "block";
+
+        aplicarPermissoes?.(
+            perfil.perfil
+        );
+
+        atualizarIndicatorsDashboard?.();
+
+        atualizarCentralAvisosSininho?.();
+
+        navigate?.("inicio");
+
+        mostrarToast?.(
+            `✅ Bem-vindo(a), ${perfil.nome}`
+        );
+
+        console.log(
+            "✅ Login Supabase realizado."
+        );
+
+    } catch (e) {
 
         console.error(
-            "Erro ao registrar usuário:",
-            error
+            "Erro autenticação:",
+            e
+        );
+
+        if (erro) {
+
+            erro.innerText =
+                "❌ Falha no login.";
+
+            erro.style.display =
+                "block";
+        }
+    }
+}
+
+/* ==========================================================================
+   RESTAURAR SESSÃO
+   ========================================================================== */
+
+async function verificarSessao() {
+
+    try {
+
+        const {
+            data
+        } =
+        await supabaseClient.auth.getUser();
+
+        if (!data?.user) {
+
+            mostrarTelaLogin?.();
+            return;
+        }
+
+        const user =
+            data.user;
+
+        const {
+            data: perfil
+        } =
+        await supabaseClient
+            .from("users")
+            .select(`
+                id,
+                nome,
+                email,
+                perfil,
+                ativo
+            `)
+            .eq("id", user.id)
+            .maybeSingle();
+
+        if (!perfil || !perfil.ativo) {
+
+            await supabaseClient.auth.signOut();
+
+            mostrarTelaLogin?.();
+
+            return;
+        }
+
+        window.usuarioLogado = {
+
+            id:
+                user.id,
+
+            nome:
+                perfil.nome,
+
+            email:
+                perfil.email,
+
+            perfil:
+                perfil.perfil
+        };
+
+        document.getElementById(
+            "loginScreen"
+        ).style.display = "none";
+
+        document.getElementById(
+            "app"
+        ).style.display = "block";
+
+        aplicarPermissoes?.(
+            perfil.perfil
+        );
+
+        atualizarIndicatorsDashboard?.();
+
+        atualizarCentralAvisosSininho?.();
+
+        navigate?.("inicio");
+
+    } catch (e) {
+
+        console.error(
+            "Erro sessão:",
+            e
         );
     }
 }
+
+/* ==========================================================================
+   LOGOUT
+   ========================================================================== */
+
+async function efetuarLogout() {
+
+    await supabaseClient.auth.signOut();
+
+    localStorage.removeItem(
+        "pep_sessao_ativa"
+    );
+
+    window.usuarioLogado = null;
+
+    location.reload();
+}
+
+/* ==========================================================================
+   GLOBAL
+   ========================================================================== */
+
+window.autenticarUsuario =
+    autenticarUsuario;
+
+window.verificarSessao =
+    verificarSessao;
+
+window.efetuarLogout =
+    efetuarLogout;
