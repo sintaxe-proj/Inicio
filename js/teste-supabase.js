@@ -1,50 +1,45 @@
 async function testarLoginSupabase() {
-  const email = prompt("Digite o e-mail:");
-  const senha = prompt("Digite a senha:");
+    const email = prompt("Digite o email:");
+    const senha = prompt("Digite a senha:");
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email: josimarkapps10@gmail.com,
-    password: F@milia1604.
-  });
+    const resultado = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: senha
+    });
 
-  if (error) {
-    console.error(error);
-    alert("Erro no login: " + error.message);
-    return;
-  }
+    if (resultado.error) {
+        alert("Erro no login: " + resultado.error.message);
+        return;
+    }
 
-  console.log("Usuário logado:", data.user);
-  alert("Login realizado com sucesso!");
+    alert("Login Supabase realizado com sucesso!");
 }
 
 async function testarSalvarPacienteSupabase() {
-  const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+    const usuarioAtual = await supabaseClient.auth.getUser();
 
-  if (userError || !userData.user) {
-    alert("Você precisa fazer login primeiro.");
-    return;
-  }
+    if (usuarioAtual.error || !usuarioAtual.data.user) {
+        alert("Faca login primeiro.");
+        return;
+    }
 
-  const pacienteTeste = {
-    usuario_id: userData.user.id,
-    nome: "Paciente Teste",
-    cpf: "00000000000",
-    cns: "000000000000000",
-    telefone: "(00) 00000-0000",
-    endereco: "Endereço teste"
-  };
+    const resultado = await supabaseClient
+        .from("pacientes")
+        .insert([{
+            usuario_id: usuarioAtual.data.user.id,
+            nome: "Paciente Teste",
+            cpf: "00000000000",
+            cns: "000000000000000",
+            telefone: "(00)00000-0000",
+            endereco: "Rua Teste"
+        }])
+        .select();
 
-  const { data, error } = await supabaseClient
-    .from("pacientes")
-    .insert([pacienteTeste])
-    .select();
+    if (resultado.error) {
+        alert("Erro ao salvar paciente: " + resultado.error.message);
+        return;
+    }
 
-  if (error) {
-    console.error(error);
-    alert("Erro ao salvar paciente: " + error.message);
-    return;
-  }
-
-  console.log("Paciente salvo:", data);
-  alert("Paciente teste salvo com sucesso!");
+    alert("Paciente salvo online com sucesso!");
+}");
 }
