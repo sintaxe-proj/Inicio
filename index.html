@@ -1211,6 +1211,9 @@ function autenticarUsuario() {
     console.log('✅ Login realizado.');
 }
 
+    window.autenticarUsuario = autenticarUsuario;
+</script>
+
     <div style="position:fixed; bottom:90px; right:20px; z-index:99999; display:flex; flex-direction:column; gap:10px;">
 
     <button onclick="testarLoginSupabase()"
@@ -1240,9 +1243,7 @@ function autenticarUsuario() {
     </button>
 
 </div>
-
-window.autenticarUsuario = autenticarUsuario;
-</script>
+            
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/supabase-config.js"></script>
 <script src="./js/teste-supabase.js"></script>
