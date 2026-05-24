@@ -145,38 +145,139 @@ Observação: plano gerado automaticamente e deve ser revisado pela equipe respo
 }
 
 function exibirPainelRiscoClinico(paciente) {
-    const container = document.getElementById('painelRiscoClinico');
+
+    const container =
+        document.getElementById('painelRiscoClinico');
+
     if (!container) return;
 
-    const risco = calcularRiscoGlobalPaciente(paciente);
-    const plano = gerarPlanoTerapeuticoSingular(paciente);
+    const risco =
+        calcularRiscoGlobalPaciente(paciente);
+
+    const plano =
+        gerarPlanoTerapeuticoSingular(paciente);
+
+    const riscoCV10 =
+        calcularRiscoCardiovascular10AnosSimples(paciente);
 
     container.innerHTML = `
-        <div style="background:#111c2e; border:1px solid var(--border); border-left:5px solid ${risco.cor}; padding:15px; border-radius:8px; margin-bottom:15px;">
-            <h4 style="margin:0 0 8px 0; color:${risco.cor};">
+
+        <div style="
+            background:#111c2e;
+            border:1px solid var(--border);
+            border-left:5px solid ${risco.cor};
+            padding:15px;
+            border-radius:8px;
+            margin-bottom:15px;
+        ">
+
+            <h4 style="
+                margin:0 0 8px 0;
+                color:${risco.cor};
+            ">
                 Escore Clínico Global: ${risco.pontos} pontos
             </h4>
 
             <p style="margin:0 0 8px 0;">
-                <strong>Classificação:</strong> ${risco.classificacao}
+                <strong>Classificação:</strong>
+                ${risco.classificacao}
             </p>
 
-            <p style="margin:0; color:var(--text-muted); font-size:13px;">
-                ${risco.fatores.length ? risco.fatores.join(', ') : 'Sem fatores relevantes registrados.'}
+            <p style="margin:0 0 8px 0;">
+                <strong>Risco cardiovascular estimado em 10 anos:</strong>
+                ${riscoCV10}
             </p>
+
+            <p style="
+                margin:0;
+                color:var(--text-muted);
+                font-size:13px;
+            ">
+                ${
+                    risco.fatores.length
+                        ? risco.fatores.join(', ')
+                        : 'Sem fatores relevantes registrados.'
+                }
+            </p>
+
         </div>
 
-        <label>Plano Terapêutico Singular gerado automaticamente</label>
-        <textarea id="planoTerapeuticoSingular" rows="16">${plano}</textarea>
+        <label>
+            Plano Terapêutico Singular gerado automaticamente
+        </label>
 
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <button onclick="copiarPlanoTerapeutico()" style="background:var(--primary-neon); color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">
-                Copiar PTS
+        <textarea
+            id="planoTerapeuticoSingular"
+            rows="18"
+            style="
+                width:100%;
+                background:#0f172a;
+                color:white;
+                border:1px solid var(--border);
+                border-radius:8px;
+                padding:10px;
+            "
+        >${plano}</textarea>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            margin-top:10px;
+            flex-wrap:wrap;
+        ">
+
+            <button
+                onclick="copiarPlanoTerapeutico()"
+                style="
+                    background:var(--primary-neon);
+                    color:white;
+                    border:none;
+                    padding:8px 14px;
+                    border-radius:6px;
+                    cursor:pointer;
+                ">
+                📋 Copiar PTS
             </button>
 
-            <button onclick="registrarPlanoNoSOAP()" style="background:var(--success-dark); color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">
-                Inserir no Plano SOAP
+            <button
+                onclick="registrarPlanoNoSOAP()"
+                style="
+                    background:var(--success-dark);
+                    color:white;
+                    border:none;
+                    padding:8px 14px;
+                    border-radius:6px;
+                    cursor:pointer;
+                ">
+                🩺 Inserir no SOAP
             </button>
+
+            <button
+                onclick="salvarPlanoCuidadoSupabase()"
+                style="
+                    background:#7c3aed;
+                    color:white;
+                    border:none;
+                    padding:8px 14px;
+                    border-radius:6px;
+                    cursor:pointer;
+                ">
+                ☁️ Salvar no Supabase
+            </button>
+
+            <button
+                onclick="gerarPDFPlanoCuidado()"
+                style="
+                    background:#dc2626;
+                    color:white;
+                    border:none;
+                    padding:8px 14px;
+                    border-radius:6px;
+                    cursor:pointer;
+                ">
+                📄 Gerar PDF
+            </button>
+
         </div>
     `;
 }
