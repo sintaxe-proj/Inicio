@@ -1,5 +1,8 @@
 /* ==========================================================================
    📈 MONITORAMENTO TERRITORIAL & PAINEL EPIDEMIOLÓGICO
+   SUPABASE PURO
+   pacientes = identificação
+   atendimentos = dados clínicos
    ========================================================================== */
 
 let linhaCuidadoAtualVisualizacao = "has";
@@ -11,7 +14,12 @@ let linhaCuidadoAtualVisualizacao = "has";
 function abrirPainelEpidemiologico(linhaCuidado) {
     linhaCuidadoAtualVisualizacao = linhaCuidado;
 
-    document.getElementById("painelEpidemiologicoContainer").style.display = "block";
+    const modal =
+        document.getElementById("painelEpidemiologicoContainer");
+
+    if (modal) {
+        modal.style.display = "block";
+    }
 
     const titulos = {
         has: "Monitoramento Territorial: Hipertensão Arterial Sistêmica (HAS)",
@@ -22,8 +30,13 @@ function abrirPainelEpidemiologico(linhaCuidado) {
         criticos: "🚨 Central de Alertas: Prazo Expirado"
     };
 
-    document.getElementById("tituloPainelEpidemiologico").innerText =
-        titulos[linhaCuidado] || "Vigilância em Saúde";
+    const titulo =
+        document.getElementById("tituloPainelEpidemiologico");
+
+    if (titulo) {
+        titulo.innerText =
+            titulos[linhaCuidado] || "Vigilância em Saúde";
+    }
 
     carregarFiltrosModalUBS();
 }
@@ -33,7 +46,12 @@ function abrirPainelEpidemiologico(linhaCuidado) {
    ========================================================================== */
 
 function fecharPainelEpidemiologico() {
-    document.getElementById("painelEpidemiologicoContainer").style.display = "none";
+    const modal =
+        document.getElementById("painelEpidemiologicoContainer");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
 }
 
 /* ==========================================================================
@@ -41,26 +59,38 @@ function fecharPainelEpidemiologico() {
    ========================================================================== */
 
 function carregarFiltrosModalUBS() {
-    const ubsSelect = document.getElementById("filtroUBS");
-    const equipeSelect = document.getElementById("filtroEquipe");
+    const ubsSelect =
+        document.getElementById("filtroUBS");
 
-    ubsSelect.innerHTML = `
-        <option value="TODAS">Todas as Unidades</option>
-        <option value="UBS Centro Médico">UBS Centro Médico</option>
-        <option value="UBS Vila Nova">UBS Vila Nova</option>
-        <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
-        <option value="UBS Integrada Norte">UBS Integrada Norte</option>
-    `;
+    const equipeSelect =
+        document.getElementById("filtroEquipe");
 
-    equipeSelect.innerHTML = `
-        <option value="TODAS">Todas as Equipes</option>
-        <option value="Equipe Verde">Equipe Verde</option>
-        <option value="Equipe Azul">Equipe Azul</option>
-        <option value="Equipe Esmeralda">Equipe Esmeralda</option>
-        <option value="Equipe Rubi">Equipe Rubi</option>
-    `;
+    if (ubsSelect) {
+        ubsSelect.innerHTML = `
+            <option value="TODAS">Todas as Unidades</option>
+            <option value="UBS Centro Médico">UBS Centro Médico</option>
+            <option value="UBS Vila Nova">UBS Vila Nova</option>
+            <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
+            <option value="UBS Integrada Norte">UBS Integrada Norte</option>
+        `;
+    }
 
-    document.getElementById("filtroRisco").value = "TODOS";
+    if (equipeSelect) {
+        equipeSelect.innerHTML = `
+            <option value="TODAS">Todas as Equipes</option>
+            <option value="Equipe Verde">Equipe Verde</option>
+            <option value="Equipe Azul">Equipe Azul</option>
+            <option value="Equipe Esmeralda">Equipe Esmeralda</option>
+            <option value="Equipe Rubi">Equipe Rubi</option>
+        `;
+    }
+
+    const risco =
+        document.getElementById("filtroRisco");
+
+    if (risco) {
+        risco.value = "TODOS";
+    }
 
     aplicarFiltrosRelatorio();
 }
@@ -69,59 +99,146 @@ function carregarFiltrosModalUBS() {
    🔍 APLICAR FILTROS
    ========================================================================== */
 
-function aplicarFiltrosRelatorio() {
-    if (!db) return;
+async function aplicarFiltrosRelatorio() {
+    if (typeof supabaseClient === "undefined") {
+        mostrarToast?.("❌ Supabase não carregado.");
+        return;
+    }
 
-    const ubs = document.getElementById("filtroUBS").value;
-    const equipe = document.getElementById("filtroEquipe").value;
-    const risco = document.getElementById("filtroRisco").value;
+    const ubs =
+        document.getElementById("filtroUBS")?.value || "TODAS";
 
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.getAll();
+    const equipe =
+        document.getElementById("filtroEquipe")?.value || "TODAS";
 
-    request.onsuccess = function () {
-        let filtrados = request.result || [];
+    const risco =
+        document.getElementById("filtroRisco")?.value || "TODOS";
 
-        if (linhaCuidadoAtualVisualizacao === "has") {
-            filtrados = filtrados.filter(p => p.has === "Sim");
-        } else if (linhaCuidadoAtualVisualizacao === "dm") {
-            filtrados = filtrados.filter(p => p.dm === "Sim");
-        } else if (linhaCuidadoAtualVisualizacao === "gestante") {
-            filtrados = filtrados.filter(p => p.gestante === "Sim");
-        } else if (linhaCuidadoAtualVisualizacao === "tuberculose") {
-            filtrados = filtrados.filter(p => p.tb === "Sim");
-        } else if (linhaCuidadoAtualVisualizacao === "hanseniase") {
-            filtrados = filtrados.filter(p => p.hansen === "Sim");
-        } else if (linhaCuidadoAtualVisualizacao === "criticos") {
-            filtrados = filtrados.filter(p => parseInt(p.reavaliacaoDias) === 0);
-        }
+    let query = supabaseClient
+        .from("atendimentos")
+        .select(`
+            id,
+            cpf,
+            cns,
+            nome_paciente,
+            has,
+            dm,
+            gestante,
+            tb,
+            hansen,
+            "reavaliacaoDias",
+            data_atendimento
+        `)
+        .order("data_atendimento", { ascending: false });
 
-        if (ubs !== "TODAS") {
-            filtrados = filtrados.filter(p => p.ubs === ubs);
-        }
+    if (linhaCuidadoAtualVisualizacao === "has") {
+        query = query.eq("has", "Sim");
+    } else if (linhaCuidadoAtualVisualizacao === "dm") {
+        query = query.eq("dm", "Sim");
+    } else if (linhaCuidadoAtualVisualizacao === "gestante") {
+        query = query.eq("gestante", "Sim");
+    } else if (linhaCuidadoAtualVisualizacao === "tuberculose") {
+        query = query.eq("tb", "Sim");
+    } else if (linhaCuidadoAtualVisualizacao === "hanseniase") {
+        query = query.eq("hansen", "Sim");
+    } else if (linhaCuidadoAtualVisualizacao === "criticos") {
+        query = query.eq("reavaliacaoDias", 0);
+    }
 
-        if (equipe !== "TODAS") {
-            filtrados = filtrados.filter(p => p.equipe === equipe);
-        }
+    if (risco === "CRITICO") {
+        query = query.eq("reavaliacaoDias", 0);
+    } else if (risco === "ATENCAO") {
+        query = query.gt("reavaliacaoDias", 0).lte("reavaliacaoDias", 30);
+    } else if (risco === "CONTROLADO") {
+        query = query.gt("reavaliacaoDias", 30);
+    }
 
-        if (risco === "CRITICO") {
-            filtrados = filtrados.filter(p => parseInt(p.reavaliacaoDias) === 0);
-        } else if (risco === "ATENCAO") {
-            filtrados = filtrados.filter(p => {
-                const dias = parseInt(p.reavaliacaoDias);
-                return dias > 0 && dias <= 30;
-            });
-        } else if (risco === "CONTROLADO") {
-            filtrados = filtrados.filter(p => {
-                const dias = parseInt(p.reavaliacaoDias);
-                return dias > 30;
-            });
-        }
+    const { data: atendimentos, error } = await query;
 
-        renderizarGraficosModal(filtrados);
-        renderizarTabelaMonitoramento(filtrados);
-    };
+    if (error) {
+        console.error("Erro monitoramento:", error);
+        mostrarToast?.("❌ Erro ao carregar monitoramento.");
+        return;
+    }
+
+    const lista =
+        await enriquecerAtendimentosComPacientes(atendimentos || []);
+
+    let filtrados = lista;
+
+    if (ubs !== "TODAS") {
+        filtrados = filtrados.filter(p => p.ubs === ubs);
+    }
+
+    if (equipe !== "TODAS") {
+        filtrados = filtrados.filter(p => p.equipe === equipe);
+    }
+
+    renderizarGraficosModal(filtrados);
+    renderizarTabelaMonitoramento(filtrados);
+}
+
+/* ==========================================================================
+   🔗 BUSCAR IDENTIFICAÇÃO DOS PACIENTES
+   ========================================================================== */
+
+async function enriquecerAtendimentosComPacientes(atendimentos) {
+    if (!atendimentos.length) return [];
+
+    const cpfs =
+        [...new Set(
+            atendimentos
+                .map(a => a.cpf)
+                .filter(Boolean)
+        )];
+
+    const cnss =
+        [...new Set(
+            atendimentos
+                .map(a => a.cns)
+                .filter(Boolean)
+        )];
+
+    let query = supabaseClient
+        .from("pacientes")
+        .select("cpf, cns, nome, ubs, equipe");
+
+    if (cpfs.length && cnss.length) {
+        query = query.or(
+            `cpf.in.(${cpfs.join(",")}),cns.in.(${cnss.join(",")})`
+        );
+    } else if (cpfs.length) {
+        query = query.in("cpf", cpfs);
+    } else if (cnss.length) {
+        query = query.in("cns", cnss);
+    }
+
+    const { data: pacientes, error } = await query;
+
+    if (error) {
+        console.error("Erro ao buscar pacientes:", error);
+        return atendimentos.map(a => ({
+            ...a,
+            nome: a.nome_paciente,
+            ubs: "Pendente",
+            equipe: "Pendente"
+        }));
+    }
+
+    return atendimentos.map(a => {
+        const paciente =
+            pacientes.find(p =>
+                (a.cpf && p.cpf === a.cpf) ||
+                (a.cns && p.cns === a.cns)
+            );
+
+        return {
+            ...a,
+            nome: paciente?.nome || a.nome_paciente || "Sem nome",
+            ubs: paciente?.ubs || "Pendente",
+            equipe: paciente?.equipe || "Pendente"
+        };
+    });
 }
 
 /* ==========================================================================
@@ -129,11 +246,12 @@ function aplicarFiltrosRelatorio() {
    ========================================================================== */
 
 function renderizarTabelaMonitoramento(filtrados) {
-    const tabela = document.getElementById("tabelaPainelEpidemiologico");
+    const tabela =
+        document.getElementById("tabelaPainelEpidemiologico");
 
     if (!tabela) return;
 
-    if (filtrados.length === 0) {
+    if (!filtrados.length) {
         tabela.innerHTML = `
             <p style="color:#64748b; padding:10px;">
                 Nenhum utente localizado.
@@ -147,7 +265,7 @@ function renderizarTabelaMonitoramento(filtrados) {
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>CPF</th>
+                    <th>CPF/CNS</th>
                     <th>UBS</th>
                     <th>Equipe</th>
                     <th>Monitoramento</th>
@@ -157,21 +275,29 @@ function renderizarTabelaMonitoramento(filtrados) {
     `;
 
     filtrados.forEach(p => {
-        const dias = parseInt(p.reavaliacaoDias);
+        const dias =
+            parseInt(p.reavaliacaoDias ?? 0);
+
         let statusMonitoramento = "";
 
         if (dias === 0) {
-            statusMonitoramento = "🚨 Reavaliação Urgente";
+            statusMonitoramento =
+                "🚨 Reavaliação Urgente";
         } else if (dias > 0 && dias <= 30) {
-            statusMonitoramento = `⚠️ Vence em ${dias} dias`;
+            statusMonitoramento =
+                `⚠️ Vence em ${dias} dias`;
         } else {
-            statusMonitoramento = `✅ Monitoramento em ${dias} dias`;
+            statusMonitoramento =
+                `✅ Monitoramento em ${dias} dias`;
         }
+
+        const documento =
+            p.cpf || p.cns || "";
 
         html += `
             <tr>
-                <td><b>${p.nome}</b></td>
-                <td>${p.cpf}</td>
+                <td><b>${p.nome || p.nome_paciente || "-"}</b></td>
+                <td>${documento || "-"}</td>
                 <td>${p.ubs || "Pendente"}</td>
                 <td>${p.equipe || "Pendente"}</td>
                 <td>
@@ -180,13 +306,13 @@ function renderizarTabelaMonitoramento(filtrados) {
 
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button
-                                onclick="abrirAtendimentoExistente('${p.cpf}')"
+                                onclick="abrirAtendimentoExistente('${p.cpf || ""}', '${p.cns || ""}')"
                                 style="background:#2563eb; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
                                 📋 Abrir
                             </button>
 
                             <button
-                                onclick="abrirWhatsAppMonitoramento('${p.cpf}', '${linhaCuidadoAtualVisualizacao}')"
+                                onclick="abrirWhatsAppMonitoramento('${p.cpf || ""}', '${p.cns || ""}', '${linhaCuidadoAtualVisualizacao}')"
                                 style="background:#25d366; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
                                 💬 WhatsApp
                             </button>
@@ -212,93 +338,129 @@ function renderizarTabelaMonitoramento(filtrados) {
 function renderizarGraficosModal(lista) {
     const total = lista.length;
 
-    const criticos = lista.filter(p =>
-        parseInt(p.reavaliacaoDias) === 0
-    ).length;
+    const criticos =
+        lista.filter(p =>
+            parseInt(p.reavaliacaoDias ?? 0) === 0
+        ).length;
 
-    const atencao = lista.filter(p => {
-        const dias = parseInt(p.reavaliacaoDias);
-        return dias > 0 && dias <= 30;
-    }).length;
+    const atencao =
+        lista.filter(p => {
+            const dias =
+                parseInt(p.reavaliacaoDias ?? 0);
 
-    const controlados = lista.filter(p => {
-        const dias = parseInt(p.reavaliacaoDias);
-        return dias > 30;
-    }).length;
+            return dias > 0 && dias <= 30;
+        }).length;
 
-    const pctCritico = total > 0
-        ? Math.round((criticos / total) * 100)
-        : 0;
+    const controlados =
+        lista.filter(p => {
+            const dias =
+                parseInt(p.reavaliacaoDias ?? 0);
 
-    const pctAtencao = total > 0
-        ? Math.round((atencao / total) * 100)
-        : 0;
+            return dias > 30;
+        }).length;
 
-    const pctControlado = total > 0
-        ? Math.max(0, 100 - pctCritico - pctAtencao)
-        : 0;
+    const pctCritico =
+        total > 0
+            ? Math.round((criticos / total) * 100)
+            : 0;
 
-    document.getElementById("containerGraficoDonut").innerHTML = `
-        <div class="donut-wrapper">
-            <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut-svg">
-                <circle class="donut-bg" cx="21" cy="21" r="15.915"></circle>
+    const pctAtencao =
+        total > 0
+            ? Math.round((atencao / total) * 100)
+            : 0;
 
-                <circle class="donut-segment"
-                        cx="21"
-                        cy="21"
-                        r="15.915"
-                        stroke="var(--danger)"
-                        stroke-dasharray="${pctCritico} ${100 - pctCritico}"
-                        stroke-dashoffset="0">
-                </circle>
-            </svg>
+    const pctControlado =
+        total > 0
+            ? Math.max(0, 100 - pctCritico - pctAtencao)
+            : 0;
 
-            <div class="donut-center-text">
-                <span class="donut-number">${pctCritico}%</span>
-                <span class="donut-label">Críticos</span>
-            </div>
-        </div>
-    `;
+    const donut =
+        document.getElementById("containerGraficoDonut");
 
-    document.getElementById("containerGraficoBarras").innerHTML = `
-        <div class="bar-chart-container">
+    const barras =
+        document.getElementById("containerGraficoBarras");
 
-            <div class="bar-row">
-                <div class="bar-label">
-                    <span>🚨 Críticos / Vencidos</span>
-                    <span>${criticos} Utentes</span>
+    if (donut) {
+        donut.innerHTML = `
+            <div class="donut-wrapper">
+                <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut-svg">
+                    <circle class="donut-bg" cx="21" cy="21" r="15.915"></circle>
+
+                    <circle class="donut-segment"
+                            cx="21"
+                            cy="21"
+                            r="15.915"
+                            stroke="var(--danger)"
+                            stroke-dasharray="${pctCritico} ${100 - pctCritico}"
+                            stroke-dashoffset="0">
+                    </circle>
+                </svg>
+
+                <div class="donut-center-text">
+                    <span class="donut-number">${pctCritico}%</span>
+                    <span class="donut-label">Críticos</span>
                 </div>
-                <div class="bar-track">
-                    <div class="bar-fill"
-                         style="width:${pctCritico}%; background:var(--danger);">
+            </div>
+        `;
+    }
+
+    if (barras) {
+        barras.innerHTML = `
+            <div class="bar-chart-container">
+
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span>🚨 Críticos / Vencidos</span>
+                        <span>${criticos} Utentes</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill"
+                             style="width:${pctCritico}%; background:var(--danger);">
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bar-row" style="margin-top:10px;">
-                <div class="bar-label">
-                    <span>⚠️ Atenção / Próximos 30 dias</span>
-                    <span>${atencao} Utentes</span>
-                </div>
-                <div class="bar-track">
-                    <div class="bar-fill"
-                         style="width:${pctAtencao}%; background:var(--warning);">
+                <div class="bar-row" style="margin-top:10px;">
+                    <div class="bar-label">
+                        <span>⚠️ Atenção / Próximos 30 dias</span>
+                        <span>${atencao} Utentes</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill"
+                             style="width:${pctAtencao}%; background:var(--warning);">
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bar-row" style="margin-top:10px;">
-                <div class="bar-label">
-                    <span>✅ Controlados</span>
-                    <span>${controlados} Utentes</span>
-                </div>
-                <div class="bar-track">
-                    <div class="bar-fill"
-                         style="width:${pctControlado}%; background:var(--success);">
+                <div class="bar-row" style="margin-top:10px;">
+                    <div class="bar-label">
+                        <span>✅ Controlados</span>
+                        <span>${controlados} Utentes</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill"
+                             style="width:${pctControlado}%; background:var(--success);">
+                        </div>
                     </div>
                 </div>
-            </div>
 
-        </div>
-    `;
+            </div>
+        `;
+    }
 }
+
+/* ==========================================================================
+   GLOBAL
+   ========================================================================== */
+
+window.abrirPainelEpidemiologico =
+    abrirPainelEpidemiologico;
+
+window.fecharPainelEpidemiologico =
+    fecharPainelEpidemiologico;
+
+window.carregarFiltrosModalUBS =
+    carregarFiltrosModalUBS;
+
+window.aplicarFiltrosRelatorio =
+    aplicarFiltrosRelatorio;
