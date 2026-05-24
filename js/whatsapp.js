@@ -149,7 +149,7 @@ async function buscarContatosSupabase(termo) {
     }
 
     let query = supabaseClient
-        .from("pacientes")
+        .from("vw_prontuario_completo")
         .select("nome, cpf, cns, telefone, tel, endereco, unidade, ubs, equipe")
         .limit(15);
 
@@ -338,7 +338,7 @@ async function abrirWhatsAppMonitoramento(cpf, cns, linha) {
     }
 
     const { data, error } = await supabaseClient
-        .from("pacientes")
+        .from("vw_prontuario_completo")
         .select("nome, telefone, tel")
         .or(filtros.join(","))
         .limit(1);
