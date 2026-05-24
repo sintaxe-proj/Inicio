@@ -1,12 +1,25 @@
 /* ==========================================================
-   📦 SOLICITAÇÕES DE MATERIAIS / FARMÁCIA — 100% SUPABASE
-   Busca paciente por CPF
+   📦 SOLICITAÇÕES DE MATERIAIS / FARMÁCIA — SUPABASE
    Fluxo:
    PENDENTE → AUTORIZADO → ENTREGUE
    PENDENTE → NEGADO
    ========================================================== */
 
 let itensSolicitacao = [];
+
+/* ==========================================================
+   AUDITORIA
+   ========================================================== */
+
+function getUsuarioMateriais() {
+    const usuario = window.usuarioLogado || {};
+
+    return {
+        usuario_id: usuario.id || null,
+        usuario_nome: usuario.nome || usuario.email || null,
+        usuario_perfil: usuario.perfil || null
+    };
+}
 
 /* ==========================================================
    ABRIR / FECHAR MODAL
@@ -17,9 +30,9 @@ function abrirModuloSolicitacoesMateriais() {
 
     if (modal) {
         modal.style.display = "block";
-        renderizarTabelaItensSolicitacao();
-        carregarHistoricoSolicitacoes();
     }
+
+    limparSolicitacaoMaterial();
 }
 
 function fecharModuloSolicitacoesMateriais() {
@@ -36,47 +49,42 @@ function fecharModuloSolicitacoesMateriais() {
 
 function adicionarItemSolicitacao() {
     const nome = document.getElementById("itemNome")?.value.trim();
-    const quantidade = parseInt(document.getElementById("itemQtd")?.value);
+    const qtd = document.getElementById("itemQtd")?.value;
     const unidade = document.getElementById("itemUnidade")?.value;
     const categoria = document.getElementById("itemCategoria")?.value;
 
-    if (!nome) {
-        alert("Informe o material.");
-        return;
-    }
-
-    if (!quantidade || quantidade <= 0) {
-        alert("Quantidade inválida.");
+    if (!nome || !qtd) {
+        mostrarToast?.("⚠️ Informe item e quantidade.");
         return;
     }
 
     itensSolicitacao.push({
-        id: gerarIdItemSolicitacao(),
         nome,
-        quantidade,
+        qtd: Number(qtd),
         unidade,
         categoria
     });
 
-    limparCamposItem();
-    renderizarTabelaItensSolicitacao();
+    document.getElementById("itemNome").value = "";
+    document.getElementById("itemQtd").value = "1";
+
+    renderizarItensSolicitacao();
 }
 
-/* ==========================================================
-   RENDERIZAR TABELA DE ITENS
-   ========================================================== */
+function removerItemSolicitacao(index) {
+    itensSolicitacao.splice(index, 1);
+    renderizarItensSolicitacao();
+}
 
-function renderizarTabelaItensSolicitacao() {
+function renderizarItensSolicitacao() {
     const tbody = document.getElementById("tabelaItensSolicitacao");
 
     if (!tbody) return;
 
-    tbody.innerHTML = "";
-
     if (itensSolicitacao.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" style="padding:10px; text-align:center; color:#94a3b8;">
+                <td colspan="5" style="color:var(--text-muted);">
                     Nenhum item adicionado.
                 </td>
             </tr>
@@ -84,150 +92,80 @@ function renderizarTabelaItensSolicitacao() {
         return;
     }
 
-    itensSolicitacao.forEach((item, index) => {
-        tbody.innerHTML += `
-            <tr>
-                <td style="padding:8px; border:1px solid #334155;">${item.nome}</td>
-                <td style="padding:8px; border:1px solid #334155;">${item.quantidade}</td>
-                <td style="padding:8px; border:1px solid #334155;">${item.unidade || "-"}</td>
-                <td style="padding:8px; border:1px solid #334155;">${item.categoria || "-"}</td>
-                <td style="padding:8px; border:1px solid #334155;">
-                    <button onclick="removerItemSolicitacao(${index})"
-                        style="
-                            background:#ef4444;
-                            color:white;
-                            border:0;
-                            padding:6px 10px;
-                            border-radius:6px;
-                            cursor:pointer;
-                        ">
-                        Remover
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-}
-
-function removerItemSolicitacao(index) {
-    itensSolicitacao.splice(index, 1);
-    renderizarTabelaItensSolicitacao();
+    tbody.innerHTML = itensSolicitacao.map((item, index) => `
+        <tr>
+            <td>${item.nome}</td>
+            <td>${item.qtd}</td>
+            <td>${item.unidade}</td>
+            <td>${item.categoria}</td>
+            <td>
+                <button onclick="removerItemSolicitacao(${index})">
+                    Remover
+                </button>
+            </td>
+        </tr>
+    `).join("");
 }
 
 /* ==========================================================
-   SALVAR SOLICITAÇÃO — SUPABASE
+   SALVAR SOLICITAÇÃO NO SUPABASE
    ========================================================== */
 
 async function salvarSolicitacaoMaterial() {
-    const usuarioAtual = await supabaseClient.auth.getUser();
-
-    if (usuarioAtual.error || !usuarioAtual.data.user) {
-        alert("Faça login novamente.");
+    if (typeof supabaseClient === "undefined") {
+        mostrarToast?.("❌ Supabase não carregado.");
         return;
     }
 
     if (itensSolicitacao.length === 0) {
-        alert("Adicione pelo menos um item.");
+        mostrarToast?.("⚠️ Adicione pelo menos um item.");
         return;
     }
 
-    const usuario = usuarioAtual.data.user;
+    const auditoria = getUsuarioMateriais();
 
-    const cpfPaciente =
-        document.getElementById("solPacienteCpf")?.value?.replace(/\D/g, "") ||
-        document.getElementById("pacienteCpf")?.value?.replace(/\D/g, "") ||
-        window.pacienteSelecionado?.cpf?.replace(/\D/g, "") ||
-        "";
-
-    if (!cpfPaciente) {
-        alert("Informe o CPF do paciente.");
-        return;
-    }
-
-    const paciente = await buscarPacienteSolicitacaoPorCpf(cpfPaciente);
-
-    if (!paciente) {
-        alert("Paciente não encontrado no Supabase pelo CPF informado.");
-        return;
-    }
-
-    const solicitacao = {
-        usuario_id: usuario.id,
-
-        paciente_id: paciente.id,
-        paciente_nome: paciente.nome || "",
-        paciente_cpf: paciente.cpf || "",
-        paciente_cns: paciente.cns || "",
-
-        destino: document.getElementById("solDestino")?.value || "",
-        solicitante: document.getElementById("solSolicitante")?.value || "",
-        setor: document.getElementById("solSetor")?.value || "",
-        prioridade: document.getElementById("solPrioridade")?.value || "NORMAL",
+    const payload = {
+        destino: document.getElementById("solDestino")?.value || null,
+        solicitante: document.getElementById("solSolicitante")?.value || auditoria.usuario_nome,
+        setor: document.getElementById("solSetor")?.value || null,
+        prioridade: document.getElementById("solPrioridade")?.value || "Rotina",
+        observacoes: document.getElementById("solObservacoes")?.value || null,
 
         itens: itensSolicitacao,
-        observacoes: document.getElementById("solObservacoes")?.value || "",
 
         status: "PENDENTE",
+        data_solicitacao: new Date().toISOString(),
 
-        solicitado_em: new Date().toISOString(),
-        autorizado_em: null,
         autorizado_por: null,
-        entregue_em: null,
-        entregue_por: null,
-        negado_em: null,
+        autorizado_em: null,
         negado_por: null,
-        motivo_negativa: null
+        negado_em: null,
+        entregue_por: null,
+        entregue_em: null,
+
+        ...auditoria
     };
 
-    const { data, error } = await supabaseClient
+    const { error } = await supabaseClient
         .from("solicitacoes_materiais")
-        .insert([solicitacao])
-        .select()
-        .single();
+        .insert(payload);
 
     if (error) {
         console.error("Erro ao salvar solicitação:", error);
-        alert("Erro ao salvar solicitação no Supabase.");
+        mostrarToast?.("❌ Erro ao salvar solicitação.");
         return;
     }
 
-    await registrarHistoricoSolicitacao(
-        data.id,
-        "PENDENTE",
-        `Solicitação criada para o paciente ${paciente.nome || "-"} | CPF: ${paciente.cpf || "-"}`
-    );
+    mostrarToast?.("✅ Solicitação enviada como PENDENTE.");
 
+    fecharModuloSolicitacoesMateriais();
     limparSolicitacaoMaterial();
-    carregarHistoricoSolicitacoes();
-
-    mostrarToast?.("✅ Solicitação enviada para pendência.");
+    carregarHistoricoSolicitacoes?.();
+    atualizarDashboardEstoque?.();
 }
 
 /* ==========================================================
-   BUSCAR PACIENTE POR CPF
-   ========================================================== */
-
-async function buscarPacienteSolicitacaoPorCpf(cpf) {
-    const cpfLimpo = String(cpf || "").replace(/\D/g, "");
-
-    if (!cpfLimpo) return null;
-
-    const { data, error } = await supabaseClient
-        .from("pacientes")
-        .select("id, nome, cpf, cns, data_nascimento, telefone")
-        .eq("cpf", cpfLimpo)
-        .maybeSingle();
-
-    if (error) {
-        console.error("Erro ao buscar paciente por CPF:", error);
-        return null;
-    }
-
-    return data;
-}
-
-/* ==========================================================
-   CARREGAR SOLICITAÇÕES
+   HISTÓRICO
    ========================================================== */
 
 async function carregarHistoricoSolicitacoes() {
@@ -235,437 +173,297 @@ async function carregarHistoricoSolicitacoes() {
 
     if (!container) return;
 
-    container.innerHTML = `
-        <div style="padding:15px; text-align:center; color:#94a3b8;">
-            Carregando solicitações...
-        </div>
-    `;
-
     const { data, error } = await supabaseClient
         .from("solicitacoes_materiais")
         .select("*")
-        .order("solicitado_em", { ascending: false });
+        .order("data_solicitacao", { ascending: false });
 
     if (error) {
         console.error("Erro ao carregar solicitações:", error);
-
         container.innerHTML = `
-            <div style="padding:15px; text-align:center; color:#ef4444;">
-                Erro ao carregar solicitações.
-            </div>
+            <p style="color:var(--danger);">
+                Erro ao carregar histórico.
+            </p>
         `;
-
         return;
     }
 
     if (!data || data.length === 0) {
         container.innerHTML = `
-            <div style="padding:15px; text-align:center; color:#94a3b8;">
+            <p style="color:var(--text-muted);">
                 Nenhuma solicitação registrada.
-            </div>
+            </p>
         `;
         return;
     }
 
-    container.innerHTML = "";
+    container.innerHTML = data.map(sol => {
+        const itens = Array.isArray(sol.itens) ? sol.itens : [];
 
-    data.forEach(sol => {
-        container.innerHTML += montarCardSolicitacao(sol);
-    });
-}
-
-/* ==========================================================
-   MONTAR CARD
-   ========================================================== */
-
-function montarCardSolicitacao(sol) {
-    const itens = Array.isArray(sol.itens) ? sol.itens : [];
-
-    return `
-        <div style="
-            background:#111827;
-            border:1px solid #334155;
-            border-radius:10px;
-            padding:15px;
-            margin-bottom:10px;
-        ">
+        return `
             <div style="
-                display:flex;
-                justify-content:space-between;
-                gap:10px;
-                flex-wrap:wrap;
+                background:var(--bg-card);
+                border:1px solid var(--border);
+                border-radius:10px;
+                padding:15px;
+                margin-bottom:12px;
             ">
-                <div>
-                    <strong>📦 ${sol.destino || "Solicitação de material"}</strong>
-
-                    <div style="color:#94a3b8; font-size:12px; margin-top:5px;">
-                        Solicitado em: ${formatarDataHora(sol.solicitado_em)}
+                <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                    <div>
+                        <strong>${sol.destino || "-"}</strong>
+                        <span style="color:var(--text-muted);">
+                            • ${sol.setor || "-"}
+                        </span>
                     </div>
 
-                    <div style="color:#e5e7eb; font-size:13px; margin-top:5px;">
-                        <strong>Paciente:</strong> ${sol.paciente_nome || "-"}
-                    </div>
-
-                    <div style="color:#94a3b8; font-size:12px;">
-                        CPF: ${sol.paciente_cpf || "-"} | CNS: ${sol.paciente_cns || "-"}
-                    </div>
-                </div>
-
-                <div>
                     <span style="
+                        padding:4px 8px;
+                        border-radius:6px;
+                        font-size:12px;
+                        font-weight:bold;
                         background:${corStatusSolicitacao(sol.status)};
                         color:white;
-                        padding:5px 10px;
-                        border-radius:999px;
-                        font-size:12px;
                     ">
-                        ${sol.status || "PENDENTE"}
+                        ${sol.status}
                     </span>
                 </div>
-            </div>
 
-            <hr style="border-color:#334155; margin:10px 0;">
+                <p style="font-size:13px; color:var(--text-muted); margin:8px 0;">
+                    Solicitante: ${sol.solicitante || "-"} |
+                    Prioridade: ${sol.prioridade || "-"} |
+                    Data: ${formatarDataHora(sol.data_solicitacao)}
+                </p>
 
-            <div><strong>Solicitante:</strong> ${sol.solicitante || "-"}</div>
-            <div><strong>Setor:</strong> ${sol.setor || "-"}</div>
-            <div><strong>Prioridade:</strong> ${sol.prioridade || "-"}</div>
-
-            <div style="margin-top:10px;">
-                <strong>Itens:</strong>
-                <ul style="margin-top:5px;">
+                <ul style="margin-top:8px;">
                     ${itens.map(item => `
                         <li>
-                            ${item.nome} — ${item.quantidade} ${item.unidade || ""}
+                            ${item.qtd} ${item.unidade} — 
+                            <strong>${item.nome}</strong>
+                            (${item.categoria})
                         </li>
                     `).join("")}
                 </ul>
-            </div>
 
-            ${sol.observacoes ? `
-                <div style="margin-top:10px;">
-                    <strong>Observações:</strong> ${sol.observacoes}
+                ${
+                    sol.observacoes
+                    ? `<p style="font-size:13px;">📝 ${sol.observacoes}</p>`
+                    : ""
+                }
+
+                <p style="font-size:12px; color:var(--text-muted);">
+                    Criado por: ${sol.usuario_nome || "-"}
+                </p>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                    ${
+                        sol.status === "PENDENTE"
+                        ? `
+                            <button onclick="autorizarSolicitacaoMaterial('${sol.id}')"
+                                style="background:#22c55e; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
+                                Autorizar
+                            </button>
+
+                            <button onclick="negarSolicitacaoMaterial('${sol.id}')"
+                                style="background:#ef4444; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
+                                Negar
+                            </button>
+                        `
+                        : ""
+                    }
+
+                    ${
+                        sol.status === "AUTORIZADO"
+                        ? `
+                            <button onclick="entregarSolicitacaoMaterial('${sol.id}')"
+                                style="background:#2563eb; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
+                                Marcar como Entregue
+                            </button>
+                        `
+                        : ""
+                    }
                 </div>
-            ` : ""}
 
-            ${sol.motivo_negativa ? `
-                <div style="margin-top:10px; color:#fca5a5;">
-                    <strong>Motivo da negativa:</strong> ${sol.motivo_negativa}
+                <div style="margin-top:10px; font-size:12px; color:var(--text-muted);">
+                    ${
+                        sol.autorizado_por
+                        ? `✅ Autorizado por ${sol.autorizado_por} em ${formatarDataHora(sol.autorizado_em)}<br>`
+                        : ""
+                    }
+
+                    ${
+                        sol.negado_por
+                        ? `🚫 Negado por ${sol.negado_por} em ${formatarDataHora(sol.negado_em)}<br>`
+                        : ""
+                    }
+
+                    ${
+                        sol.entregue_por
+                        ? `📦 Entregue por ${sol.entregue_por} em ${formatarDataHora(sol.entregue_em)}`
+                        : ""
+                    }
                 </div>
-            ` : ""}
-
-            <div style="
-                display:flex;
-                gap:8px;
-                flex-wrap:wrap;
-                margin-top:15px;
-            ">
-                ${sol.status === "PENDENTE" ? `
-                    <button onclick="autorizarSolicitacaoMaterial('${sol.id}')"
-                        style="
-                            background:#22c55e;
-                            color:white;
-                            border:0;
-                            padding:8px 12px;
-                            border-radius:6px;
-                            cursor:pointer;
-                        ">
-                        Autorizar
-                    </button>
-
-                    <button onclick="negarSolicitacaoMaterial('${sol.id}')"
-                        style="
-                            background:#ef4444;
-                            color:white;
-                            border:0;
-                            padding:8px 12px;
-                            border-radius:6px;
-                            cursor:pointer;
-                        ">
-                        Negar
-                    </button>
-                ` : ""}
-
-                ${sol.status === "AUTORIZADO" ? `
-                    <button onclick="entregarSolicitacaoMaterial('${sol.id}')"
-                        style="
-                            background:#3b82f6;
-                            color:white;
-                            border:0;
-                            padding:8px 12px;
-                            border-radius:6px;
-                            cursor:pointer;
-                        ">
-                        Entregar
-                    </button>
-                ` : ""}
-
-                <button onclick="verHistoricoSolicitacao('${sol.id}')"
-                    style="
-                        background:#64748b;
-                        color:white;
-                        border:0;
-                        padding:8px 12px;
-                        border-radius:6px;
-                        cursor:pointer;
-                    ">
-                    Histórico
-                </button>
             </div>
-        </div>
-    `;
+        `;
+    }).join("");
 }
 
 /* ==========================================================
-   AUTORIZAR SOLICITAÇÃO
+   ALTERAR STATUS
    ========================================================== */
 
 async function autorizarSolicitacaoMaterial(id) {
-    const usuarioAtual = await supabaseClient.auth.getUser();
-
-    if (usuarioAtual.error || !usuarioAtual.data.user) {
-        alert("Faça login novamente.");
-        return;
-    }
-
-    const usuario = usuarioAtual.data.user;
-
-    const { data: solicitacao } = await supabaseClient
-        .from("solicitacoes_materiais")
-        .select("paciente_nome, paciente_cpf")
-        .eq("id", id)
-        .maybeSingle();
+    const usuario = getUsuarioMateriais();
 
     const { error } = await supabaseClient
         .from("solicitacoes_materiais")
         .update({
             status: "AUTORIZADO",
-            autorizado_em: new Date().toISOString(),
-            autorizado_por: usuario.id
+            autorizado_por: usuario.usuario_nome,
+            autorizado_em: new Date().toISOString()
         })
         .eq("id", id);
 
     if (error) {
         console.error("Erro ao autorizar:", error);
-        alert("Erro ao autorizar solicitação.");
+        mostrarToast?.("❌ Erro ao autorizar solicitação.");
         return;
     }
 
-    await registrarHistoricoSolicitacao(
-        id,
-        "AUTORIZADO",
-        `Solicitação autorizada para ${solicitacao?.paciente_nome || "-"} | CPF: ${solicitacao?.paciente_cpf || "-"}`
-    );
-
-    carregarHistoricoSolicitacoes();
     mostrarToast?.("✅ Solicitação autorizada.");
+    carregarHistoricoSolicitacoes();
+    atualizarDashboardEstoque?.();
 }
-
-/* ==========================================================
-   NEGAR SOLICITAÇÃO
-   ========================================================== */
 
 async function negarSolicitacaoMaterial(id) {
     const motivo = prompt("Informe o motivo da negativa:");
 
-    if (!motivo) {
-        alert("Informe o motivo da negativa.");
-        return;
-    }
-
-    const usuarioAtual = await supabaseClient.auth.getUser();
-
-    if (usuarioAtual.error || !usuarioAtual.data.user) {
-        alert("Faça login novamente.");
-        return;
-    }
-
-    const usuario = usuarioAtual.data.user;
-
-    const { data: solicitacao } = await supabaseClient
-        .from("solicitacoes_materiais")
-        .select("paciente_nome, paciente_cpf")
-        .eq("id", id)
-        .maybeSingle();
+    const usuario = getUsuarioMateriais();
 
     const { error } = await supabaseClient
         .from("solicitacoes_materiais")
         .update({
             status: "NEGADO",
+            negado_por: usuario.usuario_nome,
             negado_em: new Date().toISOString(),
-            negado_por: usuario.id,
-            motivo_negativa: motivo
+            motivo_negativa: motivo || null
         })
         .eq("id", id);
 
     if (error) {
         console.error("Erro ao negar:", error);
-        alert("Erro ao negar solicitação.");
+        mostrarToast?.("❌ Erro ao negar solicitação.");
         return;
     }
 
-    await registrarHistoricoSolicitacao(
-        id,
-        "NEGADO",
-        `Solicitação negada para ${solicitacao?.paciente_nome || "-"} | CPF: ${solicitacao?.paciente_cpf || "-"} | Motivo: ${motivo}`
-    );
-
+    mostrarToast?.("🚫 Solicitação negada.");
     carregarHistoricoSolicitacoes();
-    mostrarToast?.("❌ Solicitação negada.");
+    atualizarDashboardEstoque?.();
 }
 
-/* ==========================================================
-   ENTREGAR SOLICITAÇÃO
-   ========================================================== */
-
 async function entregarSolicitacaoMaterial(id) {
-    const confirmar = confirm("Confirmar entrega dos materiais?");
-
-    if (!confirmar) return;
-
-    const usuarioAtual = await supabaseClient.auth.getUser();
-
-    if (usuarioAtual.error || !usuarioAtual.data.user) {
-        alert("Faça login novamente.");
-        return;
-    }
-
-    const usuario = usuarioAtual.data.user;
-
-    const { data: solicitacao } = await supabaseClient
-        .from("solicitacoes_materiais")
-        .select("paciente_nome, paciente_cpf")
-        .eq("id", id)
-        .maybeSingle();
+    const usuario = getUsuarioMateriais();
 
     const { error } = await supabaseClient
         .from("solicitacoes_materiais")
         .update({
             status: "ENTREGUE",
-            entregue_em: new Date().toISOString(),
-            entregue_por: usuario.id
+            entregue_por: usuario.usuario_nome,
+            entregue_em: new Date().toISOString()
         })
         .eq("id", id);
 
     if (error) {
         console.error("Erro ao entregar:", error);
-        alert("Erro ao registrar entrega.");
+        mostrarToast?.("❌ Erro ao marcar como entregue.");
         return;
     }
 
-    await registrarHistoricoSolicitacao(
-        id,
-        "ENTREGUE",
-        `Material entregue para ${solicitacao?.paciente_nome || "-"} | CPF: ${solicitacao?.paciente_cpf || "-"}`
-    );
-
+    mostrarToast?.("📦 Solicitação entregue.");
     carregarHistoricoSolicitacoes();
-    mostrarToast?.("📦 Material entregue e histórico atualizado.");
+    atualizarDashboardEstoque?.();
 }
 
 /* ==========================================================
-   REGISTRAR HISTÓRICO
+   DASHBOARD ESTOQUE
    ========================================================== */
 
-async function registrarHistoricoSolicitacao(solicitacaoId, status, descricao) {
-    const usuarioAtual = await supabaseClient.auth.getUser();
-    const usuario = usuarioAtual?.data?.user || null;
-
-    const { error } = await supabaseClient
-        .from("historico_solicitacoes_materiais")
-        .insert([{
-            solicitacao_id: solicitacaoId,
-            status,
-            descricao,
-            usuario_id: usuario?.id || null,
-            criado_em: new Date().toISOString()
-        }]);
-
-    if (error) {
-        console.error("Erro ao registrar histórico:", error);
-    }
-}
-
-/* ==========================================================
-   VER HISTÓRICO
-   ========================================================== */
-
-async function verHistoricoSolicitacao(solicitacaoId) {
+async function atualizarDashboardEstoque() {
     const { data, error } = await supabaseClient
-        .from("historico_solicitacoes_materiais")
-        .select("*")
-        .eq("solicitacao_id", solicitacaoId)
-        .order("criado_em", { ascending: true });
+        .from("solicitacoes_materiais")
+        .select("status");
 
     if (error) {
-        console.error("Erro ao buscar histórico:", error);
-        alert("Erro ao buscar histórico.");
+        console.error("Erro dashboard estoque:", error);
         return;
     }
 
-    if (!data || data.length === 0) {
-        alert("Nenhum histórico encontrado.");
-        return;
-    }
+    const banco = data || [];
 
-    const texto = data.map(h => {
-        return `${formatarDataHora(h.criado_em)} — ${h.status}\n${h.descricao}`;
-    }).join("\n\n");
+    const pendentes = banco.filter(x => x.status === "PENDENTE").length;
+    const aprovadas = banco.filter(x => x.status === "AUTORIZADO").length;
+    const entregues = banco.filter(x => x.status === "ENTREGUE").length;
 
-    alert(texto);
+    const dashPend = document.getElementById("dashSolicitacoesPendentes");
+    const dashAprov = document.getElementById("dashSolicitacoesAprovadas");
+    const dashEntr = document.getElementById("dashSolicitacoesEntregues");
+
+    if (dashPend) dashPend.innerText = pendentes;
+    if (dashAprov) dashAprov.innerText = aprovadas;
+    if (dashEntr) dashEntr.innerText = entregues;
 }
 
 /* ==========================================================
-   LIMPEZA
+   LIMPAR
    ========================================================== */
-
-function limparCamposItem() {
-    const nome = document.getElementById("itemNome");
-    const qtd = document.getElementById("itemQtd");
-
-    if (nome) nome.value = "";
-    if (qtd) qtd.value = 1;
-}
 
 function limparSolicitacaoMaterial() {
     itensSolicitacao = [];
 
-    const obs = document.getElementById("solObservacoes");
-    if (obs) obs.value = "";
+    [
+        "solSolicitante",
+        "solSetor",
+        "solObservacoes",
+        "itemNome"
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
 
-    const cpf = document.getElementById("solPacienteCpf");
-    if (cpf) cpf.value = "";
+    const qtd = document.getElementById("itemQtd");
+    if (qtd) qtd.value = "1";
 
-    renderizarTabelaItensSolicitacao();
+    renderizarItensSolicitacao();
 }
 
 /* ==========================================================
-   AUXILIARES
+   HELPERS
    ========================================================== */
 
-function gerarIdItemSolicitacao() {
-    return "ITEM-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7);
-}
-
-function formatarDataHora(data) {
-    if (!data) return "-";
-    return new Date(data).toLocaleString("pt-BR");
-}
-
 function corStatusSolicitacao(status) {
-    switch (status) {
-        case "PENDENTE":
-            return "#f59e0b";
-
-        case "AUTORIZADO":
-            return "#22c55e";
-
-        case "NEGADO":
-            return "#ef4444";
-
-        case "ENTREGUE":
-            return "#3b82f6";
-
-        default:
-            return "#64748b";
-    }
+    if (status === "PENDENTE") return "#f59e0b";
+    if (status === "AUTORIZADO") return "#22c55e";
+    if (status === "ENTREGUE") return "#2563eb";
+    if (status === "NEGADO") return "#ef4444";
+    return "#64748b";
 }
+
+function formatarDataHora(valor) {
+    if (!valor) return "-";
+
+    return new Date(valor).toLocaleString("pt-BR");
+}
+
+/* ==========================================================
+   GLOBAL
+   ========================================================== */
+
+window.abrirModuloSolicitacoesMateriais = abrirModuloSolicitacoesMateriais;
+window.fecharModuloSolicitacoesMateriais = fecharModuloSolicitacoesMateriais;
+window.adicionarItemSolicitacao = adicionarItemSolicitacao;
+window.removerItemSolicitacao = removerItemSolicitacao;
+window.salvarSolicitacaoMaterial = salvarSolicitacaoMaterial;
+window.carregarHistoricoSolicitacoes = carregarHistoricoSolicitacoes;
+window.autorizarSolicitacaoMaterial = autorizarSolicitacaoMaterial;
+window.negarSolicitacaoMaterial = negarSolicitacaoMaterial;
+window.entregarSolicitacaoMaterial = entregarSolicitacaoMaterial;
+window.atualizarDashboardEstoque = atualizarDashboardEstoque;
