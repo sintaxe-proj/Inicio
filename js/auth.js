@@ -708,6 +708,72 @@ document.addEventListener(
     }
 );
 
+/* ======================================================
+   RECUPERAÇÃO DE SENHA SUPABASE
+   ====================================================== */
+
+async function verificarRecuperacaoSenha() {
+
+    const hash =
+        window.location.hash;
+
+    if (
+        !hash.includes("type=recovery")
+    ) {
+        return;
+    }
+
+    const novaSenha =
+        prompt(
+            "Digite sua nova senha:"
+        );
+
+    if (
+        !novaSenha ||
+        novaSenha.length < 6
+    ) {
+
+        alert(
+            "Senha inválida."
+        );
+
+        return;
+    }
+
+    const {
+        error
+    } =
+    await supabaseClient.auth.updateUser({
+        password: novaSenha
+    });
+
+    if (error) {
+
+        console.error(
+            "Erro redefinir senha:",
+            error
+        );
+
+        alert(
+            "Erro ao redefinir senha."
+        );
+
+        return;
+    }
+
+    alert(
+        "Senha alterada com sucesso."
+    );
+
+    window.location.hash = "";
+    window.location.reload();
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    verificarRecuperacaoSenha
+);
+
 /* ==========================================================
    GLOBAL
    ========================================================== */
