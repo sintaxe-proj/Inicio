@@ -16,7 +16,7 @@ document.addEventListener(
     async () => {
 
         console.log(
-            "🔐 Inicializando autenticação..."
+            "🔐 Autenticado"
         );
 
         await verificarSessao();
