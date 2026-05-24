@@ -359,3 +359,43 @@ function carregarDatalistCIAP() {
         Object.keys(window.CIAP2).length
     );
 }
+
+async function salvarPacienteSupabaseSilencioso(paciente) {
+    try {
+        const usuarioAtual = await supabaseClient.auth.getUser();
+
+        if (usuarioAtual.error || !usuarioAtual.data.user) {
+            console.warn("Supabase: usuario nao logado.");
+            return false;
+        }
+
+        const usuario = usuarioAtual.data.user;
+
+        const registroOnline = {
+            usuario_id: usuario.id,
+            nome: paciente.nome || "",
+            cpf: paciente.cpf || "",
+            cns: paciente.cns || "",
+            telefone: paciente.telefone || "",
+            endereco: paciente.endereco || ""
+        };
+
+        const resultado = await supabaseClient
+            .from("pacientes")
+            .upsert([registroOnline], {
+                onConflict: "cpf"
+            });
+
+        if (resultado.error) {
+            console.error("Erro ao sincronizar Supabase:", resultado.error);
+            return false;
+        }
+
+        console.log("Paciente sincronizado silenciosamente no Supabase.");
+        return true;
+
+    } catch (erro) {
+        console.error("Falha inesperada no Supabase:", erro);
+        return false;
+    }
+}
