@@ -163,67 +163,6 @@ function limparSolicitacaoMaterial() {
 }
 
 /* ==========================================================
-   SALVAR SOLICITAÇÃO
-   ========================================================== */
-
-function salvarSolicitacaoMaterial() {
-
-    if (itensSolicitacao.length === 0) {
-        alert("Adicione pelo menos um item.");
-        return;
-    }
-
-    const solicitacao = {
-
-        id: gerarIdSolicitacao(),
-
-        data:
-            new Date().toISOString(),
-
-        destino:
-            document.getElementById("solDestino").value,
-
-        solicitante:
-            document.getElementById("solSolicitante").value,
-
-        setor:
-            document.getElementById("solSetor").value,
-
-        prioridade:
-            document.getElementById("solPrioridade").value,
-
-        observacoes:
-            document.getElementById("solObservacoes").value,
-
-        status:
-            "PENDENTE",
-
-        itens:
-            [...itensSolicitacao]
-    };
-
-    let banco =
-        JSON.parse(
-            localStorage.getItem("solicitacoesMateriais")
-        ) || [];
-
-    banco.unshift(solicitacao);
-
-    localStorage.setItem(
-        "solicitacoesMateriais",
-        JSON.stringify(banco)
-    );
-
-    alert("Solicitação enviada com sucesso.");
-
-    itensSolicitacao = [];
-
-    renderizarTabelaItensSolicitacao();
-
-    carregarHistoricoSolicitacoes();
-}
-
-/* ==========================================================
    HISTÓRICO
    ========================================================== */
 
@@ -378,4 +317,63 @@ function corStatusSolicitacao(status) {
         default:
             return "#64748b";
     }
+}
+
+async function salvarSolicitacaoMaterial() {
+
+    const usuarioAtual =
+        await supabaseClient.auth.getUser();
+
+    if (
+        usuarioAtual.error ||
+        !usuarioAtual.data.user
+    ) {
+
+        alert("Faça login novamente.");
+        return;
+
+    }
+
+    const usuario = usuarioAtual.data.user;
+
+    const solicitacao = {
+
+        usuario_id: usuario.id,
+
+        destino:
+            document.getElementById("solDestino")?.value || "",
+
+        solicitante:
+            document.getElementById("solSolicitante")?.value || "",
+
+        setor:
+            document.getElementById("solSetor")?.value || "",
+
+        prioridade:
+            document.getElementById("solPrioridade")?.value || "",
+
+        itens:
+            window.itensSolicitacao || [],
+
+        observacoes:
+            document.getElementById("solObservacoes")?.value || ""
+
+    };
+
+    const resultado =
+        await supabaseClient
+            .from("solicitacoes_materiais")
+            .insert([solicitacao]);
+
+    if (resultado.error) {
+
+        console.error(resultado.error);
+
+        alert("Erro ao salvar solicitação.");
+        return;
+
+    }
+
+    mostrarToast("✅ Solicitação enviada.");
+
 }
