@@ -1188,8 +1188,9 @@
     const CAMPOS_BUSCA_TEXTO = [
         "nome", "nome_completo", "cpf", "cns", "telefone", "celular",
         "endereco", "microarea", "micro_area", "equipe", "unidade",
-        "classificacao_risco", "risco", "status", "condicoes", "condicao",
-        "linha_cuidado", "diagnosticos", "observacoes"
+        "unidadePaciente", "classificacao_risco", "risco", "status",
+        "condicoes", "condicao", "linha_cuidado", "diagnosticos",
+        "observacoes", "soapAvaliacao", "soapPlanoConduta"
     ];
 
     function normalizarTexto(valor) {
@@ -1206,11 +1207,15 @@
 
     function valorSim(valor) {
         const v = normalizarTexto(valor);
-        return valor === true || valor === 1 || v === "sim" || v === "s" || v === "true" || v === "1" || v === "ativo" || v === "positiva" || v === "positivo";
-    }
-
-    function campoSim(p, nomes) {
-        return nomes.some(nome => valorSim(p?.[nome]));
+        return valor === true ||
+            valor === 1 ||
+            v === "sim" ||
+            v === "s" ||
+            v === "true" ||
+            v === "1" ||
+            v === "ativo" ||
+            v === "positiva" ||
+            v === "positivo";
     }
 
     function textoPaciente(p) {
@@ -1219,57 +1224,90 @@
             .join(" ");
     }
 
+    function campoSim(p, nomes) {
+        return nomes.some(nome => valorSim(p?.[nome]));
+    }
+
     function pacienteTemHAS(p) {
         const texto = normalizarTexto(textoPaciente(p));
         return campoSim(p, ["has", "hasSN", "has_sn", "hipertensao", "hipertenso", "hipertensa"]) ||
-               texto.includes("hipertens") ||
-               texto.includes("has");
+            texto.includes("has") ||
+            texto.includes("hipertens");
     }
 
     function pacienteTemDM(p) {
         const texto = normalizarTexto(textoPaciente(p));
         return campoSim(p, ["dm", "dmSN", "dm_sn", "diabetes", "diabetico", "diabetica"]) ||
-               texto.includes("diabetes") ||
-               texto.includes("diabet") ||
-               texto.includes("dm");
+            texto.includes("diabetes") ||
+            texto.includes("diabet") ||
+            texto.includes(" dm ");
     }
 
     function pacienteTemPN(p) {
         const texto = normalizarTexto(textoPaciente(p));
         return campoSim(p, ["pn", "pre_natal", "prenatal", "gestante", "gestanteSN", "gestante_sn"]) ||
-               texto.includes("gestante") ||
-               texto.includes("pre natal") ||
-               texto.includes("prenatal") ||
-               texto.includes("pn");
+            texto.includes("gestante") ||
+            texto.includes("pre natal") ||
+            texto.includes("prenatal") ||
+            texto.includes(" pn ");
     }
 
     function pacienteTemTB(p) {
-        const texto = normalizarTexto(textoPaciente(p));
+        const texto = normalizarTexto(` ${textoPaciente(p)} `);
         return campoSim(p, ["tb", "tbSN", "tb_sn", "tuberculose"]) ||
-               texto.includes("tuberculose") ||
-               texto.includes(" tb ") ||
-               texto === "tb";
+            texto.includes(" tuberculose ") ||
+            texto.includes(" tb ");
     }
 
     function pacienteTemHansen(p) {
         const texto = normalizarTexto(textoPaciente(p));
         return campoSim(p, ["hansen", "hansenSN", "hansen_sn", "hanseniase", "hanseniaseSN", "hanseniase_sn"]) ||
-               texto.includes("hansen") ||
-               texto.includes("hanseniase");
+            texto.includes("hansen") ||
+            texto.includes("hanseniase");
     }
 
     function pacienteCritico(p) {
-        const texto = normalizarTexto(`${p?.classificacao_risco ?? ""} ${p?.risco ?? ""} ${p?.status ?? ""} ${p?.condicoes ?? ""} ${p?.condicao ?? ""}`);
-        return texto.includes("crit") || texto.includes("grave") || texto.includes("alto risco") || texto.includes("risco alto") || texto.includes("vermelho");
+        const texto = normalizarTexto(`
+            ${p?.classificacao_risco ?? ""}
+            ${p?.risco ?? ""}
+            ${p?.status ?? ""}
+            ${p?.condicoes ?? ""}
+            ${p?.condicao ?? ""}
+            ${p?.hasClassif ?? ""}
+            ${p?.dmClassif ?? ""}
+        `);
+
+        return texto.includes("crit") ||
+            texto.includes("grave") ||
+            texto.includes("alto risco") ||
+            texto.includes("risco alto") ||
+            texto.includes("vermelho") ||
+            texto.includes("descompens");
     }
 
     function obterLinhasPaciente(p) {
         const linhas = [];
-        if (pacienteTemHAS(p)) linhas.push({ sigla: "HAS", cor: "#dc2626" });
-        if (pacienteTemDM(p)) linhas.push({ sigla: "DM", cor: "#16a34a" });
-        if (pacienteTemPN(p)) linhas.push({ sigla: "PN", cor: "#d97706" });
-        if (pacienteTemTB(p)) linhas.push({ sigla: "TB", cor: "#9333ea" });
-        if (pacienteTemHansen(p)) linhas.push({ sigla: "HANSEN", cor: "#2563eb" });
+
+        if (pacienteTemHAS(p)) {
+            linhas.push({ sigla: "HAS", cor: "#dc2626" });
+        }
+
+        if (pacienteTemDM(p)) {
+            linhas.push({ sigla: "DM", cor: "#16a34a" });
+        }
+
+        if (pacienteTemPN(p)) {
+            linhas.push({ sigla: "PN", cor: "#d97706" });
+        }
+
+        if (pacienteTemTB(p)) {
+            linhas.push({ sigla: "TB", cor: "#9333ea" });
+        }
+
+        if (pacienteTemHansen(p)) {
+            linhas.push({ sigla: "HANSEN", cor: "#2563eb" });
+        }
+
         return linhas;
     }
 
@@ -1290,6 +1328,23 @@
             .replace(/\n/g, " ");
     }
 
+    function idPaciente(p) {
+        return String(p?.id || p?.paciente_id || p?.uuid || p?.cpf || p?.cns || "");
+    }
+
+    function obterPacientePorId(id) {
+        const alvo = String(id || "");
+        const lista = Array.isArray(window.pacientes) ? window.pacientes : [];
+
+        return lista.find(p => {
+            return String(p?.id || "") === alvo ||
+                String(p?.paciente_id || "") === alvo ||
+                String(p?.uuid || "") === alvo ||
+                String(p?.cpf || "") === alvo ||
+                String(p?.cns || "") === alvo;
+        });
+    }
+
     async function carregarPacientesCentral() {
         try {
             if (typeof supabaseClient !== "undefined") {
@@ -1300,8 +1355,7 @@
 
                 if (error) {
                     console.error("Erro ao buscar pacientes no Supabase:", error);
-                    if (Array.isArray(window.pacientes)) return window.pacientes;
-                    return [];
+                    return Array.isArray(window.pacientes) ? window.pacientes : [];
                 }
 
                 window.pacientes = data || [];
@@ -1320,7 +1374,9 @@
         const termo = normalizarTexto(termoOriginal);
         const termoNumerico = somenteNumeros(termoOriginal);
 
-        if (!termo && !termoNumerico) return pacientes;
+        if (!termo && !termoNumerico) {
+            return pacientes;
+        }
 
         const tokens = termo.split(/\s+/).filter(Boolean);
 
@@ -1333,24 +1389,30 @@
             const mapa = {
                 has: pacienteTemHAS(p),
                 hipertensao: pacienteTemHAS(p),
+                hipertensaoarterial: pacienteTemHAS(p),
                 hipertenso: pacienteTemHAS(p),
                 hipertensa: pacienteTemHAS(p),
+
                 dm: pacienteTemDM(p),
                 diabetes: pacienteTemDM(p),
                 diabetico: pacienteTemDM(p),
                 diabetica: pacienteTemDM(p),
+
                 pn: pacienteTemPN(p),
                 gestante: pacienteTemPN(p),
                 prenatal: pacienteTemPN(p),
                 "pre-natal": pacienteTemPN(p),
+
                 tb: pacienteTemTB(p),
                 tuberculose: pacienteTemTB(p),
+
                 hansen: pacienteTemHansen(p),
                 hanseniase: pacienteTemHansen(p),
+
                 critico: pacienteCritico(p),
                 critica: pacienteCritico(p),
-                crítico: pacienteCritico(p),
-                crítica: pacienteCritico(p)
+                "crítico": pacienteCritico(p),
+                "crítica": pacienteCritico(p)
             };
 
             const textoLivre = normalizarTexto(`
@@ -1364,35 +1426,41 @@
             `);
 
             if (termoNumerico) {
-                if (cpf.includes(termoNumerico) || cns.includes(termoNumerico) || telefone.includes(termoNumerico)) return true;
+                if (
+                    cpf.includes(termoNumerico) ||
+                    cns.includes(termoNumerico) ||
+                    telefone.includes(termoNumerico)
+                ) {
+                    return true;
+                }
             }
 
             return tokens.every(token => {
-                if (Object.prototype.hasOwnProperty.call(mapa, token)) return mapa[token];
+                if (Object.prototype.hasOwnProperty.call(mapa, token)) {
+                    return mapa[token];
+                }
+
                 return nome.includes(token) || textoLivre.includes(token);
             });
         });
     }
 
-    function renderizarResultadoInicio(pacientes, termo) {
-        const resultadoDiv = document.getElementById("resultadoInicio");
-        if (!resultadoDiv) return;
-
+    function renderizarCardsPacientes(pacientes, termo) {
         if (!pacientes || pacientes.length === 0) {
-            resultadoDiv.innerHTML = `
+            return `
                 <div style="padding:15px; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); background:#111c2e;">
                     Nenhum paciente encontrado${termo ? ` para: <strong>${escaparHtml(termo)}</strong>` : ""}.
                 </div>
             `;
-            return;
         }
 
-        resultadoDiv.innerHTML = `
+        return `
             <div style="margin-bottom:10px; color:var(--text-muted); font-size:12px;">
                 ${pacientes.length} paciente(s) encontrado(s).
             </div>
+
             ${pacientes.map(p => {
-                const id = p.id || p.paciente_id || p.uuid || "";
+                const id = idPaciente(p);
                 const nome = p.nome || p.nome_completo || "Paciente sem nome";
                 const cpf = p.cpf || "Não informado";
                 const cns = p.cns || "Não informado";
@@ -1429,7 +1497,7 @@
                             </div>
 
                             <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
-                                <button class="btn-table-action btn-edit" onclick="abrirPacienteCentral('${escaparParametro(id)}')">Abrir</button>
+                                <button class="btn-table-action btn-edit" onclick="abrirPacienteCentral('${escaparParametro(id)}')">Abrir prontuário</button>
                                 <button class="btn-table-action" style="background:var(--success-dark);" onclick="ligarPacienteCentral('${escaparParametro(telefone)}')">📞 Ligar</button>
                                 <button class="btn-table-action" style="background:var(--success);" onclick="whatsPacienteCentral('${escaparParametro(telefone)}', '${escaparParametro(nome)}')">WhatsApp</button>
                             </div>
@@ -1438,6 +1506,67 @@
                 `;
             }).join("")}
         `;
+    }
+
+    function renderizarResultadoInicio(pacientes, termo) {
+        const resultadoDiv = document.getElementById("resultadoInicio");
+        if (!resultadoDiv) return;
+        resultadoDiv.innerHTML = renderizarCardsPacientes(pacientes, termo);
+    }
+
+    function preencherFormularioPaciente(p) {
+        if (!p) return;
+
+        const mapa = {
+            nomePaciente: p.nome || p.nome_completo || "",
+            cpfPaciente: p.cpf || "",
+            cnsPaciente: p.cns || "",
+            nascPaciente: p.data_nascimento || p.nascimento || p.nascPaciente || "",
+            telPaciente: p.telefone || p.celular || "",
+            endPaciente: p.endereco || "",
+            unidadePaciente: p.unidade || p.unidadePaciente || "",
+            equipePaciente: p.equipe || p.equipePaciente || "",
+            hasSN: pacienteTemHAS(p) ? "Sim" : "Não",
+            dmSN: pacienteTemDM(p) ? "Sim" : "Não",
+            gestanteSN: pacienteTemPN(p) ? "Sim" : "Não",
+            hasPAS: p.hasPAS || p.pas || "",
+            hasPAD: p.hasPAD || p.pad || "",
+            hasClassif: p.hasClassif || p.classificacao_risco || p.risco || "",
+            dmHbA1c: p.dmHbA1c || p.hba1c || "",
+            dmClassif: p.dmClassif || "",
+            soapSubjetivo: p.soapSubjetivo || "",
+            soapPlanoConduta: p.soapPlanoConduta || ""
+        };
+
+        Object.entries(mapa).forEach(([id, valor]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = valor ?? "";
+                el.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        });
+
+        const tb = document.getElementById("tbSN");
+        if (tb) tb.checked = pacienteTemTB(p);
+
+        const hansen = document.getElementById("hansenSN");
+        if (hansen) hansen.checked = pacienteTemHansen(p);
+
+        if (typeof mostrarCard === "function") {
+            mostrarCard("cardHAS", pacienteTemHAS(p) ? "Sim" : "Não");
+            mostrarCard("cardDM", pacienteTemDM(p) ? "Sim" : "Não");
+            mostrarCard("cardGestante", pacienteTemPN(p) ? "Sim" : "Não");
+        }
+
+        const cabecalho = document.getElementById("cabecalhoProntuario");
+        const cabecalhoNome = document.getElementById("cabecalhoNome");
+
+        if (cabecalho) cabecalho.style.display = "block";
+        if (cabecalhoNome) cabecalhoNome.textContent = `Prontuário aberto: ${p.nome || p.nome_completo || "Paciente"}`;
+
+        window.pacienteSelecionado = p;
+        window.pacienteAtual = p;
+        window.pacienteAtualId = idPaciente(p);
     }
 
     window.buscarInicio = async function buscarInicio() {
@@ -1459,24 +1588,46 @@
     };
 
     window.abrirPacienteCentral = function abrirPacienteCentral(id) {
+        const paciente = obterPacientePorId(id);
+
+        if (paciente) {
+            preencherFormularioPaciente(paciente);
+            if (typeof navigate === "function") {
+                navigate("prontuario");
+            } else {
+                document.querySelectorAll(".view").forEach(v => v.style.display = "none");
+                const view = document.getElementById("view-prontuario");
+                if (view) view.style.display = "block";
+            }
+
+            const modal = document.getElementById("painelEpidemiologicoContainer");
+            if (modal) modal.style.display = "none";
+
+            return;
+        }
+
         if (typeof abrirProntuarioPaciente === "function") {
             abrirProntuarioPaciente(id);
             return;
         }
+
         if (typeof abrirPaciente === "function") {
             abrirPaciente(id);
             return;
         }
+
         if (typeof editarPaciente === "function") {
             editarPaciente(id);
             return;
         }
+
         if (typeof carregarPacienteNoProntuario === "function") {
             carregarPacienteNoProntuario(id);
             return;
         }
+
         if (typeof navigate === "function") navigate("prontuario");
-        alert("Paciente localizado. Não encontrei a função de abrir prontuário neste index.");
+        alert("Paciente localizado, mas não foi possível carregar os dados no formulário.");
     };
 
     window.ligarPacienteCentral = function ligarPacienteCentral(telefone) {
@@ -1485,6 +1636,7 @@
             alert("Paciente sem telefone cadastrado.");
             return;
         }
+
         window.location.href = `tel:${numero}`;
     };
 
@@ -1494,19 +1646,134 @@
             alert("Paciente sem telefone cadastrado.");
             return;
         }
-        if (!numero.startsWith("55")) numero = `55${numero}`;
-        const mensagem = encodeURIComponent(`Olá, ${nome || "paciente"}. Entramos em contato pela equipe de saúde para acompanhamento territorial.`);
+
+        if (!numero.startsWith("55")) {
+            numero = `55${numero}`;
+        }
+
+        const mensagem = encodeURIComponent(
+            `Olá, ${nome || "paciente"}. Entramos em contato pela equipe de saúde para acompanhamento territorial.`
+        );
+
         window.open(`https://wa.me/${numero}?text=${mensagem}`, "_blank");
     };
 
-    function inicializarCentralBuscaAtiva() {
+    window.fecharPainelEpidemiologico = function fecharPainelEpidemiologico() {
+        const modal = document.getElementById("painelEpidemiologicoContainer");
+        if (modal) modal.style.display = "none";
+    };
+
+    window.abrirPainelEpidemiologico = async function abrirPainelEpidemiologico(tipo) {
+        const modal = document.getElementById("painelEpidemiologicoContainer");
+        const titulo = document.getElementById("tituloPainelEpidemiologico");
+        const tabela = document.getElementById("tabelaPainelEpidemiologico");
+        const donut = document.getElementById("containerGraficoDonut");
+        const barras = document.getElementById("containerGraficoBarras");
+
+        if (!modal || !tabela) {
+            return;
+        }
+
+        const pacientes = await carregarPacientesCentral();
+
+        const filtros = {
+            has: {
+                titulo: "Monitoramento Territorial: Hipertensão Arterial Sistêmica (HAS)",
+                fn: pacienteTemHAS
+            },
+            dm: {
+                titulo: "Monitoramento Territorial: Diabetes Mellitus (DM)",
+                fn: pacienteTemDM
+            },
+            gestante: {
+                titulo: "Monitoramento Territorial: Pré-Natal Ativo (PN)",
+                fn: pacienteTemPN
+            },
+            tuberculose: {
+                titulo: "Monitoramento Territorial: Tuberculose (TB)",
+                fn: pacienteTemTB
+            },
+            hanseniase: {
+                titulo: "Monitoramento Territorial: Hanseníase",
+                fn: pacienteTemHansen
+            },
+            criticos: {
+                titulo: "Central de Avisos: Pacientes Críticos",
+                fn: pacienteCritico
+            }
+        };
+
+        const config = filtros[tipo] || {
+            titulo: "Vigilância em Saúde Territorial",
+            fn: () => true
+        };
+
+        const lista = pacientes.filter(config.fn);
+
+        if (titulo) titulo.textContent = config.titulo;
+
+        if (donut) {
+            donut.innerHTML = `
+                <div class="donut-wrapper">
+                    <div class="donut-center-text">
+                        <span class="donut-number">${lista.length}</span>
+                        <span class="donut-label">casos</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (barras) {
+            const criticos = lista.filter(pacienteCritico).length;
+            const controlados = Math.max(lista.length - criticos, 0);
+
+            barras.innerHTML = `
+                <div style="margin-bottom:10px;">
+                    <div class="bar-label"><span>Críticos</span><span>${criticos}</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${lista.length ? (criticos/lista.length)*100 : 0}%; background:var(--danger);"></div></div>
+                </div>
+                <div>
+                    <div class="bar-label"><span>Monitorados</span><span>${controlados}</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${lista.length ? (controlados/lista.length)*100 : 0}%; background:var(--success-dark);"></div></div>
+                </div>
+            `;
+        }
+
+        tabela.innerHTML = renderizarCardsPacientes(lista, "");
+        modal.style.display = "flex";
+    };
+
+    function atualizarDashboardsCentrais() {
+        const lista = Array.isArray(window.pacientes) ? window.pacientes : [];
+        const setText = (id, valor) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = valor;
+        };
+
+        setText("dashHAS", lista.filter(pacienteTemHAS).length);
+        setText("dashDM", lista.filter(pacienteTemDM).length);
+        setText("dashGest", lista.filter(pacienteTemPN).length);
+        setText("dashTB", lista.filter(pacienteTemTB).length);
+        setText("dashHansen", lista.filter(pacienteTemHansen).length);
+
+        const sino = document.getElementById("contadorAvisosSininho");
+        if (sino) sino.textContent = lista.filter(pacienteCritico).length;
+    }
+
+    async function inicializarCentralBuscaAtiva() {
         const campo = document.getElementById("buscaNomeInicio");
-        if (!campo) return;
+        if (campo) {
+            campo.removeAttribute("onkeyup");
+            campo.onkeyup = null;
+            campo.addEventListener("input", window.buscarInicio);
+        }
 
-        campo.removeAttribute("onkeyup");
-        campo.addEventListener("input", window.buscarInicio);
+        await carregarPacientesCentral();
+        atualizarDashboardsCentrais();
 
-        if (campo.value.trim()) window.buscarInicio();
+        if (campo && campo.value.trim()) {
+            window.buscarInicio();
+        }
     }
 
     document.addEventListener("DOMContentLoaded", inicializarCentralBuscaAtiva);
