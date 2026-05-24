@@ -244,6 +244,59 @@ function calcularIMC() {
     campoIMC.value = imc.toFixed(1);
 }
 
+function gerarPDFPlanoCuidado() {
+    const campoPTS = document.getElementById("planoTerapeuticoSingular");
+
+    if (!campoPTS || !campoPTS.value.trim()) {
+        mostrarToast?.("⚠️ Gere o plano antes de criar o PDF.");
+        return;
+    }
+
+    const nome = document.getElementById("nomePaciente")?.value || "Paciente";
+    const cpf = document.getElementById("cpfPaciente")?.value || "-";
+    const cns = document.getElementById("cnsPaciente")?.value || "-";
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const margem = 15;
+    let y = 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Plano de Cuidado - SintaxeHub", margem, y);
+
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Paciente: ${nome}`, margem, y);
+    y += 6;
+    doc.text(`CPF: ${cpf} | CNS: ${cns}`, margem, y);
+    y += 6;
+    doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, margem, y);
+
+    y += 10;
+
+    const linhas = doc.splitTextToSize(campoPTS.value, 180);
+
+    linhas.forEach(linha => {
+        if (y > 280) {
+            doc.addPage();
+            y = 20;
+        }
+
+        doc.text(linha, margem, y);
+        y += 6;
+    });
+
+    doc.save(`plano_cuidado_${cpf || cns || "paciente"}.pdf`);
+
+    mostrarToast?.("📄 PDF do plano gerado.");
+}
+
+window.gerarPDFPlanoCuidado = gerarPDFPlanoCuidado;
+
 window.calcularIMC = calcularIMC;
 
 window.calcularRiscoGlobalPaciente = calcularRiscoGlobalPaciente;
@@ -252,3 +305,4 @@ window.exibirPainelRiscoClinico = exibirPainelRiscoClinico;
 window.gerarRiscoDoFormularioAtual = gerarRiscoDoFormularioAtual;
 window.copiarPlanoTerapeutico = copiarPlanoTerapeutico;
 window.registrarPlanoNoSOAP = registrarPlanoNoSOAP;
+
