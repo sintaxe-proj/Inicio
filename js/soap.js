@@ -399,3 +399,33 @@ async function salvarPacienteSupabaseSilencioso(paciente) {
         return false;
     }
 }
+async function salvarProntuario() {
+    const paciente = {
+        nome: document.getElementById("nomePaciente")?.value || "",
+        cpf: document.getElementById("cpfPaciente")?.value || "",
+        telefone: document.getElementById("telPaciente")?.value || "",
+        endereco: document.getElementById("endPaciente")?.value || "",
+        cns: document.getElementById("cnsPaciente")?.value || ""
+    };
+
+    if (!paciente.nome || !paciente.cpf) {
+        alert("Informe nome e CPF do paciente.");
+        return;
+    }
+
+    // Salvar localmente no IndexedDB, se a função existir
+    if (typeof salvarPaciente === "function") {
+        await salvarPaciente(paciente);
+    } else if (typeof adicionarPaciente === "function") {
+        await adicionarPaciente(paciente);
+    } else {
+        console.warn("Nenhuma função local de salvamento encontrada.");
+    }
+
+    // Salvar silenciosamente no Supabase
+    await salvarPacienteSupabaseSilencioso(paciente);
+
+    alert("Prontuário salvo com sucesso.");
+}
+
+window.salvarProntuario = salvarProntuario;
