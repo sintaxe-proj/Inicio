@@ -338,10 +338,26 @@
             <input type="password" id="loginSenha" placeholder="Senha de Acesso">
             <div id="loginErro" style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;"></div>
             <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
-        </div>
-    </div>
+        <button
+        onclick="testarSalvarPacienteSupabase()"
+        style="
+            background:#2563eb;
+            color:white;
+            border:none;
+            padding:10px;
+            border-radius:6px;
+            cursor:pointer;
+            font-weight:bold;
+        "
+    >
+        ☁️ Salvar Paciente Online
+    </button>
 
-    <div id="app" style="display:none;">
+</div>
+
+</div>
+
+<div id="app" style="display:none;">
         
         <header>
             <div style="display:flex; align-items:center; gap:15px;">
@@ -1216,7 +1232,6 @@ window.autenticarUsuario = autenticarUsuario;
 <script src="./js/reuniao.js"></script>
 <script src="./js/riscoClinico.js"></script>
 <script src="js/materiais.js"></script>
-<!-- App sempre por último -->
 <script src="./js/app.js"></script>
 
 </body>
