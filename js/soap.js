@@ -1,140 +1,166 @@
 /* ==========================================================================
-   🩺 MÓDULO SOAP — PRONTUÁRIO E LÓGICA CLÍNICA
+   🩺 SOAP.JS — PRONTUÁRIO DIGITAL SUPABASE + AUTOCOMPLETE
    ========================================================================== */
 
-/**
- * Exibe ou oculta a área de exame físico alterado
- */
+/* ==========================================================================
+   🔄 EXAME FÍSICO
+   ========================================================================== */
+
 function alternarExameFisico(status) {
-    const bloco = document.getElementById("blocoExameAlterado");
+
+    const bloco =
+        document.getElementById(
+            "blocoExameAlterado"
+        );
+
+    if (!bloco) return;
 
     if (status === "Alterado") {
-        bloco.style.display = "block";
+
+        bloco.style.display =
+            "block";
+
         document.getElementById(
             "soapObjetivoAlterado"
-        ).focus();
+        )?.focus();
+
     } else {
-        bloco.style.display = "none";
+
+        bloco.style.display =
+            "none";
+
         document.getElementById(
             "soapObjetivoAlterado"
         ).value = "";
     }
 }
 
+/* ==========================================================================
+   🧹 LIMPAR FORMULÁRIO
+   ========================================================================== */
+
 function limparFormularioProntuario() {
 
-    document.getElementById("soapSubjetivo").value = "";
+    const ids = [
 
-    document.getElementById("objPA").value = "";
-    document.getElementById("objFC").value = "";
-    document.getElementById("objFR").value = "";
-    document.getElementById("objSatO2").value = "";
-    document.getElementById("objDor").value = "0";
+        "soapSubjetivo",
+        "objPA",
+        "objFC",
+        "objFR",
+        "objSatO2",
+        "objDor",
+        "soapObjetivoAlterado",
+        "soapPlanoConduta",
+        "soapReavaliacaoDias",
+        "inputBuscaCIAPS",
 
-    document.querySelector(
-        'input[name="exameFisicoStatus"][value="Normal"]'
-    ).checked = true;
-
-    document.getElementById(
-        "blocoExameAlterado"
-    ).style.display = "none";
-
-    document.getElementById(
-        "soapObjetivoAlterado"
-    ).value = "";
-
-    document.getElementById(
-        "soapPlanoConduta"
-    ).value = "";
-
-    document.getElementById(
-        "soapReavaliacaoDias"
-    ).value = "0";
-
-    document.getElementById(
-        "inputBuscaCIAPS"
-    ).value = "";
-
-    const campos = [
         "nomePaciente",
         "cpfPaciente",
+        "cnsPaciente",
         "nascPaciente",
         "idadePaciente",
         "telPaciente",
+
         "CEP",
         "endPaciente",
         "endNumero",
         "endComplemento",
+
         "hasPAS",
         "hasPAD",
         "hasClassif",
+
         "dmHbA1c",
         "dmClassif",
+
         "gestDUM",
         "gestIG",
-        "gestDPP"
+        "gestDPP",
+
+        "planoTerapeuticoSingular"
     ];
 
-    campos.forEach(campo => {
-        const el = document.getElementById(campo);
+    ids.forEach(id => {
+
+        const el =
+            document.getElementById(id);
 
         if (el) {
             el.value = "";
         }
     });
 
-    document.getElementById("hasSN").value = "Não";
-    document.getElementById("dmSN").value = "Não";
-    document.getElementById("gestanteSN").value = "Não";
-
-    document.getElementById("tbSN").checked = false;
-    document.getElementById("hansenSN").checked = false;
+    document.getElementById(
+        "objDor"
+    ).value = "0";
 
     document.getElementById(
-        "cardHAS"
-    ).style.display = "none";
+        "soapReavaliacaoDias"
+    ).value = "0";
 
     document.getElementById(
-        "cardDM"
-    ).style.display = "none";
+        "hasSN"
+    ).value = "Não";
 
     document.getElementById(
-        "cardGestante"
-    ).style.display = "none";
+        "dmSN"
+    ).value = "Não";
 
     document.getElementById(
-        "ampiBloco"
-    ).style.display = "none";
+        "gestanteSN"
+    ).value = "Não";
 
     document.getElementById(
-        "cabecalhoProntuario"
-    ).style.display = "none";
+        "tbSN"
+    ).checked = false;
+
+    document.getElementById(
+        "hansenSN"
+    ).checked = false;
 
     document.getElementById(
         "linhaTempoEvolucoes"
     ).innerHTML = "";
+
+    mostrarCardsLinhasCuidado();
 }
 
 /* ==========================================================================
-   🩺 CLASSIFICAÇÕES E CÁLCULOS CLÍNICOS
+   👴 IDADE
    ========================================================================== */
 
 function calcIdade() {
-    const nasc = document.getElementById("nascPaciente").value;
+
+    const nasc =
+        document.getElementById(
+            "nascPaciente"
+        )?.value;
 
     if (!nasc) return;
 
-    const hoje = new Date();
-    const dataNasc = new Date(nasc);
+    const hoje =
+        new Date();
 
-    let idade = hoje.getFullYear() - dataNasc.getFullYear();
+    const dataNasc =
+        new Date(nasc);
 
-    const m = hoje.getMonth() - dataNasc.getMonth();
+    let idade =
+        hoje.getFullYear() -
+        dataNasc.getFullYear();
+
+    const m =
+        hoje.getMonth() -
+        dataNasc.getMonth();
 
     if (
         m < 0 ||
-        (m === 0 && hoje.getDate() < dataNasc.getDate())
+        (
+            m === 0 &&
+            hoje.getDate() <
+            dataNasc.getDate()
+        )
     ) {
+
         idade--;
     }
 
@@ -142,91 +168,161 @@ function calcIdade() {
         "idadePaciente"
     ).value = idade;
 
-    document.getElementById(
-        "ampiBloco"
-    ).style.display =
-        idade >= 60 ? "block" : "none";
+    const ampi =
+        document.getElementById(
+            "ampiBloco"
+        );
+
+    if (ampi) {
+
+        ampi.style.display =
+            idade >= 60
+                ? "block"
+                : "none";
+    }
 }
 
-function classificarHAS() {
-    const pas = parseInt(
-        document.getElementById("hasPAS").value
-    );
+/* ==========================================================================
+   ❤️ CLASSIFICAÇÃO HAS
+   ========================================================================== */
 
-    const pad = parseInt(
-        document.getElementById("hasPAD").value
-    );
+function classificarHAS() {
+
+    const pas =
+        parseInt(
+            document.getElementById(
+                "hasPAS"
+            )?.value
+        );
+
+    const pad =
+        parseInt(
+            document.getElementById(
+                "hasPAD"
+            )?.value
+        );
 
     const campo =
-        document.getElementById("hasClassif");
+        document.getElementById(
+            "hasClassif"
+        );
+
+    if (!campo) return;
 
     if (!pas || !pad) {
+
         campo.value = "";
         return;
     }
 
     if (pas >= 180 || pad >= 110) {
+
         campo.value =
-            "Crise Hipertensiva (Prioridade Máxima)";
-        campo.style.color = "var(--danger)";
+            "Crise Hipertensiva";
+
+        campo.style.color =
+            "var(--danger)";
     }
 
-    else if (pas >= 140 || pad >= 90) {
+    else if (
+        pas >= 140 ||
+        pad >= 90
+    ) {
+
         campo.value =
-            "Hipertensão Estágio 1 ou 2";
-        campo.style.color = "var(--warning)";
+            "Hipertensão Estágio 1/2";
+
+        campo.style.color =
+            "var(--warning)";
     }
 
     else {
+
         campo.value =
             "Pressão Controlada";
-        campo.style.color = "var(--success)";
+
+        campo.style.color =
+            "var(--success)";
     }
 }
 
+/* ==========================================================================
+   🍬 CLASSIFICAÇÃO DM
+   ========================================================================== */
+
 function classificarDM() {
-    const hba1c = parseFloat(
-        document.getElementById("dmHbA1c").value
-    );
+
+    const hba1c =
+        parseFloat(
+            document.getElementById(
+                "dmHbA1c"
+            )?.value
+        );
 
     const campo =
-        document.getElementById("dmClassif");
+        document.getElementById(
+            "dmClassif"
+        );
+
+    if (!campo) return;
 
     if (!hba1c) {
+
         campo.value = "";
         return;
     }
 
     if (hba1c >= 8) {
+
         campo.value =
-            "Controle Metabólico Ruim";
-        campo.style.color = "var(--danger)";
+            "Controle Ruim";
+
+        campo.style.color =
+            "var(--danger)";
     }
 
     else if (hba1c >= 7) {
+
         campo.value =
             "Controle Limítrofe";
-        campo.style.color = "var(--warning)";
+
+        campo.style.color =
+            "var(--warning)";
     }
 
     else {
+
         campo.value =
             "Excelente Controle";
-        campo.style.color = "var(--success)";
+
+        campo.style.color =
+            "var(--success)";
     }
 }
 
+/* ==========================================================================
+   🤰 IDADE GESTACIONAL
+   ========================================================================== */
+
 function calcIG() {
+
     const dum =
-        document.getElementById("gestDUM").value;
+        document.getElementById(
+            "gestDUM"
+        )?.value;
 
     if (!dum) return;
 
-    const dataDum = new Date(dum);
-    const hoje = new Date();
+    const dataDum =
+        new Date(dum);
+
+    const hoje =
+        new Date();
 
     const diffTime =
-        Math.abs(hoje - dataDum);
+        Math.abs(
+            hoje - dataDum
+        );
 
     const diffDays =
         Math.ceil(
@@ -243,9 +339,10 @@ function calcIG() {
     document.getElementById(
         "gestIG"
     ).value =
-        `${semanas} Semanas e ${dias} Dias`;
+        `${semanas}s ${dias}d`;
 
-    const dpp = new Date(dataDum);
+    const dpp =
+        new Date(dataDum);
 
     dpp.setDate(
         dpp.getDate() + 280
@@ -254,223 +351,776 @@ function calcIG() {
     document.getElementById(
         "gestDPP"
     ).value =
-        dpp.toLocaleDateString("pt-BR");
+        dpp.toLocaleDateString(
+            "pt-BR"
+        );
 }
 
-function mostrarOutroMetodoTB() {
-    const rx = document.getElementById("tbRadiografia")?.value;
-    const bacilo = document.getElementById("tbBaciloscopia")?.value;
-    const box = document.getElementById("tbOutroMetodoBox");
+/* ==========================================================================
+   🔎 AUTOCOMPLETE PACIENTE
+   ========================================================================== */
 
-    if (!box) return;
+let timerBuscaPaciente = null;
 
-    box.style.display =
-        rx === "Não" || bacilo === "Não"
-            ? "block"
-            : "none";
+function iniciarAutocompletePaciente() {
+
+    const cpfInput =
+        document.getElementById(
+            "cpfPaciente"
+        );
+
+    const cnsInput =
+        document.getElementById(
+            "cnsPaciente"
+        );
+
+    if (cpfInput) {
+
+        cpfInput.addEventListener(
+            "input",
+            agendarBuscaPacientePorDocumento
+        );
+
+        cpfInput.addEventListener(
+            "blur",
+            buscarPacientePorDocumento
+        );
+    }
+
+    if (cnsInput) {
+
+        cnsInput.addEventListener(
+            "input",
+            agendarBuscaPacientePorDocumento
+        );
+
+        cnsInput.addEventListener(
+            "blur",
+            buscarPacientePorDocumento
+        );
+    }
 }
 
-function mostrarMotivoUrgente(valor) {
-    const box = document.getElementById("motivoUrgenteBox");
+function agendarBuscaPacientePorDocumento() {
 
-    if (!box) return;
+    clearTimeout(
+        timerBuscaPaciente
+    );
 
-    box.style.display =
-        valor === "Sim"
-            ? "block"
-            : "none";
+    timerBuscaPaciente =
+        setTimeout(() => {
+
+            buscarPacientePorDocumento();
+
+        }, 700);
 }
 
-function classificarAMPI() {
-    const pontuacao = parseInt(document.getElementById("ampiPontuacao")?.value);
-    const campo = document.getElementById("ampiPaciente");
+async function buscarPacientePorDocumento() {
 
-    if (!campo || isNaN(pontuacao)) return;
+    if (
+        typeof supabaseClient ===
+        "undefined"
+    ) return;
 
-    if (pontuacao <= 5) {
-        campo.value = "Idoso Robusto";
-    } else if (pontuacao <= 10) {
-        campo.value = "Idoso em Risco de Fragilização";
+    const cpf =
+        document.getElementById(
+            "cpfPaciente"
+        )?.value
+            ?.replace(/\D/g, "") || "";
+
+    const cns =
+        document.getElementById(
+            "cnsPaciente"
+        )?.value
+            ?.replace(/\D/g, "") || "";
+
+    if (
+        cpf.length < 11 &&
+        cns.length < 15
+    ) return;
+
+    let query =
+        supabaseClient
+            .from("pacientes")
+            .select("*")
+            .limit(1);
+
+    if (cpf.length >= 11) {
+
+        query =
+            query.eq(
+                "cpf",
+                cpf
+            );
+
     } else {
-        campo.value = "Idoso Fragilizado";
+
+        query =
+            query.eq(
+                "cns",
+                cns
+            );
     }
-}
 
-function buscarCEP() {
-    const cepInput = document.getElementById("CEP");
-    const endInput = document.getElementById("endPaciente");
-    const numeroInput = document.getElementById("endNumero");
+    const {
+        data,
+        error
+    } = await query;
 
-    if (!cepInput || !endInput) return;
+    if (error) {
 
-    const cep = cepInput.value.replace(/\D/g, "");
+        console.error(
+            "Erro ao buscar paciente:",
+            error
+        );
 
-    if (cep.length !== 8) {
-        mostrarToast("⚠️ CEP deve ter 8 números.");
         return;
     }
 
-    endInput.value = "Buscando endereço...";
+    if (
+        !data ||
+        data.length === 0
+    ) return;
 
-    fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(response => response.json())
-        .then(dados => {
-            if (dados.erro) {
-                endInput.value = "";
-                mostrarToast("❌ CEP não encontrado.");
-                return;
-            }
+    preencherPacienteNoFormulario(
+        data[0]
+    );
 
-            endInput.value = `${dados.logradouro}, ${dados.bairro}, ${dados.localidade} - ${dados.uf}`;
+    await carregarHistoricoClinicoPaciente(
+        data[0].cpf,
+        data[0].cns
+    );
 
-            if (numeroInput) {
-                numeroInput.focus();
-            }
-        })
-        .catch(() => {
-            endInput.value = "";
-            mostrarToast("❌ Erro ao buscar CEP.");
-        });
-}
-
-function carregarDatalistCIAP() {
-    const lista = document.getElementById("listaCIAP");
-
-    if (!lista) {
-        console.error("listaCIAP não encontrada.");
-        return;
-    }
-
-    lista.innerHTML = "";
-
-    if (!window.CIAP2 || typeof window.CIAP2 !== "object") {
-        console.error("Dicionário CIAP2 não carregado.");
-        return;
-    }
-
-    Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
-        const option = document.createElement("option");
-        option.value = `${codigo} - ${descricao}`;
-        lista.appendChild(option);
-    });
-
-    console.log(
-        "✅ CIAP carregado no datalist:",
-        Object.keys(window.CIAP2).length
+    mostrarToast?.(
+        "✅ Paciente encontrado."
     );
 }
 
-async function salvarPacienteSupabaseSilencioso(paciente) {
-    try {
-        const usuarioAtual = await supabaseClient.auth.getUser();
+function preencherPacienteNoFormulario(p) {
 
-        if (usuarioAtual.error || !usuarioAtual.data.user) {
-            console.warn("Supabase: usuario nao logado.");
-            return false;
-        }
+    preencherSeVazio(
+        "nomePaciente",
+        p.nome
+    );
 
-        const usuario = usuarioAtual.data.user;
+    preencherSeVazio(
+        "cpfPaciente",
+        p.cpf
+    );
 
-        const registroOnline = {
-            usuario_id: usuario.id,
-            nome: paciente.nome || "",
-            cpf: paciente.cpf || "",
-            cns: paciente.cns || "",
-            telefone: paciente.telefone || "",
-            endereco: paciente.endereco || ""
-        };
+    preencherSeVazio(
+        "cnsPaciente",
+        p.cns
+    );
 
-        const resultado = await supabaseClient
-            .from("pacientes")
-            .upsert([registroOnline], {
-                onConflict: "cpf"
-            });
+    preencherSeVazio(
+        "telPaciente",
+        p.telefone
+    );
 
-        if (resultado.error) {
-            console.error("Erro ao sincronizar Supabase:", resultado.error);
-            return false;
-        }
+    preencherSeVazio(
+        "endPaciente",
+        p.endereco
+    );
 
-        console.log("Paciente sincronizado silenciosamente no Supabase.");
-        return true;
+    preencherSeVazio(
+        "unidadePaciente",
+        p.unidade
+    );
 
-    } catch (erro) {
-        console.error("Falha inesperada no Supabase:", erro);
-        return false;
+    preencherSeVazio(
+        "equipePaciente",
+        p.equipe
+    );
+}
+
+function preencherSeVazio(id, valor) {
+
+    const campo =
+        document.getElementById(id);
+
+    if (
+        !campo ||
+        valor === undefined ||
+        valor === null
+    ) return;
+
+    if (!campo.value) {
+        campo.value = valor;
     }
 }
+
+/* ==========================================================================
+   ⏳ HISTÓRICO CLÍNICO
+   ========================================================================== */
+
+async function carregarHistoricoClinicoPaciente(cpf, cns) {
+
+    const container =
+        document.getElementById(
+            "linhaTempoEvolucoes"
+        );
+
+    if (!container) return;
+
+    const filtros = [];
+
+    if (cpf) {
+        filtros.push(
+            `cpf.eq.${cpf}`
+        );
+    }
+
+    if (cns) {
+        filtros.push(
+            `cns.eq.${cns}`
+        );
+    }
+
+    if (
+        filtros.length === 0
+    ) return;
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("atendimentos")
+        .select("*")
+        .or(
+            filtros.join(",")
+        )
+        .order(
+            "criado_em",
+            {
+                ascending: false
+            }
+        );
+
+    if (error) {
+
+        console.error(
+            "Erro histórico:",
+            error
+        );
+
+        return;
+    }
+
+    if (
+        !data ||
+        data.length === 0
+    ) {
+
+        container.innerHTML = `
+            <p style="color:var(--text-muted);">
+                Sem histórico clínico.
+            </p>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = `
+
+        <label style="font-weight:700;">
+            ⏳ Histórico Clínico
+        </label>
+
+        <div class="timeline">
+
+            ${data.map(at => `
+
+                <div class="timeline-item">
+
+                    <div class="timeline-body">
+
+                        <strong>
+                            ${formatarDataHistorico(
+                                at.criado_em
+                            )}
+                        </strong>
+
+                        <br>
+
+                        <b>S:</b>
+                        ${at.soapSubjetivo || "-"}
+
+                        <br>
+
+                        <b>O:</b>
+                        ${at.soapObjetivoAlterado || "-"}
+
+                        <br>
+
+                        <b>A:</b>
+                        ${at.inputBuscaCIAPS || "-"}
+
+                        <br>
+
+                        <b>P:</b>
+                        ${at.soapPlanoConduta || "-"}
+
+                        <br>
+
+                        <small>
+                            ${at.usuario_email || "-"}
+                        </small>
+
+                    </div>
+
+                </div>
+
+            `).join("")}
+
+        </div>
+    `;
+}
+
+function formatarDataHistorico(valor) {
+
+    if (!valor) return "-";
+
+    return new Date(valor)
+        .toLocaleString("pt-BR");
+}
+
+/* ==========================================================================
+   💾 SALVAR PRONTUÁRIO SUPABASE
+   ========================================================================== */
 
 async function salvarProntuario() {
-    const usuarioAtual = await supabaseClient.auth.getUser();
 
-    if (usuarioAtual.error || !usuarioAtual.data.user) {
-        alert("Faça login novamente.");
-        return;
+    try {
+
+        const auth =
+            await supabaseClient
+                .auth
+                .getUser();
+
+        if (
+            auth.error ||
+            !auth.data.user
+        ) {
+
+            alert(
+                "Faça login novamente."
+            );
+
+            return;
+        }
+
+        const usuario =
+            auth.data.user;
+
+        /* ==================================================
+           PACIENTE
+           ================================================== */
+
+        const paciente = {
+
+            usuario_id:
+                usuario.id,
+
+            nome:
+                document.getElementById(
+                    "nomePaciente"
+                )?.value || "",
+
+            cpf:
+                document.getElementById(
+                    "cpfPaciente"
+                )?.value
+                    ?.replace(/\D/g, "") || "",
+
+            cns:
+                document.getElementById(
+                    "cnsPaciente"
+                )?.value
+                    ?.replace(/\D/g, "") || "",
+
+            telefone:
+                document.getElementById(
+                    "telPaciente"
+                )?.value || "",
+
+            endereco:
+                document.getElementById(
+                    "endPaciente"
+                )?.value || "",
+
+            unidade:
+                document.getElementById(
+                    "unidadePaciente"
+                )?.value || "",
+
+            equipe:
+                document.getElementById(
+                    "equipePaciente"
+                )?.value || ""
+        };
+
+        if (
+            !paciente.nome ||
+            (
+                !paciente.cpf &&
+                !paciente.cns
+            )
+        ) {
+
+            alert(
+                "Informe nome e CPF/CNS."
+            );
+
+            return;
+        }
+
+        /* ==================================================
+           UPSERT PACIENTE
+           ================================================== */
+
+        const {
+            error: erroPaciente
+        } =
+        await supabaseClient
+            .from("pacientes")
+            .upsert(
+                [paciente],
+                {
+                    onConflict:
+                        paciente.cpf
+                            ? "cpf"
+                            : "cns"
+                }
+            );
+
+        if (erroPaciente) {
+
+            console.error(
+                erroPaciente
+            );
+
+            alert(
+                "Erro ao salvar paciente."
+            );
+
+            return;
+        }
+
+        /* ==================================================
+           RISCO
+           ================================================== */
+
+        const risco =
+            calcularRiscoGlobalPaciente?.({
+
+                idadePaciente:
+                    document.getElementById(
+                        "idadePaciente"
+                    )?.value || 0,
+
+                hasSN:
+                    document.getElementById(
+                        "hasSN"
+                    )?.value || "Não",
+
+                dmSN:
+                    document.getElementById(
+                        "dmSN"
+                    )?.value || "Não"
+
+            }) || {};
+
+        /* ==================================================
+           ATENDIMENTO
+           ================================================== */
+
+        const atendimento = {
+
+            usuario_id:
+                usuario.id,
+
+            usuario_email:
+                usuario.email,
+
+            cpf:
+                paciente.cpf || null,
+
+            cns:
+                paciente.cns || null,
+
+            nome_paciente:
+                paciente.nome,
+
+            unidade:
+                paciente.unidade,
+
+            equipe:
+                paciente.equipe,
+
+            soapSubjetivo:
+                document.getElementById(
+                    "soapSubjetivo"
+                )?.value || "",
+
+            soapObjetivoAlterado:
+                document.getElementById(
+                    "soapObjetivoAlterado"
+                )?.value || "",
+
+            inputBuscaCIAPS:
+                document.getElementById(
+                    "inputBuscaCIAPS"
+                )?.value || "",
+
+            soapPlanoConduta:
+                document.getElementById(
+                    "soapPlanoConduta"
+                )?.value || "",
+
+            reavaliacaoDias:
+                Number(
+                    document.getElementById(
+                        "soapReavaliacaoDias"
+                    )?.value || 0
+                ),
+
+            pa:
+                document.getElementById(
+                    "objPA"
+                )?.value || "",
+
+            fc:
+                document.getElementById(
+                    "objFC"
+                )?.value || "",
+
+            fr:
+                document.getElementById(
+                    "objFR"
+                )?.value || "",
+
+            sat_o2:
+                document.getElementById(
+                    "objSatO2"
+                )?.value || "",
+
+            dor:
+                document.getElementById(
+                    "objDor"
+                )?.value || "",
+
+            peso:
+                document.getElementById(
+                    "objpeso"
+                )?.value || "",
+
+            altura:
+                document.getElementById(
+                    "objaltura"
+                )?.value || "",
+
+            imc:
+                document.getElementById(
+                    "objIMC"
+                )?.value || "",
+
+            has:
+                document.getElementById(
+                    "hasSN"
+                )?.value || "Não",
+
+            has_pas:
+                document.getElementById(
+                    "hasPAS"
+                )?.value || "",
+
+            has_pad:
+                document.getElementById(
+                    "hasPAD"
+                )?.value || "",
+
+            has_classificacao:
+                document.getElementById(
+                    "hasClassif"
+                )?.value || "",
+
+            dm:
+                document.getElementById(
+                    "dmSN"
+                )?.value || "Não",
+
+            dm_hba1c:
+                document.getElementById(
+                    "dmHbA1c"
+                )?.value || "",
+
+            dm_classificacao:
+                document.getElementById(
+                    "dmClassif"
+                )?.value || "",
+
+            gestante:
+                document.getElementById(
+                    "gestanteSN"
+                )?.value || "Não",
+
+            tb:
+                document.getElementById(
+                    "tbSN"
+                )?.checked
+                    ? "Sim"
+                    : "Não",
+
+            hansen:
+                document.getElementById(
+                    "hansenSN"
+                )?.checked
+                    ? "Sim"
+                    : "Não",
+
+            risco_global:
+                risco.classificacao || null,
+
+            risco_pontos:
+                risco.pontos || 0,
+
+            plano_terapeutico:
+                document.getElementById(
+                    "planoTerapeuticoSingular"
+                )?.value || "",
+
+            criado_em:
+                new Date().toISOString()
+        };
+
+        /* ==================================================
+           SALVAR ATENDIMENTO
+           ================================================== */
+
+        const {
+            error: erroAtendimento
+        } =
+        await supabaseClient
+            .from("atendimentos")
+            .insert([
+                atendimento
+            ]);
+
+        if (erroAtendimento) {
+
+            console.error(
+                erroAtendimento
+            );
+
+            alert(
+                "Erro ao salvar atendimento."
+            );
+
+            return;
+        }
+
+        mostrarToast?.(
+            "✅ Prontuário salvo."
+        );
+
+        atualizarIndicatorsDashboard?.();
+
+        atualizarCentralAvisosSininho?.();
+
+        await carregarHistoricoClinicoPaciente(
+            paciente.cpf,
+            paciente.cns
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "Erro prontuário:",
+            erro
+        );
+
+        alert(
+            "Erro inesperado."
+        );
     }
-
-    const usuario = usuarioAtual.data.user;
-
-    const paciente = {
-        usuario_id: usuario.id,
-        nome: document.getElementById("nomePaciente")?.value || "",
-        cpf: document.getElementById("cpfPaciente")?.value || "",
-        telefone: document.getElementById("telPaciente")?.value || "",
-        endereco: document.getElementById("endPaciente")?.value || ""
-    };
-
-    if (!paciente.nome || !paciente.cpf) {
-        alert("Informe nome e CPF.");
-        return;
-    }
-
-    const salvarPaciente = await supabaseClient
-        .from("pacientes")
-        .upsert([paciente], {
-            onConflict: "cpf"
-        })
-        .select()
-        .single();
-
-    if (salvarPaciente.error) {
-        console.error(salvarPaciente.error);
-        alert("Erro ao salvar paciente online.");
-        return;
-    }
-
-    const atendimento = {
-        usuario_id: usuario.id,
-        paciente_id: salvarPaciente.data.id,
-        paciente_cpf: paciente.cpf,
-
-        subjetivo: document.getElementById("soapSubjetivo")?.value || "",
-        objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
-        avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
-        plano: document.getElementById("soapPlanoConduta")?.value || "",
-
-        pa: document.getElementById("objPA")?.value || "",
-        fc: document.getElementById("objFC")?.value || "",
-        fr: document.getElementById("objFR")?.value || "",
-        sat_o2: document.getElementById("objSatO2")?.value || "",
-        dor: document.getElementById("objDor")?.value || "",
-        peso: document.getElementById("objpeso")?.value || "",
-        altura: document.getElementById("objaltura")?.value || "",
-        imc: document.getElementById("objIMC")?.value || "",
-
-        ciap: document.getElementById("inputBuscaCIAPS")?.value || "",
-        retorno_dias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0)
-    };
-
-    const salvarAtendimento = await supabaseClient
-        .from("atendimentos")
-        .insert([atendimento]);
-
-    if (salvarAtendimento.error) {
-        console.error(salvarAtendimento.error);
-        alert("Paciente salvo, mas erro ao salvar atendimento.");
-        return;
-    }
-
-    alert("Prontuário salvo com sucesso.");
 }
 
-window.salvarProntuario = salvarProntuario;
+/* ==========================================================================
+   🧩 HELPERS
+   ========================================================================== */
+
+function mostrarCardsLinhasCuidado() {
+
+    const has =
+        document.getElementById("hasSN")?.value === "Sim";
+
+    const dm =
+        document.getElementById("dmSN")?.value === "Sim";
+
+    const gest =
+        document.getElementById("gestanteSN")?.value === "Sim";
+
+    document.getElementById(
+        "cardHAS"
+    ).style.display =
+        has ? "block" : "none";
+
+    document.getElementById(
+        "cardDM"
+    ).style.display =
+        dm ? "block" : "none";
+
+    document.getElementById(
+        "cardGestante"
+    ).style.display =
+        gest ? "block" : "none";
+}
+
+/* ==========================================================================
+   🚀 START
+   ========================================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        iniciarAutocompletePaciente();
+
+        carregarDatalistCIAP?.();
+
+        mostrarCardsLinhasCuidado();
+    }
+);
+
+/* ==========================================================================
+   🌎 GLOBAL
+   ========================================================================== */
+
+window.salvarProntuario =
+    salvarProntuario;
+
+window.buscarPacientePorDocumento =
+    buscarPacientePorDocumento;
+
+window.carregarHistoricoClinicoPaciente =
+    carregarHistoricoClinicoPaciente;
+
+window.limparFormularioProntuario =
+    limparFormularioProntuario;
+
+window.calcIdade =
+    calcIdade;
+
+window.classificarHAS =
+    classificarHAS;
+
+window.classificarDM =
+    classificarDM;
+
+window.calcIG =
+    calcIG;
+
+window.alternarExameFisico =
+    alternarExameFisico;
