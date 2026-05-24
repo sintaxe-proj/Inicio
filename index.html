@@ -326,29 +326,6 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-
-
-        /* ==========================================================================
-           AUTH / USUÁRIO LOGADO
-           ========================================================================== */
-        .usuario-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 2px;
-        }
-
-        #nomeUsuarioLogado {
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-        }
-
-        #cargoUsuarioLogado {
-            font-size: 11px;
-            color: rgba(255,255,255,.68);
-        }
-
     </style>
 </head>
 <body>
@@ -378,10 +355,7 @@
             </div>
             
             <div style="display:flex; align-items:center; gap:20px;">
-                <div class="usuario-info">
-                    <div id="nomeUsuarioLogado">Usuário</div>
-                    <div id="cargoUsuarioLogado">Perfil</div>
-                </div>
+                <span id="nomeUsuarioLogado" style="font-weight:500; font-size:14px; color: var(--text-main);"></span>
                 
                 <div id="centralAvisosContainer" onclick="abrirPainelEpidemiologico('criticos')" style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; position:relative;" title="">
                     <span>🔔</span>
@@ -455,6 +429,10 @@
                         <div>
                             <label>CPF *</label>
                             <input type="text" id="cpfPaciente" oninput="mascaraCPF(this)" placeholder="000.000.000-00">
+                        </div>
+                        <div>
+                            <label>CNS</label>
+                            <input type="text" id="cnsPaciente" placeholder="Cartão Nacional de Saúde">
                         </div>
                         <div>
                             <label>Data de Nascimento</label>
@@ -664,6 +642,14 @@
                         <textarea id="soapPlanoConduta" rows="3" placeholder="Insira o planejamento terapêutico..."></textarea>
                     </div>
 
+                    <div style="margin-bottom:15px;">
+                        <button onclick="gerarRiscoDoFormularioAtual()" style="background:#7c3aed; color:white; border:none; padding:8px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">
+                            🧠 Gerar Plano de Cuidado / Risco Clínico
+                        </button>
+                    </div>
+
+                    <div id="painelRiscoClinico" style="margin-bottom:20px;"></div>
+
                     <div style="margin-bottom:20px; max-width:300px;">
                         <label>Agenda do Próximo Contato / Prazo de Monitoramento (Dias)</label>
                         <input type="number" id="soapReavaliacaoDias" value="30" min="0">
@@ -682,7 +668,7 @@
                 <div class="form-section">
                     <h3 style="margin-top:0; color:var(--text-main);">🗄️ Base de Cidadãos Monitorados na Área Operacional</h3>
                     <div id="tabelaBancoContainer" style="overflow-x:auto;">
-                        <p style="color:var(--text-muted);">Carregando instâncias do IndexedDB local...</p>
+                        <p style="color:var(--text-muted);">Carregando dados do Supabase...</p>
                     </div>
                 </div>
             </div>
@@ -904,8 +890,8 @@
 </div>
                         <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
                             <h4 style="margin:0 0 10px 0; color:var(--danger);">🚀 Teste de Latência e Estresse (8.000 Prontuários)</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Injeta imediatamente um bloco massivo de 8.000 registros contendo strings SOAP complexas no IndexedDB do navegador.</p>
-                            <button onclick="gerarCargaMassaOitoMil()" style="background:var(--danger); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Injetar Matriz de Dados</button>
+                            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Gera e envia 8.000 registros simulados para o Supabase, separando identificação e atendimentos.</p>
+                            <button onclick="gerarCargaMassaOitoMil()" style="background:var(--danger); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">Enviar Dados para Supabase</button>
                         </div>
 
                       <div style="background:#111c2e; padding:15px; border:1px solid var(--border); border-radius:8px;">
@@ -1150,39 +1136,81 @@
 
 <div id="toastNotification"></div>
 
-<!-- Scripts principais -->
 
-    <div style="position:fixed; bottom:90px; right:20px; z-index:99999; display:flex; flex-direction:column; gap:10px;">
+<!-- ==========================================================
+     SCRIPTS — ORDEM CORRETA PARA SUPABASE
+     ========================================================== -->
 
-</div>
-            
+<!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="./js/supabase-config.js"></script>
-<script src="./js/auth.js"></script>
-<script src="./js/teste-supabase.js"></script>
+<!-- Configuração Supabase -->
+<script>
+    const SUPABASE_URL = "https://cjsgtqblqppztjxkvqvc.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_fVp0iSRjhADvXqxcvh4jGQ_PN46rrrZ";
 
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+    console.log("✅ Supabase conectado.");
+</script>
+
+<!-- Dados clínicos -->
 <script src="./data/ciap2.js"></script>
 
-<script src="./js/database.js"></script>
-<script src="./js/dashboard.js"></script>
-<script src="./js/soap.js"></script>
-<script src="./js/busca.js"></script>
-
+<!-- Bibliotecas de importação/exportação -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
+<!-- Módulos SintaxeHub -->
+<script src="./js/auth.js"></script>
+<script src="./js/dashboard.js"></script>
+<script src="./js/soap.js"></script>
+<script src="./js/busca.js"></script>
 <script src="./js/importador.js"></script>
 <script src="./js/monitoramento.js"></script>
 <script src="./js/whatsapp.js"></script>
 <script src="./js/configuracoes.js"></script>
 <script src="./js/utils.js"></script>
 <script src="./js/reuniao.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="./js/riscoClinico.js"></script>
 <script src="./js/materiais.js"></script>
 <script src="./js/app.js"></script>
+
+<!-- Oculta o discador na tela de login e mostra somente quando o app estiver visível -->
+<script>
+    function atualizarVisibilidadeDiscador() {
+        const app = document.getElementById("app");
+        const botao = document.querySelector(".btn-flutuante-discador");
+        const painel = document.getElementById("painelDiscagemContainer");
+
+        const appVisivel = app && app.style.display !== "none";
+
+        if (botao) {
+            botao.style.display = appVisivel ? "flex" : "none";
+        }
+
+        if (!appVisivel && painel) {
+            painel.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        atualizarVisibilidadeDiscador();
+
+        const app = document.getElementById("app");
+        if (app) {
+            const observer = new MutationObserver(atualizarVisibilidadeDiscador);
+            observer.observe(app, { attributes: true, attributeFilter: ["style"] });
+        }
+
+        setInterval(atualizarVisibilidadeDiscador, 500);
+    });
+</script>
 
 </body>
 </html>
