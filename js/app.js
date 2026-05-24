@@ -80,13 +80,15 @@ function navigate(view) {
     ) {
         carregarHistoricoSolicitacoes();
 
-        atualizarDashboardEstoque();
+        if (typeof atualizarDashboardEstoque === 'function') {
+            atualizarDashboardEstoque();
+        }
     }
 
     // configurações
     if (view === 'config') {
 
-        console.log('Configurações & Carga aberta.');
+        console.log('⚙️ Configurações & Carga aberta.');
 
         if (
             typeof listarUsuariosSistema === 'function'
@@ -97,106 +99,69 @@ function navigate(view) {
 }
 
 // ======================================================
-// LOGIN
-// ======================================================
-
-function autenticarUsuario() {
-
-    const usuario =
-        document.getElementById("loginUser")
-        .value
-        .trim();
-
-    const senha =
-        document.getElementById("loginSenha")
-        .value
-        .trim();
-
-    const erro =
-        document.getElementById("loginErro");
-
-    if (!usuario || !senha) {
-
-        erro.style.display = "block";
-
-        erro.innerText =
-            "Informe usuário e senha.";
-
-        return;
-    }
-
-    // salva sessão
-    localStorage.setItem(
-        "usuarioLogado",
-        JSON.stringify({
-            usuario: usuario,
-            nome: usuario,
-            nivel: "admin",
-            logadoEm: new Date().toISOString()
-        })
-    );
-
-    // esconde login
-    document.getElementById("loginScreen")
-        .style.display = "none";
-
-    // mostra sistema
-    document.getElementById("app")
-        .style.display = "block";
-
-    // nome usuário
-    const nomeUsuario =
-        document.getElementById("nomeUsuarioLogado");
-
-    if (nomeUsuario) {
-
-        nomeUsuario.innerText =
-            "Usuário: " + usuario;
-    }
-
-    // abre tela inicial
-    navigate('inicio');
-}
-
-// ======================================================
-// VERIFICAR LOGIN
+// LOGIN AUTOMÁTICO
 // ======================================================
 
 function verificarLoginSalvo() {
 
-    const sessao =
-        localStorage.getItem("usuarioLogado");
+    const sessaoLocal =
+        localStorage.getItem(
+            "sintaxehub_usuario_logado"
+        );
 
-    if (sessao) {
-
-        const dados =
-            JSON.parse(sessao);
-
-        document.getElementById("loginScreen")
-            .style.display = "none";
-
-        document.getElementById("app")
-            .style.display = "block";
-
-        const nomeUsuario =
-            document.getElementById("nomeUsuarioLogado");
-
-        if (nomeUsuario) {
-
-            nomeUsuario.innerText =
-                "Usuário: " + dados.usuario;
-        }
-
-        navigate('inicio');
-
-    } else {
+    if (!sessaoLocal) {
 
         document.getElementById("loginScreen")
             .style.display = "flex";
 
         document.getElementById("app")
             .style.display = "none";
+
+        return;
     }
+
+    const dados =
+        JSON.parse(sessaoLocal);
+
+    document.getElementById("loginScreen")
+        .style.display = "none";
+
+    document.getElementById("app")
+        .style.display = "block";
+
+    const nomeUsuario =
+        document.getElementById(
+            "nomeUsuarioLogado"
+        );
+
+    if (nomeUsuario) {
+
+        nomeUsuario.innerText =
+            "👤 " + (dados.nome || dados.usuario);
+    }
+
+    // permissões
+    if (
+        typeof aplicarPermissoesUsuario === 'function'
+    ) {
+        aplicarPermissoesUsuario();
+    }
+
+    // dashboard
+    if (
+        typeof atualizarIndicatorsDashboard === 'function'
+    ) {
+        atualizarIndicatorsDashboard();
+    }
+
+    // sininho
+    if (
+        typeof atualizarCentralAvisosSininho === 'function'
+    ) {
+        atualizarCentralAvisosSininho();
+    }
+
+    navigate('inicio');
 }
 
 // ======================================================
@@ -205,24 +170,54 @@ function verificarLoginSalvo() {
 
 async function efetuarLogout() {
 
-    if (
-        !confirm(
-            "Deseja realmente sair do sistema?"
-        )
-    ) {
+    const confirmar = confirm(
+        "Deseja realmente sair do sistema?"
+    );
+
+    if (!confirmar) {
         return;
     }
 
-    await supabaseClient.auth.signOut();
+    try {
+
+        // logout supabase
+        if (
+            typeof supabaseClient !== 'undefined' &&
+            supabaseClient?.auth
+        ) {
+            await supabaseClient.auth.signOut();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            'Erro ao sair do Supabase:',
+            erro
+        );
+    }
+
+    // limpa sessões locais
+    localStorage.removeItem(
+        "usuarioLogado"
+    );
+
+    localStorage.removeItem(
+        "sintaxehub_usuario_logado"
+    );
 
     localStorage.removeItem(
         "pep_sessao_ativa"
     );
 
-    mostrarToast(
-        "👋 Sessão encerrada."
-    );
+    // toast opcional
+    if (typeof mostrarToast === 'function') {
 
+        mostrarToast(
+            "👋 Sessão encerrada."
+        );
+    }
+
+    // reinicia
     location.reload();
 }
 
@@ -234,17 +229,25 @@ function atualizarDashboardEstoque() {
 
     let banco =
         JSON.parse(
-            localStorage.getItem("solicitacoesMateriais")
+            localStorage.getItem(
+                "solicitacoesMateriais"
+            )
         ) || [];
 
     const pendentes =
-        banco.filter(x => x.status === 'PENDENTE').length;
+        banco.filter(
+            x => x.status === 'PENDENTE'
+        ).length;
 
     const aprovadas =
-        banco.filter(x => x.status === 'APROVADO').length;
+        banco.filter(
+            x => x.status === 'APROVADO'
+        ).length;
 
     const entregues =
-        banco.filter(x => x.status === 'ENTREGUE').length;
+        banco.filter(
+            x => x.status === 'ENTREGUE'
+        ).length;
 
     const dashPend =
         document.getElementById(
@@ -280,5 +283,12 @@ function atualizarDashboardEstoque() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    verificarLoginSalvo
+    () => {
+
+        verificarLoginSalvo();
+
+        console.log(
+            "✅ SintaxeHub iniciado."
+        );
+    }
 );
