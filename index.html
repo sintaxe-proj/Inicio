@@ -598,6 +598,74 @@
                         </div>
                     </div>
 
+                <div id="cardTB" class="clinical-card" style="display:none; border-left-color:#a21caf; background:#251436;">
+    <h5 style="margin:0 0 10px 0; color:#d946ef;">🫁 Monitoramento Clínico - Tuberculose</h5>
+    <div class="form-grid">
+        <div>
+            <label>Data do diagnóstico</label>
+            <input type="date" id="tbDataDiagnostico">
+        </div>
+        <div>
+            <label>Fase do tratamento</label>
+            <select id="tbFaseTratamento">
+                <option value="">Selecione</option>
+                <option value="Intensiva">Intensiva</option>
+                <option value="Manutenção">Manutenção</option>
+                <option value="Encerrado">Encerrado</option>
+            </select>
+        </div>
+        <div>
+            <label>Última baciloscopia</label>
+            <input type="date" id="tbDataBaciloscopia">
+        </div>
+        <div>
+            <label>Resultado</label>
+            <select id="tbResultadoBaciloscopia">
+                <option value="">Selecione</option>
+                <option value="Negativa">Negativa</option>
+                <option value="Positiva">Positiva</option>
+                <option value="Pendente">Pendente</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div id="cardHansen" class="clinical-card" style="display:none; border-left-color:#3b82f6; background:#13213d;">
+    <h5 style="margin:0 0 10px 0; color:#60a5fa;">🖐️ Monitoramento Clínico - Hanseníase</h5>
+    <div class="form-grid">
+        <div>
+            <label>Data do diagnóstico</label>
+            <input type="date" id="hansenDataDiagnostico">
+        </div>
+        <div>
+            <label>Classificação operacional</label>
+            <select id="hansenClassificacao">
+                <option value="">Selecione</option>
+                <option value="Paucibacilar">Paucibacilar</option>
+                <option value="Multibacilar">Multibacilar</option>
+            </select>
+        </div>
+        <div>
+            <label>Grau de incapacidade</label>
+            <select id="hansenGrauIncapacidade">
+                <option value="">Selecione</option>
+                <option value="Grau 0">Grau 0</option>
+                <option value="Grau 1">Grau 1</option>
+                <option value="Grau 2">Grau 2</option>
+            </select>
+        </div>
+        <div>
+            <label>Situação do tratamento</label>
+            <select id="hansenSituacaoTratamento">
+                <option value="">Selecione</option>
+                <option value="Em tratamento">Em tratamento</option>
+                <option value="Alta por cura">Alta por cura</option>
+                <option value="Abandono">Abandono</option>
+            </select>
+        </div>
+    </div>
+</div>
+
                     <div id="ampiBloco" class="clinical-card" style="display:none; border-left-color:var(--primary-neon); background: #131e36;">
                         <h5 style="margin:0 0 10px 0; color:var(--primary-neon)">👴 Protocolo Multidimensional do Idoso (AMPI)</h5>
                         <div class="form-grid">
