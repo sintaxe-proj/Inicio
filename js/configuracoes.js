@@ -52,9 +52,13 @@ async function salvarNovoUsuario() {
 
     mostrarToast?.("✅ Usuário salvo.");
 
-    document.getElementById("novoUsuarioNome").value = "";
-    document.getElementById("novoUsuarioLogin").value = "";
-    document.getElementById("novoUsuarioSenha").value = "";
+    const campoNome = document.getElementById("novoUsuarioNome");
+    const campoLogin = document.getElementById("novoUsuarioLogin");
+    const campoSenha = document.getElementById("novoUsuarioSenha");
+
+    if (campoNome) campoNome.value = "";
+    if (campoLogin) campoLogin.value = "";
+    if (campoSenha) campoSenha.value = "";
 
     listarUsuariosSistema();
 }
@@ -204,10 +208,13 @@ async function gerarCargaMassaOitoMil() {
         const dpp = new Date(dataDum);
         dpp.setDate(dpp.getDate() + 280);
 
+        const telefone = `2199${String(i).padStart(7, "0")}`;
+
         pacientes.push({
             nome,
             cpf,
             cns,
+            telefone,
             endereco: "Avenida Central do Município Simulador",
             numero: String(i),
             complemento: "Lote Acadêmico",
@@ -274,7 +281,12 @@ async function gerarCargaMassaOitoMil() {
             retorno_dias: prazo,
             reavaliacaoDias: prazo,
 
-            nota_monitoramento: prazo === 0 ? "Paciente em prazo crítico para reavaliação." : "",
+            nota_monitoramento:
+                prazo === 0
+                    ? "Paciente em atraso para reavaliação."
+                    : prazo <= 10
+                        ? "Revisão próxima."
+                        : "",
 
             criado_em: new Date().toISOString(),
             data_atendimento: new Date().toISOString(),
@@ -341,12 +353,35 @@ async function salvarPacientesImportadosSupabase(lista) {
         nome: p.nome || p.nome_paciente || null,
         cpf: p.cpf || null,
         cns: p.cns || null,
+        telefone: p.telefone || p.celular || null,
         endereco: p.endereco || null,
         numero: p.numero || null,
         complemento: p.complemento || null,
         cep: p.cep || null,
-        ubs: p.ubs || p.unidade || null,
-        equipe: p.equipe || null,
+
+        ubs_vinculacao:
+            p.ubs_vinculacao ||
+            p.ubs ||
+            p.unidade ||
+            null,
+
+        equipe_esf:
+            p.equipe_esf ||
+            p.equipe ||
+            null,
+
+        // compatibilidade com código antigo
+        ubs:
+            p.ubs_vinculacao ||
+            p.ubs ||
+            p.unidade ||
+            null,
+
+        equipe:
+            p.equipe_esf ||
+            p.equipe ||
+            null,
+
         ...auditoria
     }));
 
@@ -367,3 +402,5 @@ window.listarUsuariosSistema = listarUsuariosSistema;
 window.alternarUsuarioAtivo = alternarUsuarioAtivo;
 window.gerarCargaMassaOitoMil = gerarCargaMassaOitoMil;
 window.salvarPacientesImportadosSupabase = salvarPacientesImportadosSupabase;
+window.salvarEmLotes = salvarEmLotes;
+window.getUsuarioAuditoria = getUsuarioAuditoria;
