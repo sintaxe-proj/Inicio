@@ -245,62 +245,329 @@ function normalizarRegistrosImportados(registros) {
         const endereco =
             pegarCampo(reg, ["endereco", "endereço", "logradouro", "rua"]);
 
+        const ubs =
+            pegarCampo(reg, [
+                "ubs",
+                "unidade",
+                "unidade_saude",
+                "ubs_vinculacao"
+            ]);
+
+        const equipe =
+            pegarCampo(reg, [
+                "equipe",
+                "esf",
+                "microarea",
+                "equipe_esf"
+            ]);
+
+        const pas =
+            pegarNumeroOuNull(
+                pegarCampo(reg, [
+                    "has_pas",
+                    "hasPAS",
+                    "pas",
+                    "pressao_sistolica",
+                    "pa_sistolica",
+                    "obj_pas"
+                ])
+            );
+
+        const pad =
+            pegarNumeroOuNull(
+                pegarCampo(reg, [
+                    "has_pad",
+                    "hasPAD",
+                    "pad",
+                    "pressao_diastolica",
+                    "pa_diastolica",
+                    "obj_pad"
+                ])
+            );
+
+        const hba1c =
+            pegarNumeroDecimalOuNull(
+                pegarCampo(reg, [
+                    "dm_hba1c",
+                    "dmHbA1c",
+                    "hba1c",
+                    "hemoglobina_glicada"
+                ])
+            );
+
         const paciente = {
             nome: nome || "Sem nome",
             cpf: cpf || null,
             cns: cns || null,
+
+            telefone:
+                pegarCampo(reg, [
+                    "telefone",
+                    "celular",
+                    "fone",
+                    "contato"
+                ]) || null,
+
             endereco: endereco || null,
-            numero: pegarCampo(reg, ["numero", "número", "num"]),
-            complemento: pegarCampo(reg, ["complemento"]),
-            cep: limparNumeros(pegarCampo(reg, ["cep", "CEP"])),
-            ubs: pegarCampo(reg, ["ubs", "unidade", "unidade_saude"]),
-            equipe: pegarCampo(reg, ["equipe", "esf", "microarea"]),
+            numero: pegarCampo(reg, ["numero", "número", "num"]) || null,
+            complemento: pegarCampo(reg, ["complemento"]) || null,
+            cep: limparNumeros(pegarCampo(reg, ["cep", "CEP"])) || null,
+
+            ubs_vinculacao: ubs || null,
+            equipe_esf: equipe || null,
+
+            // compatibilidade com código antigo
+            ubs: ubs || null,
+            equipe: equipe || null,
+
             ...auditoria
         };
 
         pacientes.push(paciente);
 
         const atendimento = {
+            paciente_cpf: cpf || null,
             cpf: cpf || null,
             cns: cns || null,
             nome_paciente: nome || "Sem nome",
 
-            has: simNao(pegarCampo(reg, ["has", "hipertensao", "hipertensão"])),
-            hasPAS: pegarCampo(reg, ["hasPAS", "pas", "pressao_sistolica"]),
-            hasPAD: pegarCampo(reg, ["hasPAD", "pad", "pressao_diastolica"]),
-            hasClassif: pegarCampo(reg, ["hasClassif", "classificacao_has"]),
+            ubs_vinculacao: ubs || null,
+            equipe_esf: equipe || null,
 
-            dm: simNao(pegarCampo(reg, ["dm", "diabetes"])),
-            dmHbA1c: pegarCampo(reg, ["dmHbA1c", "hba1c"]),
-            dmClassif: pegarCampo(reg, ["dmClassif", "classificacao_dm"]),
+            has:
+                simNao(
+                    pegarCampo(reg, [
+                        "has",
+                        "hipertensao",
+                        "hipertensão"
+                    ])
+                ),
 
-            gestante: simNao(pegarCampo(reg, ["gestante", "prenatal", "pre_natal"])),
-            gestDUM: dataOuNull(pegarCampo(reg, ["gestDUM", "dum"])),
-            gestIG: pegarCampo(reg, ["gestIG", "idade_gestacional", "ig"]),
-            gestDPP: pegarCampo(reg, ["gestDPP", "dpp"]),
+            has_pas: pas,
+            has_pad: pad,
 
-            tb: simNao(pegarCampo(reg, ["tb", "tuberculose"])),
-            hansen: simNao(pegarCampo(reg, ["hansen", "hanseniase", "hanseníase"])),
+            has_classificacao:
+                pegarCampo(reg, [
+                    "has_classificacao",
+                    "hasClassif",
+                    "classificacao_has"
+                ]),
 
-            objPA: pegarCampo(reg, ["objPA", "pa"]),
-            objFC: pegarCampo(reg, ["objFC", "fc"]),
-            objFR: pegarCampo(reg, ["objFR", "fr"]),
-            objSatO2: pegarCampo(reg, ["objSatO2", "sato2", "saturacao"]),
-            objDor: pegarCampo(reg, ["objDor", "dor"]),
-            objpeso: pegarCampo(reg, ["objpeso", "peso"]),
-            objaltura: pegarCampo(reg, ["objaltura", "altura"]),
-            objIMC: pegarCampo(reg, ["objIMC", "imc"]),
+            dm:
+                simNao(
+                    pegarCampo(reg, [
+                        "dm",
+                        "diabetes"
+                    ])
+                ),
 
-            soapSubjetivo: pegarCampo(reg, ["soapSubjetivo", "subjetivo", "s"]),
-            soapObjetivoAlterado: pegarCampo(reg, ["soapObjetivoAlterado", "objetivo", "o"]),
-            inputBuscaCIAPS: pegarCampo(reg, ["inputBuscaCIAPS", "ciap", "ciap2"]),
-            soapPlanoConduta: pegarCampo(reg, ["soapPlanoConduta", "plano", "p"]),
+            dm_hba1c: hba1c,
+
+            dm_classificacao:
+                pegarCampo(reg, [
+                    "dm_classificacao",
+                    "dmClassif",
+                    "classificacao_dm"
+                ]),
+
+            gestante:
+                simNao(
+                    pegarCampo(reg, [
+                        "gestante",
+                        "prenatal",
+                        "pre_natal"
+                    ])
+                ),
+
+            gestDUM:
+                dataOuNull(
+                    pegarCampo(reg, [
+                        "gestDUM",
+                        "dum",
+                        "gest_dum"
+                    ])
+                ),
+
+            gestIG:
+                pegarCampo(reg, [
+                    "gestIG",
+                    "idade_gestacional",
+                    "ig",
+                    "gest_ig"
+                ]),
+
+            gestDPP:
+                pegarCampo(reg, [
+                    "gestDPP",
+                    "dpp",
+                    "gest_dpp"
+                ]),
+
+            tb:
+                simNao(
+                    pegarCampo(reg, [
+                        "tb",
+                        "tuberculose"
+                    ])
+                ),
+
+            hansen:
+                simNao(
+                    pegarCampo(reg, [
+                        "hansen",
+                        "hanseniase",
+                        "hanseníase"
+                    ])
+                ),
+
+            obj_pas: pas,
+            obj_pad: pad,
+
+            pa:
+                pas || pad
+                    ? `${pas || ""}x${pad || ""}`
+                    : pegarCampo(reg, ["pa", "objPA"]),
+
+            fc:
+                pegarCampo(reg, [
+                    "fc",
+                    "objFC",
+                    "frequencia_cardiaca"
+                ]),
+
+            fr:
+                pegarCampo(reg, [
+                    "fr",
+                    "objFR",
+                    "frequencia_respiratoria"
+                ]),
+
+            sat_o2:
+                pegarCampo(reg, [
+                    "sat_o2",
+                    "objSatO2",
+                    "sato2",
+                    "saturacao"
+                ]),
+
+            dor:
+                pegarCampo(reg, [
+                    "dor",
+                    "objDor"
+                ]),
+
+            peso:
+                pegarCampo(reg, [
+                    "peso",
+                    "objpeso"
+                ]),
+
+            altura:
+                pegarCampo(reg, [
+                    "altura",
+                    "objaltura"
+                ]),
+
+            imc:
+                pegarCampo(reg, [
+                    "imc",
+                    "objIMC"
+                ]),
+
+            subjetivo:
+                pegarCampo(reg, [
+                    "subjetivo",
+                    "soapSubjetivo",
+                    "s"
+                ]),
+
+            objetivo:
+                pegarCampo(reg, [
+                    "objetivo",
+                    "soapObjetivoAlterado",
+                    "o"
+                ]),
+
+            avaliacao:
+                pegarCampo(reg, [
+                    "avaliacao",
+                    "avaliação",
+                    "inputBuscaCIAPS",
+                    "ciap",
+                    "ciap2"
+                ]),
+
+            plano:
+                pegarCampo(reg, [
+                    "plano",
+                    "soapPlanoConduta",
+                    "p"
+                ]),
+
+            soapSubjetivo:
+                pegarCampo(reg, [
+                    "soapSubjetivo",
+                    "subjetivo",
+                    "s"
+                ]),
+
+            soapObjetivoAlterado:
+                pegarCampo(reg, [
+                    "soapObjetivoAlterado",
+                    "objetivo",
+                    "o"
+                ]),
+
+            inputBuscaCIAPS:
+                pegarCampo(reg, [
+                    "inputBuscaCIAPS",
+                    "ciap",
+                    "ciap2"
+                ]),
+
+            soapPlanoConduta:
+                pegarCampo(reg, [
+                    "soapPlanoConduta",
+                    "plano",
+                    "p"
+                ]),
 
             reavaliacaoDias:
-                parseInt(pegarCampo(reg, ["reavaliacaoDias", "prazo", "dias"])) || null,
+                parseInt(
+                    pegarCampo(reg, [
+                        "reavaliacaoDias",
+                        "retorno_dias",
+                        "prazo",
+                        "dias"
+                    ])
+                ) || null,
+
+            retorno_dias:
+                parseInt(
+                    pegarCampo(reg, [
+                        "retorno_dias",
+                        "reavaliacaoDias",
+                        "prazo",
+                        "dias"
+                    ])
+                ) || null,
+
+            nota_monitoramento:
+                pegarCampo(reg, [
+                    "nota_monitoramento",
+                    "nota",
+                    "observacao",
+                    "observação"
+                ]),
 
             texto_importado:
                 reg.texto_extraido || null,
+
+            criado_em:
+                new Date().toISOString(),
+
+            data_atendimento:
+                new Date().toISOString(),
 
             ...auditoria
         };
@@ -313,7 +580,9 @@ function normalizarRegistrosImportados(registros) {
             atendimento.hansen === "Sim" ||
             atendimento.soapSubjetivo ||
             atendimento.soapPlanoConduta ||
-            atendimento.texto_importado;
+            atendimento.texto_importado ||
+            atendimento.obj_pas ||
+            atendimento.obj_pad;
 
         if (temClinico) {
             atendimentos.push(atendimento);
@@ -429,6 +698,31 @@ function limparNumeros(valor) {
     return String(valor || "").replace(/\D/g, "");
 }
 
+function pegarNumeroOuNull(valor) {
+    const limpo = limparNumeros(valor);
+
+    if (!limpo) return null;
+
+    const numero = parseInt(limpo);
+
+    return Number.isNaN(numero) ? null : numero;
+}
+
+function pegarNumeroDecimalOuNull(valor) {
+    if (!valor) return null;
+
+    const normalizado =
+        String(valor)
+            .replace(",", ".")
+            .replace(/[^\d.]/g, "");
+
+    if (!normalizado) return null;
+
+    const numero = parseFloat(normalizado);
+
+    return Number.isNaN(numero) ? null : numero;
+}
+
 function simNao(valor) {
     const v = String(valor || "").toLowerCase().trim();
 
@@ -437,7 +731,9 @@ function simNao(valor) {
         v === "s" ||
         v === "true" ||
         v === "1" ||
-        v === "positivo"
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
     ) {
         return "Sim";
     }
@@ -468,3 +764,5 @@ function dataOuNull(valor) {
    ========================================================================== */
 
 window.processarArquivoEsus = processarArquivoEsus;
+window.normalizarRegistrosImportados = normalizarRegistrosImportados;
+window.salvarImportacaoSupabase = salvarImportacaoSupabase;
