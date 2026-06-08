@@ -1496,7 +1496,7 @@
 
         const cabecalho = document.getElementById("cabecalhoProntuario");
         const cabecalhoNome = document.getElementById("cabecalhoNome");
-        if (cabecalho) cabecalho.style.display = "block";
+        if (cabecalho) cabecalho.style.display = "flex";
         if (cabecalhoNome) cabecalhoNome.textContent = `Prontuário aberto: ${p.nome || p.nome_completo || "Paciente"}`;
 
         window.pacienteSelecionado = p;
