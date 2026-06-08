@@ -74,7 +74,7 @@ async function atualizarCentralAvisosSininho() {
 
     const { data, error } = await supabaseClient
         .from("atendimentos")
-        .select("id, cpf, cns, nome_paciente, reavaliacaoDias")
+        .select("id, cpf, cns, nome_paciente, reavaliacaoDias, nota_monitoramento")
         .eq("reavaliacaoDias", 0);
 
     if (error) {
