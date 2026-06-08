@@ -375,9 +375,45 @@
             <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
         </nav>
 
-        <div id="cabecalhoProntuario" style="background:#1e3a8a; border-bottom:1px solid var(--primary-neon); padding:10px 20px; display:none;">
-            <span id="cabecalhoNome" style="color:var(--text-main); font-weight:700; font-size:14px;"></span>
-        </div>
+<div id="cabecalhoProntuario"
+     style="
+        background:#1e3a8a;
+        border-bottom:1px solid var(--primary-neon);
+        padding:10px 20px;
+        display:none;
+        align-items:center;
+        justify-content:space-between;
+     ">
+
+    <span id="cabecalhoNome"
+          style="
+            color:var(--text-main);
+            font-weight:700;
+            font-size:14px;
+          ">
+    </span>
+
+    <button
+        onclick="fecharProntuarioAtivo()"
+        title="Fechar prontuário"
+        style="
+            background:#dc2626;
+            color:white;
+            border:none;
+            width:28px;
+            height:28px;
+            border-radius:50%;
+            cursor:pointer;
+            font-weight:bold;
+            font-size:14px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        ">
+        ✕
+    </button>
+
+</div>
 
         <div class="container">
 
