@@ -233,6 +233,52 @@ function formatarDataHoraBR(data) {
     }
 }
 
+function carregarDatalistCIAP() {
+    const lista = document.getElementById("listaCIAP");
+
+    if (!lista) {
+        console.warn("Datalist CIAP não encontrado.");
+        return;
+    }
+
+    const catalogo =
+        window.CIAP2 ||
+        window.ciap2 ||
+        window.CATALOGO_CIAP2 ||
+        window.CATALOGO_CIAPS2 ||
+        {};
+
+    const entradas = Array.isArray(catalogo)
+        ? catalogo
+        : Object.entries(catalogo).map(([codigo, descricao]) => ({
+              codigo,
+              descricao
+          }));
+
+    lista.innerHTML = "";
+
+    entradas.forEach(item => {
+        const option = document.createElement("option");
+
+        const codigo = item.codigo || item[0] || "";
+        const descricao = item.descricao || item[1] || "";
+
+        option.value = `${codigo} - ${descricao}`;
+
+        lista.appendChild(option);
+    });
+
+    console.log(`✅ CIAP-2 carregado no datalist: ${entradas.length}`);
+}
+
+window.carregarDatalistCIAP = carregarDatalistCIAP;
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        carregarDatalistCIAP();
+    }, 300);
+});
+
 /* ==========================================================================
    VALORES
    ========================================================================== */
