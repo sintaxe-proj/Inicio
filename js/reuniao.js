@@ -1,6 +1,8 @@
 // ======================================================
 // SINTAXEHUB - REUNIAO.JS
 // SUPABASE PURO
+// pacientes = identificação
+// atendimentos = registro clínico / discussões
 // ======================================================
 
 let pacientesReuniao = [];
@@ -22,11 +24,25 @@ async function carregarPacientesParaDiscussao() {
     const select = document.getElementById("reuniaoPacienteCaso");
     if (!select) return;
 
+    if (typeof supabaseClient === "undefined") {
+        select.innerHTML = '<option value="">Supabase não carregado</option>';
+        return;
+    }
+
     select.innerHTML = '<option value="">Carregando pacientes...</option>';
 
     const { data, error } = await supabaseClient
         .from("pacientes")
-        .select("id, nome, cpf, cns, ubs, equipe")
+        .select(`
+            id,
+            nome,
+            cpf,
+            cns,
+            ubs,
+            equipe,
+            ubs_vinculacao,
+            equipe_esf
+        `)
         .order("nome", { ascending: true });
 
     if (error) {
@@ -42,8 +58,20 @@ async function carregarPacientesParaDiscussao() {
     pacientesReuniao.forEach(p => {
         const option = document.createElement("option");
         option.value = p.id;
+
+        const ubs =
+            p.ubs_vinculacao ||
+            p.ubs ||
+            "UBS não informada";
+
+        const equipe =
+            p.equipe_esf ||
+            p.equipe ||
+            "Equipe não informada";
+
         option.textContent =
-            `${p.nome || "Sem nome"} - CPF: ${p.cpf || "-"} CNS: ${p.cns || "-"}`;
+            `${p.nome || "Sem nome"} - CPF: ${p.cpf || "-"} CNS: ${p.cns || "-"} | ${ubs} / ${equipe}`;
+
         select.appendChild(option);
     });
 }
@@ -147,22 +175,56 @@ async function registrarDiscussaoCasoNoProntuario() {
 
     const usuario = getUsuarioReuniao();
 
+    const textoSubjetivo =
+        "Discussão realizada em reunião de equipe.";
+
+    const textoObjetivo =
+        "Caso avaliado pela equipe multiprofissional.";
+
+    const textoAvaliacao =
+        "Discussão de caso em reunião de equipe";
+
+    const textoPlano =
+        conduta || "Conduta a definir conforme equipe.";
+
     const atendimento = {
+        paciente_cpf: paciente.cpf || null,
         cpf: paciente.cpf || null,
         cns: paciente.cns || null,
         nome_paciente: paciente.nome || null,
 
-        soapSubjetivo: "Discussão realizada em reunião de equipe.",
-        soapObjetivoAlterado: "Caso avaliado pela equipe multiprofissional.",
-        inputBuscaCIAPS: "Discussão de caso em reunião de equipe",
-        soapPlanoConduta: conduta || "Conduta a definir conforme equipe.",
+        ubs_vinculacao:
+            paciente.ubs_vinculacao ||
+            paciente.ubs ||
+            null,
+
+        equipe_esf:
+            paciente.equipe_esf ||
+            paciente.equipe ||
+            null,
+
+        subjetivo: textoSubjetivo,
+        objetivo: textoObjetivo,
+        avaliacao: textoAvaliacao,
+        plano: textoPlano,
+
+        soapSubjetivo: textoSubjetivo,
+        soapObjetivoAlterado: textoObjetivo,
+        inputBuscaCIAPS: textoAvaliacao,
+        soapPlanoConduta: textoPlano,
+
         reavaliacaoDias: null,
+        retorno_dias: null,
 
         origem: "Reunião de Equipe",
         discussao_caso: discussao,
 
+        criado_em: new Date().toISOString(),
+        data_atendimento: new Date().toISOString(),
+
         usuario_id: usuario.usuario_id,
         usuario_nome: usuario.usuario_nome,
+        usuario_email: usuario.usuario_email,
         usuario_perfil: usuario.usuario_perfil
     };
 
@@ -178,8 +240,14 @@ async function registrarDiscussaoCasoNoProntuario() {
 
     adicionarCasoNaAta(paciente, discussao, conduta);
 
-    document.getElementById("reuniaoDiscussaoCaso").value = "";
-    document.getElementById("reuniaoCondutaCaso").value = "";
+    const campoDiscussao =
+        document.getElementById("reuniaoDiscussaoCaso");
+
+    const campoConduta =
+        document.getElementById("reuniaoCondutaCaso");
+
+    if (campoDiscussao) campoDiscussao.value = "";
+    if (campoConduta) campoConduta.value = "";
 
     mostrarToast?.("✅ Discussão registrada no prontuário.");
 }
@@ -196,17 +264,35 @@ function adicionarCasoNaAta(paciente, discussao, conduta) {
     item.style.padding = "10px";
     item.style.marginBottom = "10px";
 
+    const ubs =
+        paciente.ubs_vinculacao ||
+        paciente.ubs ||
+        "";
+
+    const equipe =
+        paciente.equipe_esf ||
+        paciente.equipe ||
+        "";
+
     item.innerHTML = `
         <strong>${paciente.nome || "Paciente sem nome"}</strong><br>
-        <small>CPF: ${paciente.cpf || "-"} | CNS: ${paciente.cns || "-"}</small>
+        <small>
+            CPF: ${paciente.cpf || "-"} |
+            CNS: ${paciente.cns || "-"} |
+            UBS: ${ubs || "-"} |
+            Equipe: ${equipe || "-"}
+        </small>
+
         <p><b>Discussão:</b> ${discussao}</p>
         <p><b>Conduta:</b> ${conduta || "-"}</p>
 
-        <input type="hidden" class="caso-nome" value="${paciente.nome || ""}">
-        <input type="hidden" class="caso-cpf" value="${paciente.cpf || ""}">
-        <input type="hidden" class="caso-cns" value="${paciente.cns || ""}">
-        <input type="hidden" class="caso-discussao" value="${discussao}">
-        <input type="hidden" class="caso-conduta" value="${conduta}">
+        <input type="hidden" class="caso-nome" value="${escaparReuniao(paciente.nome || "")}">
+        <input type="hidden" class="caso-cpf" value="${escaparReuniao(paciente.cpf || "")}">
+        <input type="hidden" class="caso-cns" value="${escaparReuniao(paciente.cns || "")}">
+        <input type="hidden" class="caso-ubs" value="${escaparReuniao(ubs || "")}">
+        <input type="hidden" class="caso-equipe" value="${escaparReuniao(equipe || "")}">
+        <input type="hidden" class="caso-discussao" value="${escaparReuniao(discussao)}">
+        <input type="hidden" class="caso-conduta" value="${escaparReuniao(conduta)}">
     `;
 
     lista.appendChild(item);
@@ -241,6 +327,8 @@ function coletarDadosReuniao() {
                 nome: item.querySelector(".caso-nome")?.value || "",
                 cpf: item.querySelector(".caso-cpf")?.value || "",
                 cns: item.querySelector(".caso-cns")?.value || "",
+                ubs: item.querySelector(".caso-ubs")?.value || "",
+                equipe: item.querySelector(".caso-equipe")?.value || "",
                 discussao: item.querySelector(".caso-discussao")?.value || "",
                 conduta: item.querySelector(".caso-conduta")?.value || ""
             }));
@@ -278,6 +366,7 @@ async function salvarReuniaoEquipe() {
         ...reuniao,
         usuario_id: usuario.usuario_id,
         usuario_nome: usuario.usuario_nome,
+        usuario_email: usuario.usuario_email,
         usuario_perfil: usuario.usuario_perfil
     };
 
@@ -336,6 +425,8 @@ ${casos.length ? casos.map((c, i) => `
 ${i + 1}. ${c.nome}
 CPF: ${c.cpf || "-"}
 CNS: ${c.cns || "-"}
+UBS: ${c.ubs || "-"}
+Equipe: ${c.equipe || "-"}
 Discussão: ${c.discussao}
 Conduta: ${c.conduta || "-"}
 `).join("\n") : "-"}
@@ -364,6 +455,11 @@ function imprimirAtaReuniao() {
     const janela =
         window.open("", "_blank");
 
+    if (!janela) {
+        alert("Não foi possível abrir a janela de impressão.");
+        return;
+    }
+
     janela.document.write(`
         <html>
         <head>
@@ -388,7 +484,7 @@ function imprimirAtaReuniao() {
         </head>
         <body>
             <h1>Ata de Reunião de Equipe</h1>
-            <pre>${ata}</pre>
+            <pre>${escaparHTMLReuniao(ata)}</pre>
         </body>
         </html>
     `);
@@ -400,6 +496,8 @@ function imprimirAtaReuniao() {
 function copiarAtaReuniao() {
     const campo =
         document.getElementById("ataReuniaoGerada");
+
+    if (!campo) return;
 
     if (!campo.value.trim()) {
         gerarAtaReuniao();
@@ -420,6 +518,12 @@ async function carregarHistoricoReunioes() {
         document.getElementById("historicoReunioes");
 
     if (!container) return;
+
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            '<p style="color:var(--danger);">Supabase não carregado.</p>';
+        return;
+    }
 
     const { data, error } = await supabaseClient
         .from("reunioes")
@@ -521,10 +625,15 @@ function limparFormularioReuniao() {
             el.value = "";
         });
 
-    document.getElementById("listaItensPauta").innerHTML = "";
-    document.getElementById("listaEncaminhamentos").innerHTML = "";
-    document.getElementById("listaCasosDiscussao").innerHTML = "";
-    document.getElementById("ataReuniaoGerada").value = "";
+    const listaPauta = document.getElementById("listaItensPauta");
+    const listaEnc = document.getElementById("listaEncaminhamentos");
+    const listaCasos = document.getElementById("listaCasosDiscussao");
+    const ata = document.getElementById("ataReuniaoGerada");
+
+    if (listaPauta) listaPauta.innerHTML = "";
+    if (listaEnc) listaEnc.innerHTML = "";
+    if (listaCasos) listaCasos.innerHTML = "";
+    if (ata) ata.value = "";
 
     adicionarItemPauta();
     adicionarEncaminhamento();
@@ -541,8 +650,29 @@ function getUsuarioReuniao() {
     return {
         usuario_id: usuario.id || null,
         usuario_nome: usuario.nome || usuario.email || null,
+        usuario_email: usuario.email || null,
         usuario_perfil: usuario.perfil || null
     };
+}
+
+/* ======================================================
+   HELPERS
+   ====================================================== */
+
+function escaparReuniao(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function escaparHTMLReuniao(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
 
 /* ======================================================
@@ -550,6 +680,7 @@ function getUsuarioReuniao() {
    ====================================================== */
 
 window.abrirModuloReuniao = abrirModuloReuniao;
+window.carregarPacientesParaDiscussao = carregarPacientesParaDiscussao;
 window.adicionarItemPauta = adicionarItemPauta;
 window.adicionarEncaminhamento = adicionarEncaminhamento;
 window.registrarDiscussaoCasoNoProntuario = registrarDiscussaoCasoNoProntuario;
