@@ -535,6 +535,7 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
+
                         <div>
                             <label>Diabetes (DM)?</label>
                             <select id="dmSN" onchange="mostrarCard('cardDM', this.value)">
@@ -542,6 +543,7 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
+
                         <div>
                             <label>Gestante (Pré-Natal)?</label>
                             <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
@@ -549,122 +551,198 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
-                                                    <label>Gestante (Pré-Natal)?</label>
-                            <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
+
+                        <div>
+                            <label>Tuberculose (TB)?</label>
+                            <select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
                                 <option value="Não">Não</option>
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
-<div>
-    <label>Tuberculose (TB)?</label>
-    <select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
-        <option value="Não">Não</option>
-        <option value="Sim">Sim</option>
-    </select>
-</div>
 
-<div>
-    <label>Hanseníase?</label>
-    <select id="hansenSN" onchange="mostrarCard('cardHansen', this.value)">
-        <option value="Não">Não</option>
-        <option value="Sim">Sim</option>
-    </select>
-</div>
+                        <div>
+                            <label>Hanseníase?</label>
+                            <select id="hansenSN" onchange="mostrarCard('cardHansen', this.value)">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div id="cardHAS" class="clinical-card" style="display:none;">
                         <h5 style="margin:0 0 10px 0; color:var(--danger)">🩺 Monitoramento Clínico - Hipertensão Arterial</h5>
                         <div class="form-grid">
-                            <div><label>PAS (Sistólica)</label><input type="number" id="hasPAS" oninput="classificarHAS()"></div>
-                            <div><label>PAD (Diastólica)</label><input type="number" id="hasPAD" oninput="classificarHAS()"></div>
-                            <div style="grid-column: span 2;"><label>Classificação de Risco</label><input type="text" id="hasClassif" readonly style="background:var(--bg-main); font-weight:bold;"></div>
+                            <div>
+                                <label>PAS (Sistólica)</label>
+                                <input type="number" id="hasPAS" oninput="classificarHAS()">
+                            </div>
+
+                            <div>
+                                <label>PAD (Diastólica)</label>
+                                <input type="number" id="hasPAD" oninput="classificarHAS()">
+                            </div>
+
+                            <div>
+                                <label>Data da última avaliação de retinopatia hipertensiva</label>
+                                <input type="date" id="hasDataRetinopatia">
+                            </div>
+
+                            <div>
+                                <label>Retinopatia hipertensiva</label>
+                                <select id="hasRetinopatia">
+                                    <option value="">Não informado</option>
+                                    <option value="Ausente">Ausente</option>
+                                    <option value="Grau I">Grau I</option>
+                                    <option value="Grau II">Grau II</option>
+                                    <option value="Grau III">Grau III</option>
+                                    <option value="Grau IV">Grau IV</option>
+                                </select>
+                            </div>
+
+                            <div style="grid-column: span 2;">
+                                <label>Classificação de Risco</label>
+                                <input type="text" id="hasClassif" readonly style="background:var(--bg-main); font-weight:bold;">
+                            </div>
                         </div>
                     </div>
 
                     <div id="cardDM" class="clinical-card" style="display:none; border-left-color:var(--success); background: #162c1e;">
                         <h5 style="margin:0 0 10px 0; color:var(--success)">🩸 Monitoramento Clínico - Diabetes Mellitus</h5>
                         <div class="form-grid">
-                            <div><label>Última HbA1c (%)</label><input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()"></div>
-                            <div style="grid-column: span 3;"><label>Avaliação do Controle Metabólico</label><input type="text" id="dmClassif" readonly style="background:var(--bg-main); font-weight:bold;"></div>
+                            <div>
+                                <label>Última HbA1c (%)</label>
+                                <input type="number" step="0.1" id="dmHbA1c" oninput="classificarDM()">
+                            </div>
+
+                            <div>
+                                <label>Data da última avaliação de retinopatia diabética</label>
+                                <input type="date" id="dmDataRetinopatia">
+                            </div>
+
+                            <div>
+                                <label>Retinopatia diabética</label>
+                                <select id="dmRetinopatia">
+                                    <option value="">Não informado</option>
+                                    <option value="Ausente">Ausente</option>
+                                    <option value="Não proliferativa leve">Não proliferativa leve</option>
+                                    <option value="Não proliferativa moderada">Não proliferativa moderada</option>
+                                    <option value="Não proliferativa grave">Não proliferativa grave</option>
+                                    <option value="Proliferativa">Proliferativa</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Grau de comprometimento do pé diabético</label>
+                                <select id="dmPeDiabeticoGrau">
+                                    <option value="">Não informado</option>
+                                    <option value="Grau 0">Grau 0 - Sem lesão</option>
+                                    <option value="Grau 1">Grau 1 - Neuropatia</option>
+                                    <option value="Grau 2">Grau 2 - Deformidade/vasculopatia</option>
+                                    <option value="Grau 3">Grau 3 - Úlcera prévia/amputação</option>
+                                    <option value="Grau 4">Grau 4 - Úlcera ativa</option>
+                                </select>
+                            </div>
+
+                            <div style="grid-column: span 2;">
+                                <label>Avaliação do Controle Metabólico</label>
+                                <input type="text" id="dmClassif" readonly style="background:var(--bg-main); font-weight:bold;">
+                            </div>
                         </div>
                     </div>
 
                     <div id="cardGestante" class="clinical-card" style="display:none; border-left-color:var(--warning); background: #2e2311;">
                         <h5 style="margin:0 0 10px 0; color:var(--warning)">🤰 Acompanhamento de Pré-Natal</h5>
                         <div class="form-grid">
-                            <div><label>Data da DUM (Última Menstruação)</label><input type="date" id="gestDUM" onchange="calcIG()"></div>
-                            <div><label>Idade Gestacional (IG) Atual</label><input type="text" id="gestIG" readonly style="background:var(--bg-main);"></div>
-                            <div><label>Data Provável do Parto (DPP)</label><input type="text" id="gestDPP" readonly style="background:var(--bg-main);"></div>
+                            <div>
+                                <label>Data da DUM (Última Menstruação)</label>
+                                <input type="date" id="gestDUM" onchange="calcIG()">
+                            </div>
+
+                            <div>
+                                <label>Idade Gestacional (IG) Atual</label>
+                                <input type="text" id="gestIG" readonly style="background:var(--bg-main);">
+                            </div>
+
+                            <div>
+                                <label>Data Provável do Parto (DPP)</label>
+                                <input type="text" id="gestDPP" readonly style="background:var(--bg-main);">
+                            </div>
                         </div>
                     </div>
 
-                <div id="cardTB" class="clinical-card" style="display:none; border-left-color:#a21caf; background:#251436;">
-    <h5 style="margin:0 0 10px 0; color:#d946ef;">🫁 Monitoramento Clínico - Tuberculose</h5>
-    <div class="form-grid">
-        <div>
-            <label>Data do diagnóstico</label>
-            <input type="date" id="tbDataDiagnostico">
-        </div>
-        <div>
-            <label>Fase do tratamento</label>
-            <select id="tbFaseTratamento">
-                <option value="">Selecione</option>
-                <option value="Intensiva">Intensiva</option>
-                <option value="Manutenção">Manutenção</option>
-                <option value="Encerrado">Encerrado</option>
-            </select>
-        </div>
-        <div>
-            <label>Última baciloscopia</label>
-            <input type="date" id="tbDataBaciloscopia">
-        </div>
-        <div>
-            <label>Resultado</label>
-            <select id="tbResultadoBaciloscopia">
-                <option value="">Selecione</option>
-                <option value="Negativa">Negativa</option>
-                <option value="Positiva">Positiva</option>
-                <option value="Pendente">Pendente</option>
-            </select>
-        </div>
-    </div>
-</div>
+                    <div id="cardTB" class="clinical-card" style="display:none; border-left-color:#a21caf; background:#251436;">
+                        <h5 style="margin:0 0 10px 0; color:#d946ef;">🫁 Monitoramento Clínico - Tuberculose</h5>
+                        <div class="form-grid">
+                            <div>
+                                <label>Data do diagnóstico</label>
+                                <input type="date" id="tbDataDiagnostico">
+                            </div>
 
-<div id="cardHansen" class="clinical-card" style="display:none; border-left-color:#3b82f6; background:#13213d;">
-    <h5 style="margin:0 0 10px 0; color:#60a5fa;">🖐️ Monitoramento Clínico - Hanseníase</h5>
-    <div class="form-grid">
-        <div>
-            <label>Data do diagnóstico</label>
-            <input type="date" id="hansenDataDiagnostico">
-        </div>
-        <div>
-            <label>Classificação operacional</label>
-            <select id="hansenClassificacao">
-                <option value="">Selecione</option>
-                <option value="Paucibacilar">Paucibacilar</option>
-                <option value="Multibacilar">Multibacilar</option>
-            </select>
-        </div>
-        <div>
-            <label>Grau de incapacidade</label>
-            <select id="hansenGrauIncapacidade">
-                <option value="">Selecione</option>
-                <option value="Grau 0">Grau 0</option>
-                <option value="Grau 1">Grau 1</option>
-                <option value="Grau 2">Grau 2</option>
-            </select>
-        </div>
-        <div>
-            <label>Situação do tratamento</label>
-            <select id="hansenSituacaoTratamento">
-                <option value="">Selecione</option>
-                <option value="Em tratamento">Em tratamento</option>
-                <option value="Alta por cura">Alta por cura</option>
-                <option value="Abandono">Abandono</option>
-            </select>
-        </div>
-    </div>
-</div>
+                            <div>
+                                <label>Fase do tratamento</label>
+                                <select id="tbFaseTratamento">
+                                    <option value="">Selecione</option>
+                                    <option value="Intensiva">Intensiva</option>
+                                    <option value="Manutenção">Manutenção</option>
+                                    <option value="Encerrado">Encerrado</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Última baciloscopia</label>
+                                <input type="date" id="tbDataBaciloscopia">
+                            </div>
+
+                            <div>
+                                <label>Resultado da baciloscopia</label>
+                                <select id="tbResultadoBaciloscopia">
+                                    <option value="">Selecione</option>
+                                    <option value="Negativa">Negativa</option>
+                                    <option value="Positiva">Positiva</option>
+                                    <option value="Pendente">Pendente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cardHansen" class="clinical-card" style="display:none; border-left-color:#3b82f6; background:#13213d;">
+                        <h5 style="margin:0 0 10px 0; color:#60a5fa;">🖐️ Monitoramento Clínico - Hanseníase</h5>
+                        <div class="form-grid">
+                            <div>
+                                <label>Data do diagnóstico</label>
+                                <input type="date" id="hansenDataDiagnostico">
+                            </div>
+
+                            <div>
+                                <label>Classificação operacional</label>
+                                <select id="hansenClassificacao">
+                                    <option value="">Selecione</option>
+                                    <option value="Paucibacilar">Paucibacilar</option>
+                                    <option value="Multibacilar">Multibacilar</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Grau de incapacidade</label>
+                                <select id="hansenGrauIncapacidade">
+                                    <option value="">Selecione</option>
+                                    <option value="Grau 0">Grau 0</option>
+                                    <option value="Grau 1">Grau 1</option>
+                                    <option value="Grau 2">Grau 2</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Situação do tratamento</label>
+                                <select id="hansenSituacaoTratamento">
+                                    <option value="">Selecione</option>
+                                    <option value="Em tratamento">Em tratamento</option>
+                                    <option value="Alta por cura">Alta por cura</option>
+                                    <option value="Abandono">Abandono</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
                     <div id="ampiBloco" class="clinical-card" style="display:none; border-left-color:var(--primary-neon); background: #131e36;">
                         <h5 style="margin:0 0 10px 0; color:var(--primary-neon)">👴 Protocolo Multidimensional do Idoso (AMPI)</h5>
@@ -1553,9 +1631,24 @@
             gestanteSN: pacienteTemPN(p) ? "Sim" : "Não",
             hasPAS: p.hasPAS || p.pas || "",
             hasPAD: p.hasPAD || p.pad || "",
+            hasDataRetinopatia: p.hasDataRetinopatia || p.has_data_retinopatia || "",
+            hasRetinopatia: p.hasRetinopatia || p.has_retinopatia || "",
             hasClassif: p.hasClassif || p.classificacao_risco || p.risco || "",
             dmHbA1c: p.dmHbA1c || p.hba1c || "",
+            dmDataRetinopatia: p.dmDataRetinopatia || p.dm_data_retinopatia || "",
+            dmRetinopatia: p.dmRetinopatia || p.dm_retinopatia || "",
+            dmPeDiabeticoGrau: p.dmPeDiabeticoGrau || p.dm_pe_diabetico_grau || "",
             dmClassif: p.dmClassif || "",
+            tbSN: pacienteTemTB(p) ? "Sim" : "Não",
+            hansenSN: pacienteTemHansen(p) ? "Sim" : "Não",
+            tbDataDiagnostico: p.tbDataDiagnostico || p.tb_data_diagnostico || "",
+            tbFaseTratamento: p.tbFaseTratamento || p.tb_fase_tratamento || "",
+            tbDataBaciloscopia: p.tbDataBaciloscopia || p.tb_data_baciloscopia || "",
+            tbResultadoBaciloscopia: p.tbResultadoBaciloscopia || p.tb_resultado_baciloscopia || "",
+            hansenDataDiagnostico: p.hansenDataDiagnostico || p.hansen_data_diagnostico || "",
+            hansenClassificacao: p.hansenClassificacao || p.hansen_classificacao || "",
+            hansenGrauIncapacidade: p.hansenGrauIncapacidade || p.hansen_grau_incapacidade || "",
+            hansenSituacaoTratamento: p.hansenSituacaoTratamento || p.hansen_situacao_tratamento || "",
             soapSubjetivo: p.soapSubjetivo || "",
             soapPlanoConduta: p.soapPlanoConduta || ""
         };
@@ -1569,14 +1662,17 @@
         });
 
         const tb = document.getElementById("tbSN");
-        if (tb) tb.checked = pacienteTemTB(p);
+        if (tb) tb.value = pacienteTemTB(p) ? "Sim" : "Não";
+
         const hansen = document.getElementById("hansenSN");
-        if (hansen) hansen.checked = pacienteTemHansen(p);
+        if (hansen) hansen.value = pacienteTemHansen(p) ? "Sim" : "Não";
 
         if (typeof mostrarCard === "function") {
             mostrarCard("cardHAS", pacienteTemHAS(p) ? "Sim" : "Não");
             mostrarCard("cardDM", pacienteTemDM(p) ? "Sim" : "Não");
             mostrarCard("cardGestante", pacienteTemPN(p) ? "Sim" : "Não");
+            mostrarCard("cardTB", pacienteTemTB(p) ? "Sim" : "Não");
+            mostrarCard("cardHansen", pacienteTemHansen(p) ? "Sim" : "Não");
         }
 
         const cabecalho = document.getElementById("cabecalhoProntuario");
@@ -1611,7 +1707,7 @@
                 if (view) view.style.display = "block";
             }
             const modal = document.getElementById("painelEpidemiologicoContainer");
-            if (modal) modal.style.display = "flex";
+            if (modal) modal.style.display = "none";
             return;
         }
         if (typeof navigate === "function") navigate("prontuario");
@@ -1717,6 +1813,172 @@ if (typeof window.buscarCEP !== "function") {
 
         setInterval(atualizarVisibilidadeDiscador, 500);
     });
+</script>
+
+
+<!-- Correções clínicas complementares: CIAP-2, exame físico e novos campos -->
+<script>
+(function () {
+    "use strict";
+
+    function campo(id) {
+        return document.getElementById(id);
+    }
+
+    window.mostrarCard = function mostrarCard(id, valor) {
+        const el = campo(id);
+        if (!el) return;
+        el.style.display = valor === "Sim" ? "block" : "none";
+    };
+
+    window.alternarExameFisico = function alternarExameFisico(valor) {
+        const bloco = campo("blocoExameAlterado");
+        const texto = campo("soapObjetivoAlterado");
+
+        if (!bloco) return;
+
+        if (valor === "Alterado") {
+            bloco.style.display = "block";
+            if (texto) texto.focus();
+        } else {
+            bloco.style.display = "none";
+            if (texto) texto.value = "";
+        }
+    };
+
+    window.carregarDatalistCIAP = function carregarDatalistCIAP() {
+        const datalist = campo("listaCIAP");
+        if (!datalist) return;
+
+        const base =
+            window.CATALOGO_CIAPS2 ||
+            window.CATALOGO_CIAP2 ||
+            window.CIAP2 ||
+            window.ciap2 ||
+            window.listaCIAP2 ||
+            [];
+
+        if (!Array.isArray(base) || base.length === 0) {
+            console.warn("CIAP-2 ainda não disponível para carregar no datalist.");
+            return;
+        }
+
+        datalist.innerHTML = "";
+
+        base.forEach(item => {
+            const option = document.createElement("option");
+
+            if (typeof item === "string") {
+                option.value = item;
+            } else {
+                const codigo =
+                    item.codigo ||
+                    item.cod ||
+                    item.code ||
+                    item.CODIGO ||
+                    "";
+
+                const descricao =
+                    item.descricao ||
+                    item.descrição ||
+                    item.nome ||
+                    item.descr ||
+                    item.DESCRICAO ||
+                    "";
+
+                option.value =
+                    codigo && descricao
+                        ? `${codigo} - ${descricao}`
+                        : `${codigo}${descricao}`;
+            }
+
+            datalist.appendChild(option);
+        });
+
+        console.log("✅ CIAP-2 carregado no datalist:", base.length);
+    };
+
+    function limparCamposNovos() {
+        [
+            "hasDataRetinopatia",
+            "hasRetinopatia",
+            "dmDataRetinopatia",
+            "dmRetinopatia",
+            "dmPeDiabeticoGrau",
+            "tbDataDiagnostico",
+            "tbFaseTratamento",
+            "tbDataBaciloscopia",
+            "tbResultadoBaciloscopia",
+            "hansenDataDiagnostico",
+            "hansenClassificacao",
+            "hansenGrauIncapacidade",
+            "hansenSituacaoTratamento"
+        ].forEach(id => {
+            const el = campo(id);
+            if (el) el.value = "";
+        });
+
+        const tb = campo("tbSN");
+        if (tb) tb.value = "Não";
+
+        const hansen = campo("hansenSN");
+        if (hansen) hansen.value = "Não";
+
+        mostrarCard("cardTB", "Não");
+        mostrarCard("cardHansen", "Não");
+    }
+
+    const limparOriginal = window.limparFormularioProntuario;
+    window.limparFormularioProntuario = function limparFormularioProntuarioCorrigido() {
+        if (typeof limparOriginal === "function") {
+            limparOriginal();
+        } else {
+            document
+                .querySelectorAll("#view-prontuario input, #view-prontuario textarea, #view-prontuario select")
+                .forEach(el => {
+                    if (el.type === "checkbox" || el.type === "radio") {
+                        el.checked = false;
+                    } else {
+                        el.value = "";
+                    }
+                });
+        }
+
+        limparCamposNovos();
+
+        const normal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
+        if (normal) normal.checked = true;
+
+        alternarExameFisico("Normal");
+    };
+
+    window.fecharProntuarioAtivo = function fecharProntuarioAtivo() {
+        window.pacienteAtual = null;
+        window.pacienteSelecionado = null;
+        window.pacienteAtualId = null;
+
+        const cabecalho = campo("cabecalhoProntuario");
+        const nome = campo("cabecalhoNome");
+
+        if (cabecalho) cabecalho.style.display = "none";
+        if (nome) nome.innerHTML = "";
+
+        window.limparFormularioProntuario();
+
+        if (typeof mostrarToast === "function") {
+            mostrarToast("📋 Prontuário encerrado.");
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(window.carregarDatalistCIAP, 300);
+        setTimeout(window.carregarDatalistCIAP, 1200);
+    });
+
+    window.addEventListener("load", function () {
+        setTimeout(window.carregarDatalistCIAP, 500);
+    });
+})();
 </script>
 
 </body>
