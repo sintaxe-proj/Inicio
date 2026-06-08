@@ -260,6 +260,47 @@ function inteiroOuZero(valor) {
         : numero;
 }
 
+async function buscarCEP() {
+    const campoCEP = document.getElementById("CEP");
+    if (!campoCEP) return;
+
+    const cep = campoCEP.value.replace(/\D/g, "");
+
+    if (cep.length !== 8) {
+        mostrarToast?.("⚠️ CEP inválido.");
+        return;
+    }
+
+    try {
+        const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const dados = await resposta.json();
+
+        if (dados.erro) {
+            mostrarToast?.("⚠️ CEP não encontrado.");
+            return;
+        }
+
+        const endereco = document.getElementById("endPaciente");
+
+        if (endereco) {
+            endereco.value = [
+                dados.logradouro,
+                dados.bairro,
+                dados.localidade,
+                dados.uf
+            ].filter(Boolean).join(", ");
+        }
+
+        mostrarToast?.("✅ Endereço preenchido pelo CEP.");
+
+    } catch (erro) {
+        console.error("Erro ao buscar CEP:", erro);
+        mostrarToast?.("❌ Erro ao consultar CEP.");
+    }
+}
+
+window.buscarCEP = buscarCEP;
+
 /* ==========================================================================
    GLOBAL
    ========================================================================== */
