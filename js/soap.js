@@ -886,10 +886,8 @@ async function salvarProntuario() {
                     )?.value || 0
                 ),
 
-            pa:
-                document.getElementById(
-                    "objPA"
-                )?.value || "",
+objPAS: document.getElementById("objPAS")?.value || "",
+objPAD: document.getElementById("objPAD")?.value || "",
 
             fc:
                 document.getElementById(
@@ -990,6 +988,8 @@ async function salvarProntuario() {
                 document.getElementById(
                     "planoTerapeuticoSingular"
                 )?.value || "",
+
+           nota_monitoramento: document.getElementById("notaMonitoramento")?.value || "",
 
             criado_em:
                 new Date().toISOString()
