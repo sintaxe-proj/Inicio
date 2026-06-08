@@ -65,34 +65,19 @@ async function carregarTabelaBanco() {
 
         if (termo) {
 
-            const numeros =
-                termo.replace(/\D/g, "");
+            const numeros = termo.replace(/\D/g, "");
+            const termoSomenteNumero = numeros.length > 0 && numeros === termo.replace(/\D/g, "");
 
-            if (numeros.length >= 3) {
-
-                query = query.or(
-                    `
-                    cpf.ilike.%${numeros}%,
-                    cns.ilike.%${numeros}%,
-                    telefone.ilike.%${numeros}%
-                    `
-                    .replace(/\s+/g, "")
-                );
-
-            } else {
-
-                query = query.or(
-                    `
-                    nome.ilike.%${termo}%,
-                    ubs.ilike.%${termo}%,
-                    equipe.ilike.%${termo}%,
-                    ubs_vinculacao.ilike.%${termo}%,
-                    equipe_esf.ilike.%${termo}%
-                    `
-                    .replace(/\s+/g, "")
-                );
-            }
-        }
+            if (termoSomenteNumero && numeros.length >= 3) {
+        query = query.or(
+            `cpf.ilike.%${numeros}%,cns.ilike.%${numeros}%,telefone.ilike.%${numeros}%`
+        );
+    } else {
+        query = query.or(
+            `nome.ilike.%${termo}%,ubs.ilike.%${termo}%,equipe.ilike.%${termo}%,ubs_vinculacao.ilike.%${termo}%,equipe_esf.ilike.%${termo}%`
+        );
+    }
+}
 
         const {
             data,
