@@ -435,29 +435,14 @@ function aplicarPermissoes(perfil) {
        ASSISTENCIAL
        ================================================== */
 
-    if (perfil === "assistencial") {
+  if (perfil === "assistencial") {
+    if (btnAuditoria) btnAuditoria.style.display = "none";
+    if (btnConfiguracoes) btnConfiguracoes.style.display = "none";
 
-        if (btnAuditoria)
-            btnAuditoria.style.display =
-                "none";
-
-        if (btnConfiguracoes)
-            btnConfiguracoes.style.display =
-                "none";
-
-        [
-            abaProntuario,
-            abaReuniao,
-            abaMateriais
-        ].forEach(aba => {
-
-            if (aba) {
-                aba.style.display =
-                    "inline-block";
-            }
-        });
-    }
-
+    if (abaProntuario) abaProntuario.style.display = "inline-block";
+    if (abaReuniao) abaReuniao.style.display = "inline-block";
+    if (abaMateriais) abaMateriais.style.display = "none";
+}
     /* ==================================================
        RECEPÇÃO
        ================================================== */
@@ -789,3 +774,50 @@ window.verificarSessao =
 
 window.efetuarLogout =
     efetuarLogout;
+
+/* ==========================================================
+   ALTERNAR VISÃO GESTOR / ASSISTENCIAL
+   ========================================================== */
+
+function alternarVisaoGestor(perfilSelecionado) {
+    const btnAuditoria =
+        document.getElementById("btnAuditoria");
+
+    const abaEstoque =
+        document.querySelector('[onclick="navigate(\'estoque\')"]');
+
+    const viewConfig =
+        document.getElementById("view-config");
+
+    const viewEstoque =
+        document.getElementById("view-estoque");
+
+    if (perfilSelecionado === "admin") {
+        if (btnAuditoria) {
+            btnAuditoria.style.display = "inline-block";
+        }
+
+        if (abaEstoque) {
+            abaEstoque.style.display = "inline-block";
+        }
+
+        return;
+    }
+
+    if (btnAuditoria) {
+        btnAuditoria.style.display = "none";
+    }
+
+    if (abaEstoque) {
+        abaEstoque.style.display = "none";
+    }
+
+    if (
+        viewConfig?.style.display === "block" ||
+        viewEstoque?.style.display === "block"
+    ) {
+        navigate("inicio");
+    }
+}
+
+window.alternarVisaoGestor = alternarVisaoGestor;
