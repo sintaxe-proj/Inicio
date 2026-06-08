@@ -935,8 +935,10 @@
         <h4>Pautas</h4>
         <div id="listaItensPauta"></div>
 
-        <button onclick="adicionarItemPauta()">
-            + Adicionar pauta
+        <button
+            class="btn-primary"
+            onclick="adicionarItemPauta()">
+            ➕ Adicionar pauta
         </button>
 
         <h4 style="margin-top:25px;">Discussão de Casos</h4>
@@ -959,8 +961,11 @@
                 </div>
             </div>
 
-            <button onclick="registrarDiscussaoCasoNoProntuario()" style="margin-top:10px;">
-                Registrar discussão no prontuário
+            <button
+                class="btn-success"
+                onclick="registrarDiscussaoCasoNoProntuario()"
+                style="margin-top:10px;">
+                🩺 Registrar discussão no prontuário
             </button>
         </div>
 
@@ -969,8 +974,10 @@
         <h4>Encaminhamentos</h4>
         <div id="listaEncaminhamentos"></div>
 
-        <button onclick="adicionarEncaminhamento()">
-            + Adicionar encaminhamento
+        <button
+            class="btn-primary"
+            onclick="adicionarEncaminhamento()">
+            ➕ Adicionar encaminhamento
         </button>
 
         <div style="margin-top:15px;">
@@ -978,32 +985,36 @@
             <textarea id="reuniaoConsideracoes" rows="2"></textarea>
         </div>
 
-        <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="button-row" style="margin-top:15px;">
             <button
-                class="btn-primary"
-                onclick="salvarReuniao()">
+                class="btn-success"
+                onclick="salvarReuniaoEquipe()">
                 💾 Salvar Reunião
-        </button>
+            </button>
+
             <button
-                class="btn-success"
-                onclick="gerarAta()">
+                class="btn-secondary"
+                onclick="gerarAtaReuniao()">
                 📄 Gerar Ata
-        </button>
-                        <button
-                class="btn-success"
+            </button>
+
+            <button
+                class="btn-info"
                 onclick="copiarAtaReuniao()">
-                📄 Copiar Ata
-        </button>
-                        <button
-                class="btn-success"
+                📋 Copiar Ata
+            </button>
+
+            <button
+                class="btn-secondary"
                 onclick="imprimirAtaReuniao()">
-                📄 Imprimir Ata
-        </button>
-                        <button
-                class="btn-success"
+                🖨️ Imprimir Ata
+            </button>
+
+            <button
+                class="btn-danger"
                 onclick="limparFormularioReuniao()">
-                📄 Limpar Ata
-        </button>
+                🗑️ Limpar
+            </button>
         </div>
 
         <div style="margin-top:20px;">
