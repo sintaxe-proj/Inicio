@@ -29,6 +29,16 @@ async function carregarDashboardEpidemiologicoTerritorial() {
         return;
     }
 
+    if (typeof Chart === "undefined") {
+        console.error("Chart.js não carregado.");
+
+        mostrarToast?.(
+            "❌ Chart.js não carregado. Verifique o script no index.html."
+        );
+
+        return;
+    }
+
     mostrarToast?.("📊 Atualizando dashboard epidemiológico...");
 
     const { data: pacientes, error: erroPacientes } = await supabaseClient
@@ -263,10 +273,15 @@ function classificarPrazos(base) {
 function criarGraficoBarra(canvasId, config) {
     destruirGraficoEpi(canvasId);
 
-    const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (typeof Chart === "undefined") {
+        console.error("Chart.js não carregado.");
+        return;
+    }
 
-    graficosEpidemiologicos[canvasId] = new Chart(ctx, {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    graficosEpidemiologicos[canvasId] = new Chart(canvas, {
         type: "bar",
         data: {
             labels: config.labels,
@@ -275,17 +290,22 @@ function criarGraficoBarra(canvasId, config) {
                 data: config.data
             }]
         },
-        options: opcoesPadraoEpi()
+        options: opcoesPadraoEpi(true)
     });
 }
 
 function criarGraficoPizza(canvasId, objeto, titulo) {
     destruirGraficoEpi(canvasId);
 
-    const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (typeof Chart === "undefined") {
+        console.error("Chart.js não carregado.");
+        return;
+    }
 
-    graficosEpidemiologicos[canvasId] = new Chart(ctx, {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    graficosEpidemiologicos[canvasId] = new Chart(canvas, {
         type: "doughnut",
         data: {
             labels: Object.keys(objeto),
@@ -294,7 +314,7 @@ function criarGraficoPizza(canvasId, objeto, titulo) {
                 data: Object.values(objeto)
             }]
         },
-        options: opcoesPadraoEpi()
+        options: opcoesPadraoEpi(false)
     });
 }
 
@@ -304,30 +324,42 @@ function destruirGraficoEpi(canvasId) {
     }
 }
 
-function opcoesPadraoEpi() {
-    return {
+function opcoesPadraoEpi(usarEscalas = true) {
+    const opcoes = {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 labels: {
                     color: "#f8fafc"
                 }
             }
-        },
-        scales: {
+        }
+    };
+
+    if (usarEscalas) {
+        opcoes.scales = {
             x: {
                 ticks: {
                     color: "#cbd5e1"
+                },
+                grid: {
+                    color: "rgba(255,255,255,.08)"
                 }
             },
             y: {
                 ticks: {
                     color: "#cbd5e1"
                 },
+                grid: {
+                    color: "rgba(255,255,255,.08)"
+                },
                 beginAtZero: true
             }
-        }
-    };
+        };
+    }
+
+    return opcoes;
 }
 
 window.abrirDashboardEpidemiologicoTerritorial = abrirDashboardEpidemiologicoTerritorial;
