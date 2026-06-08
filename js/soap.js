@@ -1143,6 +1143,35 @@ function fecharProntuarioAtivo() {
 window.fecharProntuarioAtivo =
     fecharProntuarioAtivo;
 
+function sincronizarPAObjetivoParaHAS() {
+    const objPAS = document.getElementById("objPAS")?.value || "";
+    const objPAD = document.getElementById("objPAD")?.value || "";
+
+    const hasPAS = document.getElementById("hasPAS");
+    const hasPAD = document.getElementById("hasPAD");
+
+    if (hasPAS && objPAS) hasPAS.value = objPAS;
+    if (hasPAD && objPAD) hasPAD.value = objPAD;
+
+    if (typeof classificarHAS === "function") {
+        classificarHAS();
+    }
+}
+
+function sincronizarPAHASParaObjetivo() {
+    const hasPAS = document.getElementById("hasPAS")?.value || "";
+    const hasPAD = document.getElementById("hasPAD")?.value || "";
+
+    const objPAS = document.getElementById("objPAS");
+    const objPAD = document.getElementById("objPAD");
+
+    if (objPAS && hasPAS) objPAS.value = hasPAS;
+    if (objPAD && hasPAD) objPAD.value = hasPAD;
+}
+
+window.sincronizarPAObjetivoParaHAS = sincronizarPAObjetivoParaHAS;
+window.sincronizarPAHASParaObjetivo = sincronizarPAHASParaObjetivo;
+
 /* ==========================================================================
    🌎 GLOBAL
    ========================================================================== */
