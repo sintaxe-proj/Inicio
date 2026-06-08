@@ -549,10 +549,27 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
-                        <div style="display:flex; gap:20px; align-items:center; padding-top:25px;">
-                            <label style="margin:0; cursor:pointer; color: var(--text-main);"><input type="checkbox" id="tbSN" style="width:auto; margin-right:5px;"> Tuberculose</label>
-                            <label style="margin:0; cursor:pointer; color: var(--text-main);"><input type="checkbox" id="hansenSN" style="width:auto; margin-right:5px;"> Hanseníase</label>
+                                                    <label>Gestante (Pré-Natal)?</label>
+                            <select id="gestanteSN" onchange="mostrarCard('cardGestante', this.value)">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
                         </div>
+<div>
+    <label>Tuberculose (TB)?</label>
+    <select id="tbSN" onchange="mostrarCard('cardTB', this.value)">
+        <option value="Não">Não</option>
+        <option value="Sim">Sim</option>
+    </select>
+</div>
+
+<div>
+    <label>Hanseníase?</label>
+    <select id="hansenSN" onchange="mostrarCard('cardHansen', this.value)">
+        <option value="Não">Não</option>
+        <option value="Sim">Sim</option>
+    </select>
+</div>
                     </div>
 
                     <div id="cardHAS" class="clinical-card" style="display:none;">
