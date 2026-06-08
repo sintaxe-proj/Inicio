@@ -1,5 +1,10 @@
 /* ==========================================================================
-   🔍 BUSCA ATIVA E ABERTURA DE PRONTUÁRIO
+   🔍 BUSCA ATIVA E ABERTURA DE PRONTUÁRIO — SUPABASE PURO
+   Sem IndexedDB
+   ========================================================================== */
+
+/* ==========================================================================
+   HELPERS
    ========================================================================== */
 
 function escaparTexto(valor) {
@@ -21,13 +26,78 @@ function somenteNumeros(valor) {
     return String(valor || "").replace(/\D/g, "");
 }
 
+function valorSim(valor) {
+    const v = normalizarTexto(valor);
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "ativo" ||
+        v === "positiva" ||
+        v === "positivo" ||
+        v === "presente"
+    );
+}
+
+function pegarCPF(p) {
+    return (
+        p?.paciente_cpf ||
+        p?.cpf ||
+        ""
+    );
+}
+
+function pegarCNS(p) {
+    return (
+        p?.paciente_cns ||
+        p?.cns ||
+        ""
+    );
+}
+
+function pegarNome(p) {
+    return (
+        p?.nome ||
+        p?.nome_paciente ||
+        "Sem nome"
+    );
+}
+
+function pegarUBS(p) {
+    return (
+        p?.ubs_vinculacao ||
+        p?.ubs ||
+        p?.unidade ||
+        "Não vinculada"
+    );
+}
+
+function pegarEquipe(p) {
+    return (
+        p?.equipe_esf ||
+        p?.equipe ||
+        "Sem equipe"
+    );
+}
+
+function campoLinhaSim(p, nomes) {
+    return nomes.some(nome => valorSim(p?.[nome]));
+}
+
 /* ==========================================================================
-   BUSCA NA TELA INICIAL
+   BUSCA NA TELA INICIAL — SUPABASE
    ========================================================================== */
 
-function buscarInicio() {
-    const inputBusca = document.getElementById("buscaNomeInicio");
-    const container = document.getElementById("resultadoInicio");
+async function buscarInicio() {
+    const inputBusca =
+        document.getElementById("buscaNomeInicio");
+
+    const container =
+        document.getElementById("resultadoInicio");
 
     if (!inputBusca) {
         console.error("Erro: elemento buscaNomeInicio não encontrado.");
@@ -36,9 +106,14 @@ function buscarInicio() {
 
     if (!container) return;
 
-    const termoOriginal = inputBusca.value.trim();
-    const termoBusca = normalizarTexto(termoOriginal);
-    const termoNumerico = somenteNumeros(termoOriginal);
+    const termoOriginal =
+        inputBusca.value.trim();
+
+    const termoBusca =
+        normalizarTexto(termoOriginal);
+
+    const termoNumerico =
+        somenteNumeros(termoOriginal);
 
     if (!termoBusca) {
         container.innerHTML =
@@ -46,24 +121,25 @@ function buscarInicio() {
         return;
     }
 
-    if (!db) {
+    if (typeof supabaseClient === "undefined") {
         container.innerHTML =
-            `<p style="color:var(--danger);">⚠️ Banco de dados local não conectado.</p>`;
+            `<p style="color:var(--danger);">⚠️ Supabase não conectado.</p>`;
         return;
     }
 
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.getAll();
+    container.innerHTML =
+        `<p style="color:var(--text-muted);">🔎 Buscando no Supabase...</p>`;
 
-    request.onsuccess = function () {
-        const todosPacientes = request.result || [];
-
+    try {
         const desejaCritico =
-            termoBusca.includes("critico");
+            termoBusca.includes("critico") ||
+            termoBusca.includes("crítico") ||
+            termoBusca.includes("urgente") ||
+            termoBusca.includes("vencido");
 
         const desejaControlado =
-            termoBusca.includes("controlado");
+            termoBusca.includes("controlado") ||
+            termoBusca.includes("monitorado");
 
         const desejaHAS =
             termoBusca.includes("has") ||
@@ -76,14 +152,18 @@ function buscarInicio() {
         const desejaPN =
             termoBusca.includes("pn") ||
             termoBusca.includes("gestant") ||
-            termoBusca.includes("natal");
+            termoBusca.includes("natal") ||
+            termoBusca.includes("pre natal") ||
+            termoBusca.includes("prenatal");
 
         const desejaTB =
             termoBusca.includes("tb") ||
             termoBusca.includes("tuberculose");
 
         const desejaHansen =
-            termoBusca.includes("hansen");
+            termoBusca.includes("hansen") ||
+            termoBusca.includes("hanseniase") ||
+            termoBusca.includes("hanseníase");
 
         const usouFiltros =
             desejaHAS ||
@@ -94,46 +174,293 @@ function buscarInicio() {
             desejaCritico ||
             desejaControlado;
 
-        const resultados = todosPacientes.filter(p => {
-            const reavaliacao =
-                parseInt(p.reavaliacaoDias || 0);
+        let atendQuery = supabaseClient
+            .from("atendimentos")
+            .select(`
+                id,
+                paciente_cpf,
+                cpf,
+                cns,
+                nome_paciente,
+                has,
+                dm,
+                gestante,
+                tb,
+                hansen,
+                reavaliacaoDias,
+                retorno_dias,
+                nota_monitoramento,
+                soapSubjetivo,
+                soapObjetivoAlterado,
+                inputBuscaCIAPS,
+                soapPlanoConduta,
+                subjetivo,
+                objetivo,
+                avaliacao,
+                plano,
+                criado_em,
+                data_atendimento
+            `)
+            .order("criado_em", { ascending: false })
+            .limit(500);
 
-            if (desejaHAS && p.has !== "Sim") return false;
-            if (desejaDM && p.dm !== "Sim") return false;
-            if (desejaPN && p.gestante !== "Sim") return false;
-            if (desejaTB && p.tb !== "Sim") return false;
-            if (desejaHansen && p.hansen !== "Sim") return false;
+        if (desejaHAS) {
+            atendQuery = atendQuery.eq("has", "Sim");
+        }
 
-            if (desejaCritico && reavaliacao !== 0) return false;
-            if (desejaControlado && reavaliacao <= 0) return false;
+        if (desejaDM) {
+            atendQuery = atendQuery.eq("dm", "Sim");
+        }
 
-            if (!usouFiltros) {
-                const nomeBate =
-                    normalizarTexto(p.nome).includes(termoBusca);
+        if (desejaPN) {
+            atendQuery = atendQuery.eq("gestante", "Sim");
+        }
 
-                const cpfBate =
-                    termoNumerico !== "" &&
-                    somenteNumeros(p.cpf).includes(termoNumerico);
+        if (desejaTB) {
+            atendQuery = atendQuery.eq("tb", "Sim");
+        }
 
-                const cnsBate =
-                    termoNumerico !== "" &&
-                    somenteNumeros(p.cns).includes(termoNumerico);
+        if (desejaHansen) {
+            atendQuery = atendQuery.eq("hansen", "Sim");
+        }
 
-                return nomeBate || cpfBate || cnsBate;
+        if (desejaCritico) {
+            atendQuery = atendQuery.eq("reavaliacaoDias", 0);
+        }
+
+        if (desejaControlado) {
+            atendQuery = atendQuery.gt("reavaliacaoDias", 0);
+        }
+
+        const { data: atendimentos, error: erroAtendimentos } =
+            await atendQuery;
+
+        if (erroAtendimentos) {
+            console.error("Erro ao buscar atendimentos:", erroAtendimentos);
+            container.innerHTML =
+                `<p style="color:var(--danger); font-weight:600;">⚠️ Erro ao buscar atendimentos.</p>`;
+            return;
+        }
+
+        let pacientesBase = [];
+
+        if (!usouFiltros) {
+            let pacQuery = supabaseClient
+                .from("pacientes")
+                .select(`
+                    id,
+                    nome,
+                    cpf,
+                    cns,
+                    telefone,
+                    endereco,
+                    cep,
+                    numero,
+                    complemento,
+                    ubs,
+                    equipe,
+                    ubs_vinculacao,
+                    equipe_esf
+                `)
+                .limit(100);
+
+            if (termoNumerico) {
+                pacQuery = pacQuery.or(
+                    `cpf.ilike.%${termoNumerico}%,cns.ilike.%${termoNumerico}%`
+                );
+            } else {
+                pacQuery = pacQuery.ilike(
+                    "nome",
+                    `%${termoOriginal}%`
+                );
             }
 
-            return true;
-        });
+            const { data: pacientes, error: erroPacientes } =
+                await pacQuery;
 
-        renderizarResultadosBusca(resultados, container);
-    };
+            if (erroPacientes) {
+                console.error("Erro ao buscar pacientes:", erroPacientes);
+            } else {
+                pacientesBase = pacientes || [];
+            }
+        }
 
-    request.onerror = function () {
-        console.error("Erro ao executar busca no IndexedDB");
+        const lista =
+            await montarListaBuscaSupabase(
+                pacientesBase,
+                atendimentos || [],
+                {
+                    termoBusca,
+                    termoNumerico,
+                    usouFiltros
+                }
+            );
+
+        renderizarResultadosBusca(lista, container);
+
+    } catch (erro) {
+        console.error("Erro geral na busca Supabase:", erro);
 
         container.innerHTML =
             `<p style="color:var(--danger); font-weight:600;">⚠️ Erro ao executar busca.</p>`;
-    };
+    }
+}
+
+/* ==========================================================================
+   UNIR PACIENTES + ÚLTIMO ATENDIMENTO
+   ========================================================================== */
+
+async function montarListaBuscaSupabase(pacientesBase, atendimentos, contexto) {
+    const mapa = new Map();
+
+    pacientesBase.forEach(p => {
+        const chave =
+            p.cpf ||
+            p.cns ||
+            p.id;
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            ...p,
+            origem: "pacientes"
+        });
+    });
+
+    atendimentos.forEach(a => {
+        const cpf =
+            a.paciente_cpf ||
+            a.cpf ||
+            "";
+
+        const chave =
+            cpf ||
+            a.cns ||
+            a.id;
+
+        if (!chave) return;
+
+        if (!mapa.has(chave)) {
+            mapa.set(chave, {
+                cpf,
+                cns: a.cns,
+                nome: a.nome_paciente,
+                origem: "atendimentos"
+            });
+        }
+
+        const atual =
+            mapa.get(chave);
+
+        mapa.set(chave, {
+            ...atual,
+            ...a,
+            cpf:
+                atual.cpf ||
+                cpf,
+            cns:
+                atual.cns ||
+                a.cns,
+            nome:
+                atual.nome ||
+                a.nome_paciente,
+            ultimo_atendimento:
+                a
+        });
+    });
+
+    const cpfsParaEnriquecer =
+        [...new Set(
+            Array.from(mapa.values())
+                .map(p => p.paciente_cpf || p.cpf)
+                .filter(Boolean)
+        )];
+
+    if (cpfsParaEnriquecer.length) {
+        const { data: pacientes, error } =
+            await supabaseClient
+                .from("pacientes")
+                .select(`
+                    nome,
+                    cpf,
+                    cns,
+                    telefone,
+                    endereco,
+                    cep,
+                    numero,
+                    complemento,
+                    ubs,
+                    equipe,
+                    ubs_vinculacao,
+                    equipe_esf
+                `)
+                .in("cpf", cpfsParaEnriquecer);
+
+        if (!error && pacientes) {
+            pacientes.forEach(p => {
+                const chave = p.cpf;
+
+                const atual =
+                    mapa.get(chave) ||
+                    mapa.get(p.cns) ||
+                    {};
+
+                mapa.set(chave, {
+                    ...atual,
+                    ...p,
+                    nome:
+                        p.nome ||
+                        atual.nome ||
+                        atual.nome_paciente,
+                    cpf:
+                        p.cpf ||
+                        atual.cpf ||
+                        atual.paciente_cpf,
+                    cns:
+                        p.cns ||
+                        atual.cns
+                });
+            });
+        }
+    }
+
+    let lista =
+        Array.from(mapa.values());
+
+    if (!contexto.usouFiltros) {
+        lista = lista.filter(p => {
+            const texto =
+                normalizarTexto([
+                    pegarNome(p),
+                    p.nome_paciente,
+                    pegarCPF(p),
+                    pegarCNS(p),
+                    p.telefone,
+                    pegarUBS(p),
+                    pegarEquipe(p),
+                    p.endereco,
+                    p.soapSubjetivo,
+                    p.soapPlanoConduta
+                ].join(" "));
+
+            const numero =
+                somenteNumeros([
+                    pegarCPF(p),
+                    pegarCNS(p),
+                    p.telefone
+                ].join(" "));
+
+            return (
+                texto.includes(contexto.termoBusca) ||
+                (
+                    contexto.termoNumerico &&
+                    numero.includes(contexto.termoNumerico)
+                )
+            );
+        });
+    }
+
+    return lista;
 }
 
 /* ==========================================================================
@@ -150,28 +477,44 @@ function renderizarResultadosBusca(resultados, container) {
     let html = `<div class="busca-ativa-grid">`;
 
     resultados.forEach(p => {
-        const cpfSeguro = escaparTexto(p.cpf);
-        const reavaliacao = parseInt(p.reavaliacaoDias || 0);
+        const cpf =
+            pegarCPF(p);
+
+        const cns =
+            pegarCNS(p);
+
+        const cpfSeguro =
+            escaparTexto(cpf);
+
+        const cnsSeguro =
+            escaparTexto(cns);
+
+        const reavaliacao =
+            parseInt(
+                p.reavaliacaoDias ??
+                p.retorno_dias ??
+                0
+            );
 
         let badges = "";
 
-        if (p.has === "Sim") {
+        if (campoLinhaSim(p, ["has"])) {
             badges += `<span class="tag-clinica" style="background:var(--danger)">HAS</span>`;
         }
 
-        if (p.dm === "Sim") {
+        if (campoLinhaSim(p, ["dm"])) {
             badges += `<span class="tag-clinica" style="background:var(--success)">DM</span>`;
         }
 
-        if (p.gestante === "Sim") {
+        if (campoLinhaSim(p, ["gestante"])) {
             badges += `<span class="tag-clinica" style="background:var(--warning)">PN</span>`;
         }
 
-        if (p.tb === "Sim") {
+        if (campoLinhaSim(p, ["tb"])) {
             badges += `<span class="tag-clinica" style="background:#701a75">TB</span>`;
         }
 
-        if (p.hansen === "Sim") {
+        if (campoLinhaSim(p, ["hansen"])) {
             badges += `<span class="tag-clinica" style="background:#1e3a8a">HANSEN</span>`;
         }
 
@@ -190,16 +533,32 @@ function renderizarResultadosBusca(resultados, container) {
         }
 
         const ultimoMonitoramento =
-            p.historicoEvolucoes &&
-            p.historicoEvolucoes.length > 0
-                ? String(p.historicoEvolucoes[0])
-                    .split("\n")[0]
-                    .replace("--- ", "")
-                : "Sem registros";
+            p.soapPlanoConduta ||
+            p.plano ||
+            p.soapSubjetivo ||
+            p.subjetivo ||
+            "Sem registros";
+
+        const notaIcone =
+            p.nota_monitoramento
+                ? `
+                    <span
+                        title="${escaparTexto(p.nota_monitoramento)}"
+                        style="
+                            color:#38bdf8;
+                            cursor:help;
+                            font-size:14px;
+                            font-weight:bold;
+                            margin-left:6px;
+                        ">
+                        ℹ️
+                    </span>
+                `
+                : "";
 
         html += `
             <div class="busca-ativa-card"
-                 onclick="abrirAtendimentoExistente('${cpfSeguro}')"
+                 onclick="abrirAtendimentoExistente('${cpfSeguro}', '${cnsSeguro}')"
                  style="
                     cursor:pointer;
                     padding:15px;
@@ -211,21 +570,20 @@ function renderizarResultadosBusca(resultados, container) {
                  ">
 
                 <h4 style="margin:0 0 6px 0; color:var(--text-main);">
-                    ${p.nome || "Sem nome"}
+                    ${pegarNome(p)}
+                    ${notaIcone}
                 </h4>
 
                 <p style="margin:2px 0; font-size:13px; color:var(--text-muted);">
-                    <strong>CPF:</strong> ${p.cpf || "-"}
+                    <strong>CPF:</strong> ${cpf || "-"}
                     |
-                    <strong>CNS:</strong> ${p.cns || "-"}
-                    |
-                    <strong>Idade:</strong> ${p.idade || "-"} anos
+                    <strong>CNS:</strong> ${cns || "-"}
                 </p>
 
                 <p style="margin:2px 0; font-size:13px; color:var(--text-muted);">
-                    <strong>UBS:</strong> ${p.ubs || "Não vinculada"}
+                    <strong>UBS:</strong> ${pegarUBS(p)}
                     |
-                    ${p.equipe || "Sem equipe"}
+                    ${pegarEquipe(p)}
                 </p>
 
                 <p style="
@@ -268,7 +626,7 @@ function renderizarResultadosBusca(resultados, container) {
                 ">
 
                     <button
-                        onclick="event.stopPropagation(); abrirAtendimentoExistente('${cpfSeguro}')"
+                        onclick="event.stopPropagation(); abrirAtendimentoExistente('${cpfSeguro}', '${cnsSeguro}')"
                         style="
                             background:#2563eb;
                             color:white;
@@ -283,7 +641,7 @@ function renderizarResultadosBusca(resultados, container) {
                     </button>
 
                     <button
-                        onclick="event.stopPropagation(); abrirDiscadorParaPaciente('${cpfSeguro}')"
+                        onclick="event.stopPropagation(); abrirDiscadorParaPaciente('${cpfSeguro}', '${cnsSeguro}')"
                         style="
                             background:#25d366;
                             color:white;
@@ -308,94 +666,106 @@ function renderizarResultadosBusca(resultados, container) {
 }
 
 /* ==========================================================================
-   📋 ABRIR PRONTUÁRIO
+   📋 ABRIR PRONTUÁRIO — SUPABASE
    ========================================================================== */
 
-function abrirAtendimentoExistente(cpf) {
-    if (!db) {
-        mostrarToast?.("⚠️ Banco local não conectado.");
-        return;
-    }
-
-    const cpfLimpo = String(cpf || "");
-
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.get(cpfLimpo);
-
-    request.onsuccess = function () {
-        const p = request.result;
-
-        if (!p) {
-            mostrarToast?.("⚠️ Paciente não encontrado.");
+async function abrirAtendimentoExistente(cpf, cns) {
+    try {
+        if (typeof supabaseClient === "undefined") {
+            mostrarToast?.("⚠️ Supabase não conectado.");
             return;
         }
 
-        navigate("prontuario");
+        const cpfLimpo =
+            somenteNumeros(cpf);
+
+        const cnsLimpo =
+            somenteNumeros(cns);
+
+        if (!cpfLimpo && !cnsLimpo) {
+            mostrarToast?.("⚠️ CPF ou CNS não informado.");
+            return;
+        }
+
+        let query = supabaseClient
+            .from("pacientes")
+            .select("*");
+
+        if (cpfLimpo) {
+            query = query.eq("cpf", cpfLimpo);
+        } else {
+            query = query.eq("cns", cnsLimpo);
+        }
+
+        const { data: paciente, error } =
+            await query.maybeSingle();
+
+        if (error) {
+            console.error("Erro ao buscar paciente:", error);
+            mostrarToast?.("⚠️ Erro ao buscar paciente no Supabase.");
+            return;
+        }
+
+        if (!paciente) {
+            mostrarToast?.("⚠️ Paciente não encontrado na base territorial.");
+            return;
+        }
+
+        if (typeof navigate === "function") {
+            navigate("prontuario");
+        }
 
         if (typeof limparFormularioProntuario === "function") {
             limparFormularioProntuario();
         }
 
-        preencherCampo("nomePaciente", p.nome);
-        preencherCampo("cpfPaciente", p.cpf);
-        preencherCampo("nascPaciente", p.nasc);
-        preencherCampo("idadePaciente", p.idade);
-        preencherCampo("telPaciente", p.tel);
-        preencherCampo("CEP", p.cep);
-        preencherCampo("endPaciente", p.endereco);
-        preencherCampo("endNumero", p.numero);
-        preencherCampo("endComplemento", p.complemento);
-        preencherCampo("unidadePaciente", p.ubs);
-        preencherCampo("equipePaciente", p.equipe);
-
-        preencherCampo("objPA", p.objPA);
-        preencherCampo("objFC", p.objFC);
-        preencherCampo("objFR", p.objFR);
-        preencherCampo("objSatO2", p.objSatO2);
-        preencherCampo("objDor", p.objDor || "0");
-
-        preencherCampo("objpeso", p.objpeso);
-        preencherCampo("objaltura", p.objaltura);
-        preencherCampo("objIMC", p.objIMC);
-
-        preencherCampo("hasSN", p.has || "Não");
-        mostrarCard?.("cardHAS", p.has || "Não");
-
-        preencherCampo("dmSN", p.dm || "Não");
-        mostrarCard?.("cardDM", p.dm || "Não");
-
-        preencherCampo("gestanteSN", p.gestante || "Não");
-        mostrarCard?.("cardGestante", p.gestante || "Não");
-
-        const tbSN = document.getElementById("tbSN");
-        if (tbSN) tbSN.checked = p.tb === "Sim";
-
-        const hansenSN = document.getElementById("hansenSN");
-        if (hansenSN) hansenSN.checked = p.hansen === "Sim";
-
-        renderizarHistoricoEvolucoes(p);
+        preencherCampo("nomePaciente", paciente.nome);
+        preencherCampo("cpfPaciente", paciente.cpf);
+        preencherCampo("cnsPaciente", paciente.cns);
+        preencherCampo("telPaciente", paciente.telefone);
+        preencherCampo("CEP", paciente.cep);
+        preencherCampo("endPaciente", paciente.endereco);
+        preencherCampo("endNumero", paciente.numero);
+        preencherCampo("endComplemento", paciente.complemento);
+        preencherCampo("unidadePaciente", pegarUBS(paciente));
+        preencherCampo("equipePaciente", pegarEquipe(paciente));
 
         const cabecalhoNome =
             document.getElementById("cabecalhoNome");
 
         if (cabecalhoNome) {
             cabecalhoNome.innerText =
-                `📋 Prontuário Ativo: ${p.nome || "-"} (CPF: ${p.cpf || "-"})`;
+                `📋 Prontuário Ativo: ${paciente.nome || "-"} (CPF: ${paciente.cpf || "-"})`;
         }
 
         const cabecalhoProntuario =
             document.getElementById("cabecalhoProntuario");
 
         if (cabecalhoProntuario) {
-            cabecalhoProntuario.style.display = "block";
+            cabecalhoProntuario.style.display = "flex";
         }
-    };
 
-    request.onerror = function () {
+        window.pacienteAtual =
+            paciente;
+
+        window.pacienteSelecionado =
+            paciente;
+
+        if (
+            typeof carregarHistoricoClinicoPaciente === "function"
+        ) {
+            await carregarHistoricoClinicoPaciente(
+                paciente.cpf,
+                paciente.cns
+            );
+        }
+
+        mostrarToast?.("📋 Prontuário aberto.");
+
+    } catch (erro) {
+        console.error("Erro ao abrir prontuário:", erro);
         mostrarToast?.("⚠️ Erro ao abrir prontuário.");
-        console.error("Erro ao abrir paciente:", request.error);
-    };
+    }
 }
 
 /* ==========================================================================
@@ -403,7 +773,8 @@ function abrirAtendimentoExistente(cpf) {
    ========================================================================== */
 
 function preencherCampo(id, valor) {
-    const campo = document.getElementById(id);
+    const campo =
+        document.getElementById(id);
 
     if (campo) {
         campo.value = valor || "";
@@ -411,65 +782,54 @@ function preencherCampo(id, valor) {
 }
 
 /* ==========================================================================
-   HISTÓRICO
+   💬 ABRIR WHATSAPP RÁPIDO — SUPABASE
    ========================================================================== */
 
-function renderizarHistoricoEvolucoes(p) {
-    const container =
-        document.getElementById("linhaTempoEvolucoes");
+async function abrirDiscadorParaPaciente(cpf, cns) {
+    try {
+        if (typeof supabaseClient === "undefined") {
+            mostrarToast?.("⚠️ Supabase não conectado.");
+            return;
+        }
 
-    if (!container) return;
+        const cpfLimpo =
+            somenteNumeros(cpf);
 
-    if (!p.historicoEvolucoes || p.historicoEvolucoes.length === 0) {
-        container.innerHTML = "";
-        return;
-    }
+        const cnsLimpo =
+            somenteNumeros(cns);
 
-    let htmlTimeline = `
-        <label style="font-weight:700;">
-            ⏳ Histórico Clínico Digital:
-        </label>
-        <div class="timeline">
-    `;
+        if (!cpfLimpo && !cnsLimpo) {
+            mostrarToast?.("⚠️ CPF ou CNS não informado.");
+            return;
+        }
 
-    p.historicoEvolucoes.forEach(evo => {
-        htmlTimeline += `
-            <div class="timeline-item">
-                <div class="timeline-body">${evo}</div>
-            </div>
-        `;
-    });
+        let query = supabaseClient
+            .from("pacientes")
+            .select("*");
 
-    htmlTimeline += `</div>`;
+        if (cpfLimpo) {
+            query = query.eq("cpf", cpfLimpo);
+        } else {
+            query = query.eq("cns", cnsLimpo);
+        }
 
-    container.innerHTML = htmlTimeline;
-}
+        const { data: paciente, error } =
+            await query.maybeSingle();
 
-/* ==========================================================================
-   💬 ABRIR WHATSAPP RÁPIDO
-   ========================================================================== */
+        if (error) {
+            console.error("Erro ao localizar paciente:", error);
+            mostrarToast?.("⚠️ Erro ao localizar paciente.");
+            return;
+        }
 
-function abrirDiscadorParaPaciente(cpf) {
-    if (!db) {
-        mostrarToast?.("⚠️ Banco local não conectado.");
-        return;
-    }
-
-    const cpfLimpo = String(cpf || "");
-
-    const transaction = db.transaction(["pacientes"], "readonly");
-    const store = transaction.objectStore("pacientes");
-    const request = store.get(cpfLimpo);
-
-    request.onsuccess = function () {
-        const p = request.result;
-
-        if (!p || !p.tel) {
+        if (!paciente || !paciente.telefone) {
             mostrarToast?.("⚠️ Paciente sem telefone cadastrado.");
             return;
         }
 
-        navigate("prontuario");
+        if (typeof navigate === "function") {
+            navigate("prontuario");
+        }
 
         setTimeout(() => {
             alternarCentralDiscagem?.();
@@ -478,17 +838,37 @@ function abrirDiscadorParaPaciente(cpf) {
                 document.getElementById("inputNumeroDiscador");
 
             if (input) {
-                input.value = p.nome || p.tel;
+                input.value =
+                    paciente.nome ||
+                    paciente.telefone;
 
                 input.dispatchEvent(
                     new Event("input")
                 );
             }
         }, 300);
-    };
 
-    request.onerror = function () {
+    } catch (erro) {
+        console.error("Erro ao abrir WhatsApp:", erro);
         mostrarToast?.("⚠️ Erro ao abrir WhatsApp.");
-        console.error("Erro ao localizar paciente:", request.error);
-    };
+    }
 }
+
+/* ==========================================================================
+   GLOBAL
+   ========================================================================== */
+
+window.buscarInicio =
+    buscarInicio;
+
+window.renderizarResultadosBusca =
+    renderizarResultadosBusca;
+
+window.abrirAtendimentoExistente =
+    abrirAtendimentoExistente;
+
+window.abrirDiscadorParaPaciente =
+    abrirDiscadorParaPaciente;
+
+window.preencherCampo =
+    preencherCampo;
