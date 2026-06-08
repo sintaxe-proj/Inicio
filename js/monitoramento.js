@@ -295,55 +295,39 @@ function renderizarTabelaMonitoramento(filtrados) {
         const documento =
             p.cpf || p.cns || "";
 
-html += `
-    <tr>
+        const notaIcone =
+            p.nota_monitoramento
+                ? `
+                    <span
+                        title="${p.nota_monitoramento}"
+                        style="
+                            color:#38bdf8;
+                            cursor:help;
+                            font-size:14px;
+                            font-weight:bold;
+                            margin-left:6px;
+                        ">
+                        ℹ️
+                    </span>
+                `
+                : "";
 
-        <td>
+        html += `
+            <tr>
+                <td>
+                    <b>${p.nome || p.nome_paciente || "-"}</b>
+                    ${notaIcone}
+                </td>
 
-            <div style="
-                display:flex;
-                align-items:center;
-                gap:6px;
-            ">
+                <td>${documento || "-"}</td>
 
-                <b>
-                    ${p.nome || p.nome_paciente || "-"}
-                </b>
+                <td>${p.ubs || "Pendente"}</td>
 
-                ${p.nota_monitoramento
-                    ? `
-                        <span
-                            title="${p.nota_monitoramento}"
-                            style="
-                                color:#38bdf8;
-                                cursor:help;
-                                font-size:14px;
-                                font-weight:bold;
-                            ">
-                            ℹ️
-                        </span>
-                    `
-                    : ""
-                }
+                <td>${p.equipe || "Pendente"}</td>
 
-            </div>
-
-        </td>
-
-        <td>${documento || "-"}</td>
-
-        <td>${p.ubs || "Pendente"}</td>
-
-        <td>${p.equipe || "Pendente"}</td>
-
-        <td>
-            <div style="
-                display:flex;
-                flex-direction:column;
-                gap:6px;
-            ">
-                <span>${statusMonitoramento}</span>
-`;
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <span>${statusMonitoramento}</span>
 
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button
