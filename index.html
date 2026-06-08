@@ -879,9 +879,19 @@
             <div id="view-banco" class="view">
                 <div class="form-section">
                     <h3 style="margin-top:0; color:var(--text-main);">🗄️ Base de Cidadãos Monitorados na Área Operacional</h3>
-                    <div id="tabelaBancoContainer" style="overflow-x:auto;">
-                        <p style="color:var(--text-muted);">Carregando dados do Supabase...</p>
-                    </div>
+<div style="margin-bottom:15px;">
+    <label>Buscar na Base Territorial</label>
+    <input
+        type="text"
+        id="buscaBaseTerritorial"
+        oninput="carregarTabelaBanco()"
+        placeholder="Buscar por nome, CPF, CNS, telefone, UBS ou equipe..."
+    >
+</div>
+
+<div id="tabelaBancoContainer" style="overflow-x:auto;">
+    <p style="color:var(--text-muted);">Carregando dados do Supabase...</p>
+</div>
                 </div>
             </div>
 
