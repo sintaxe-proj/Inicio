@@ -145,7 +145,7 @@ async function gerarCargaMassaOitoMil() {
         return;
     }
 
-    mostrarToast?.("⏳ Gerando dados...");
+    mostrarToast?.("⏳ Gerando dados padronizados...");
 
     const auditoria = getUsuarioAuditoria();
 
@@ -162,7 +162,7 @@ async function gerarCargaMassaOitoMil() {
         "Ferreira", "Almeida", "Pereira", "Lima", "Costa"
     ];
 
-    const ubs = [
+    const ubsLista = [
         "UBS Centro Médico",
         "UBS Vila Nova",
         "Clínica da Família Zona Sul",
@@ -181,6 +181,9 @@ async function gerarCargaMassaOitoMil() {
         const cns = `700${String(i).padStart(12, "0")}`;
         const nome = `${nomes[i % 10]} ${sobrenomes[(i + 3) % 10]} ${sobrenomes[(i + 7) % 10]}`;
 
+        const ubs = ubsLista[i % 4];
+        const equipe = equipes[i % 4];
+
         const isHAS = i % 2 === 0;
         const isDM = i % 3 === 0;
         const isGestante = i % 5 === 0;
@@ -191,6 +194,9 @@ async function gerarCargaMassaOitoMil() {
         if (i % 15 === 0) prazo = 0;
         if (i % 17 === 0) prazo = 20;
         if (i % 19 === 0) prazo = 10;
+
+        const pas = isHAS ? 145 : 120;
+        const pad = isHAS ? 95 : 80;
 
         const dataDum = new Date();
         dataDum.setDate(dataDum.getDate() - (80 + (i % 120)));
@@ -206,57 +212,87 @@ async function gerarCargaMassaOitoMil() {
             numero: String(i),
             complemento: "Lote Acadêmico",
             cep: "20000-000",
-            ubs: ubs[i % 4],
-            equipe: equipes[i % 4],
+
+            ubs_vinculacao: ubs,
+            equipe_esf: equipe,
+
+            // compatibilidade com código antigo
+            ubs,
+            equipe,
+
             ...auditoria
         });
 
         atendimentos.push({
+            paciente_cpf: cpf,
             cpf,
             cns,
             nome_paciente: nome,
 
+            ubs_vinculacao: ubs,
+            equipe_esf: equipe,
+
             has: isHAS ? "Sim" : "Não",
-            hasPAS: isHAS ? "145" : null,
-            hasPAD: isHAS ? "95" : null,
-            hasClassif: isHAS ? "Hipertensão Estágio 1 ou 2" : null,
+            has_pas: isHAS ? pas : null,
+            has_pad: isHAS ? pad : null,
+            has_classificacao: isHAS ? "Hipertensão Estágio 1 ou 2" : "",
 
             dm: isDM ? "Sim" : "Não",
-            dmHbA1c: isDM ? "7.5" : null,
-            dmClassif: isDM ? "Controle Limítrofe" : null,
+            dm_hba1c: isDM ? 7.5 : null,
+            dm_classificacao: isDM ? "Controle Limítrofe" : "",
 
             gestante: isGestante ? "Sim" : "Não",
             gestDUM: isGestante ? dataDum.toISOString().split("T")[0] : null,
-            gestIG: isGestante ? `${12 + (i % 24)} semanas` : null,
-            gestDPP: isGestante ? dpp.toLocaleDateString("pt-BR") : null,
+            gestIG: isGestante ? `${12 + (i % 24)} semanas` : "",
+            gestDPP: isGestante ? dpp.toLocaleDateString("pt-BR") : "",
 
             tb: isTB ? "Sim" : "Não",
             hansen: isHansen ? "Sim" : "Não",
-            ampi: "Idoso Robusto",
 
-            objPA: isHAS ? "140x90" : "120x80",
-            objFC: "76",
-            objFR: "16",
-            objSatO2: "98",
-            objDor: "0",
-            objpeso: "70",
-            objaltura: "170",
-            objIMC: "24.2",
+            pa: `${pas}x${pad}`,
+            obj_pas: pas,
+            obj_pad: pad,
+
+            fc: "76",
+            fr: "16",
+            sat_o2: "98",
+            dor: "0",
+            peso: "70",
+            altura: "170",
+            imc: "24.2",
+
+            subjetivo: "Sem queixas.",
+            objetivo: "",
+            avaliacao: "A98 - Medicina preventiva/manutenção da saúde",
+            plano: `Monitoramento em ${prazo} dias.`,
 
             soapSubjetivo: "Sem queixas.",
             soapObjetivoAlterado: "",
             inputBuscaCIAPS: "A98 - Medicina preventiva/manutenção da saúde",
             soapPlanoConduta: `Monitoramento em ${prazo} dias.`,
+
+            retorno_dias: prazo,
             reavaliacaoDias: prazo,
+
+            nota_monitoramento: prazo === 0 ? "Paciente em prazo crítico para reavaliação." : "",
+
+            criado_em: new Date().toISOString(),
+            data_atendimento: new Date().toISOString(),
 
             ...auditoria
         });
     }
 
-    await salvarEmLotes("pacientes", pacientes, 500, { upsert: true, conflito: "cpf" });
-    await salvarEmLotes("atendimentos", atendimentos, 500, { upsert: false });
+    await salvarEmLotes("pacientes", pacientes, 500, {
+        upsert: true,
+        conflito: "cpf"
+    });
 
-    mostrarToast?.("✅ 8.000 pacientes e atendimentos enviados ao Supabase.");
+    await salvarEmLotes("atendimentos", atendimentos, 500, {
+        upsert: false
+    });
+
+    mostrarToast?.("✅ 8.000 pacientes e atendimentos padronizados enviados ao Supabase.");
 
     atualizarIndicatorsDashboard?.();
     atualizarCentralAvisosSininho?.();
