@@ -18,7 +18,7 @@ function abrirPainelEpidemiologico(linhaCuidado) {
         document.getElementById("painelEpidemiologicoContainer");
 
     if (modal) {
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 
     const titulos = {
