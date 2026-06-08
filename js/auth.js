@@ -227,7 +227,7 @@ async function buscarPerfilUsuarioPorEmail(email) {
     } =
     await supabaseClient
         .from("users")
-        .select("id, login, nome, email, perfil, ativo")
+        .select("id, nome, email, perfil, ativo")
         .eq("email", emailLimpo)
         .maybeSingle();
 
