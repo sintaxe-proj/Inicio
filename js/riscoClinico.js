@@ -314,14 +314,23 @@ function gerarRiscoDoFormularioAtual() {
         nomePaciente: document.getElementById('nomePaciente')?.value || '',
         cpfPaciente: document.getElementById('cpfPaciente')?.value || '',
         idadePaciente: document.getElementById('idadePaciente')?.value || '',
-        pesoPaciente: document.getElementById('pesoPaciente')?.value || '',
+        pesoPaciente:
+            document.getElementById('objpeso')?.value ||
+            document.getElementById('pesoPaciente')?.value ||
+            '',
+
         hasSN: document.getElementById('hasSN')?.value || 'Não',
         dmSN: document.getElementById('dmSN')?.value || 'Não',
         gestanteSN: document.getElementById('gestanteSN')?.value || 'Não',
-        tbSN: document.getElementById('tbSN')?.checked || false,
-        hansenSN: document.getElementById('hansenSN')?.checked || false,
+        tbSN: document.getElementById('tbSN')?.value || 'Não',
+        hansenSN: document.getElementById('hansenSN')?.value || 'Não',
+
         hasClassif: document.getElementById('hasClassif')?.value || '',
-        dmClassif: document.getElementById('dmClassif')?.value || ''
+        dmClassif: document.getElementById('dmClassif')?.value || '',
+
+        hasRetinopatia: document.getElementById('hasRetinopatia')?.value || '',
+        dmRetinopatia: document.getElementById('dmRetinopatia')?.value || '',
+        dmPeDiabeticoGrau: document.getElementById('dmPeDiabeticoGrau')?.value || ''
     };
 
     exibirPainelRiscoClinico(paciente);
