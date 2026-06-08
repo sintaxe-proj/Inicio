@@ -344,18 +344,19 @@ function podeAcessar(view) {
     }
 
     // ASSISTENCIAL
-    if (perfil === "assistencial") {
+if (perfil === "assistencial") {
 
-        if (
-            view === "configuracoes" ||
-            view === "auditoria"
-        ) {
-
-            return false;
-        }
-
-        return true;
+    if (
+        view === "config" ||
+        view === "configuracoes" ||
+        view === "auditoria" ||
+        view === "estoque"
+    ) {
+        return false;
     }
+
+    return true;
+}
 
     // RECEPÇÃO
     if (perfil === "recepcao") {
