@@ -1,5 +1,7 @@
 /* ==========================================================================
    🩺 SOAP.JS — PRONTUÁRIO DIGITAL SUPABASE + AUTOCOMPLETE
+   pacientes = identificação
+   atendimentos = dados clínicos
    ========================================================================== */
 
 /* ==========================================================================
@@ -98,20 +100,16 @@ function limparFormularioProntuario() {
     const prazo = document.getElementById("soapReavaliacaoDias");
     if (prazo) prazo.value = "0";
 
-    const hasSN = document.getElementById("hasSN");
-    if (hasSN) hasSN.value = "Não";
+    ["hasSN", "dmSN", "gestanteSN", "tbSN", "hansenSN"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
 
-    const dmSN = document.getElementById("dmSN");
-    if (dmSN) dmSN.value = "Não";
-
-    const gestanteSN = document.getElementById("gestanteSN");
-    if (gestanteSN) gestanteSN.value = "Não";
-
-    const tbSN = document.getElementById("tbSN");
-    if (tbSN) tbSN.value = "Não";
-
-    const hansenSN = document.getElementById("hansenSN");
-    if (hansenSN) hansenSN.value = "Não";
+        if (el.type === "checkbox") {
+            el.checked = false;
+        } else {
+            el.value = "Não";
+        }
+    });
 
     const exameNormal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
     if (exameNormal) exameNormal.checked = true;
@@ -140,7 +138,6 @@ function calcIdade() {
     const dataNasc = new Date(nasc);
 
     let idade = hoje.getFullYear() - dataNasc.getFullYear();
-
     const m = hoje.getMonth() - dataNasc.getMonth();
 
     if (
@@ -196,7 +193,11 @@ function classificarHAS() {
    ========================================================================== */
 
 function classificarDM() {
-    const hba1c = parseFloat(document.getElementById("dmHbA1c")?.value);
+    const hba1c = parseFloat(
+        String(document.getElementById("dmHbA1c")?.value || "")
+            .replace(",", ".")
+    );
+
     const campo = document.getElementById("dmClassif");
 
     if (!campo) return;
@@ -276,6 +277,47 @@ function sincronizarPAHASParaObjetivo() {
 }
 
 /* ==========================================================================
+   HELPERS DE VALOR
+   ========================================================================== */
+
+function valorSimNaoCampo(id) {
+    const el = document.getElementById(id);
+    if (!el) return "Não";
+
+    if (el.type === "checkbox") {
+        return el.checked ? "Sim" : "Não";
+    }
+
+    return el.value || "Não";
+}
+
+function numeroOuNull(valor) {
+    if (valor === null || valor === undefined || valor === "") return null;
+
+    const normalizado = String(valor)
+        .replace(",", ".")
+        .replace(/[^\d.]/g, "");
+
+    if (!normalizado) return null;
+
+    const numero = Number(normalizado);
+
+    return Number.isNaN(numero) ? null : numero;
+}
+
+function inteiroOuNull(valor) {
+    if (valor === null || valor === undefined || valor === "") return null;
+
+    const numero = parseInt(String(valor).replace(/\D/g, ""));
+
+    return Number.isNaN(numero) ? null : numero;
+}
+
+function dataOuNullSOAP(valor) {
+    return valor ? valor : null;
+}
+
+/* ==========================================================================
    🔎 AUTOCOMPLETE PACIENTE
    ========================================================================== */
 
@@ -341,17 +383,22 @@ function preencherPacienteNoFormulario(p) {
     preencherSeVazio("nomePaciente", p.nome);
     preencherSeVazio("cpfPaciente", p.cpf);
     preencherSeVazio("cnsPaciente", p.cns);
+    preencherSeVazio("nascPaciente", p.data_nascimento);
+    preencherSeVazio("idadePaciente", p.idade_atual);
     preencherSeVazio("telPaciente", p.telefone);
+    preencherSeVazio("CEP", p.cep);
     preencherSeVazio("endPaciente", p.endereco);
+    preencherSeVazio("endNumero", p.numero);
+    preencherSeVazio("endComplemento", p.complemento);
 
     preencherSeVazio(
         "unidadePaciente",
-        p.unidade || p.ubs || p.ubs_vinculacao
+        p.ubs_vinculacao || p.unidade || p.ubs
     );
 
     preencherSeVazio(
         "equipePaciente",
-        p.equipe || p.equipe_esf
+        p.equipe_esf || p.equipe
     );
 }
 
@@ -375,14 +422,18 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
 
     const filtros = [];
 
-    if (cpf) {
-        filtros.push(`paciente_cpf.eq.${cpf}`);
-        filtros.push(`cpf.eq.${cpf}`);
+    const cpfLimpo = String(cpf || "").replace(/\D/g, "");
+    const cnsLimpo = String(cns || "").replace(/\D/g, "");
+
+    if (cpfLimpo) {
+        filtros.push(`paciente_cpf.eq.${cpfLimpo}`);
+        filtros.push(`cpf.eq.${cpfLimpo}`);
     }
 
-    if (cns) {
-        filtros.push(`cns.eq.${cns}`);
+    if (cnsLimpo) {
+        filtros.push(`cns.eq.${cnsLimpo}`);
     }
+
     if (filtros.length === 0) return;
 
     const { data, error } = await supabaseClient
@@ -411,40 +462,62 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
         </label>
 
         <div class="timeline">
-            ${data.map(at => `
-                <div class="timeline-item">
-                    <div class="timeline-body">
-                        <strong>${formatarDataHistorico(at.criado_em)}</strong>
+            ${data.map(at => {
+                const subjetivo = at.soapSubjetivo || at.subjetivo || "-";
+                const objetivo =
+                    at.soapObjetivoAlterado ||
+                    at.objetivo ||
+                    [
+                        at.obj_pas ? `PAS ${at.obj_pas}` : "",
+                        at.obj_pad ? `PAD ${at.obj_pad}` : "",
+                        at.fc ? `FC ${at.fc}` : "",
+                        at.fr ? `FR ${at.fr}` : "",
+                        at.sat_o2 ? `SatO2 ${at.sat_o2}` : ""
+                    ].filter(Boolean).join(" / ") ||
+                    "-";
 
-                        <br>
-                        <b>S:</b> ${at.soapSubjetivo || "-"}
+                const avaliacao = at.inputBuscaCIAPS || at.avaliacao || at.ciap || "-";
+                const plano = at.soapPlanoConduta || at.plano || "-";
 
-                        <br>
-                        <b>O:</b> ${
-                            at.soapObjetivoAlterado ||
-                            [
-                                at.obj_pas ? `PAS ${at.obj_pas}` : "",
-                                at.obj_pad ? `PAD ${at.obj_pad}` : ""
-                            ].filter(Boolean).join(" / ") ||
-                            "-"
-                        }
+                return `
+                    <div class="timeline-item">
+                        <div class="timeline-body">
+                            <strong>${formatarDataHistorico(at.criado_em || at.data_atendimento)}</strong>
 
-                        <br>
-                        <b>A:</b> ${at.inputBuscaCIAPS || "-"}
-
-                        <br>
-                        <b>P:</b> ${at.soapPlanoConduta || "-"}
-
-                        ${at.nota_monitoramento ? `
                             <br>
-                            <b>Nota:</b> ${at.nota_monitoramento}
-                        ` : ""}
+                            <b>S:</b> ${subjetivo}
 
-                        <br>
-                        <small>${at.usuario_email || "-"}</small>
+                            <br>
+                            <b>O:</b> ${objetivo}
+
+                            <br>
+                            <b>A:</b> ${avaliacao}
+
+                            <br>
+                            <b>P:</b> ${plano}
+
+                            ${at.risco_global ? `
+                                <br>
+                                <b>Risco:</b> ${at.risco_global}
+                                ${at.risco_pontos !== null && at.risco_pontos !== undefined ? ` (${at.risco_pontos} pts)` : ""}
+                            ` : ""}
+
+                            ${at.plano_terapeutico ? `
+                                <br>
+                                <b>PTS:</b> registrado
+                            ` : ""}
+
+                            ${at.nota_monitoramento ? `
+                                <br>
+                                <b>Nota:</b> ${at.nota_monitoramento}
+                            ` : ""}
+
+                            <br>
+                            <small>${at.usuario_email || at.usuario_nome || "-"}</small>
+                        </div>
                     </div>
-                </div>
-            `).join("")}
+                `;
+            }).join("")}
         </div>
     `;
 }
@@ -468,6 +541,13 @@ async function salvarProntuario() {
         }
 
         const usuario = auth.data.user;
+        const usuarioSessao = window.usuarioLogado || {};
+
+        const cpfLimpo =
+            document.getElementById("cpfPaciente")?.value?.replace(/\D/g, "") || "";
+
+        const cnsLimpo =
+            document.getElementById("cnsPaciente")?.value?.replace(/\D/g, "") || "";
 
         /* ==================================================
            PACIENTE
@@ -476,19 +556,48 @@ async function salvarProntuario() {
         const paciente = {
             usuario_id: usuario.id,
 
-            nome: document.getElementById("nomePaciente")?.value || "",
+            nome:
+                document.getElementById("nomePaciente")?.value || "",
 
-            cpf: document.getElementById("cpfPaciente")?.value?.replace(/\D/g, "") || "",
+            cpf:
+                cpfLimpo || null,
 
-            cns: document.getElementById("cnsPaciente")?.value?.replace(/\D/g, "") || "",
+            cns:
+                cnsLimpo || null,
 
-            telefone: document.getElementById("telPaciente")?.value || "",
+            data_nascimento:
+                dataOuNullSOAP(document.getElementById("nascPaciente")?.value),
 
-            endereco: document.getElementById("endPaciente")?.value || "",
+            idade_atual:
+                inteiroOuNull(document.getElementById("idadePaciente")?.value),
 
-            ubs_vinculacao: document.getElementById("unidadePaciente")?.value || "",
+            telefone:
+                document.getElementById("telPaciente")?.value || "",
 
-            equipe_esf: document.getElementById("equipePaciente")?.value || ""
+            cep:
+                document.getElementById("CEP")?.value?.replace(/\D/g, "") || "",
+
+            endereco:
+                document.getElementById("endPaciente")?.value || "",
+
+            numero:
+                document.getElementById("endNumero")?.value || "",
+
+            complemento:
+                document.getElementById("endComplemento")?.value || "",
+
+            ubs_vinculacao:
+                document.getElementById("unidadePaciente")?.value || "",
+
+            equipe_esf:
+                document.getElementById("equipePaciente")?.value || "",
+
+            // compatibilidade com módulos antigos
+            ubs:
+                document.getElementById("unidadePaciente")?.value || "",
+
+            equipe:
+                document.getElementById("equipePaciente")?.value || ""
         };
 
         if (!paciente.nome || (!paciente.cpf && !paciente.cns)) {
@@ -507,25 +616,59 @@ async function salvarProntuario() {
             });
 
         if (erroPaciente) {
-            console.error(erroPaciente);
+            console.error("Erro paciente:", erroPaciente);
             alert("Erro ao salvar paciente.");
             return;
         }
 
         /* ==================================================
-           RISCO
+           DADOS CLÍNICOS
            ================================================== */
+
+        const hasValor = valorSimNaoCampo("hasSN");
+        const dmValor = valorSimNaoCampo("dmSN");
+        const gestanteValor = valorSimNaoCampo("gestanteSN");
+        const tbValor = valorSimNaoCampo("tbSN");
+        const hansenValor = valorSimNaoCampo("hansenSN");
+
+        const objPAS =
+            document.getElementById("objPAS")?.value ||
+            document.getElementById("hasPAS")?.value ||
+            "";
+
+        const objPAD =
+            document.getElementById("objPAD")?.value ||
+            document.getElementById("hasPAD")?.value ||
+            "";
+
+        const hasPAS =
+            document.getElementById("hasPAS")?.value ||
+            objPAS ||
+            "";
+
+        const hasPAD =
+            document.getElementById("hasPAD")?.value ||
+            objPAD ||
+            "";
 
         const risco =
             calcularRiscoGlobalPaciente?.({
-                idadePaciente: document.getElementById("idadePaciente")?.value || 0,
-                hasSN: document.getElementById("hasSN")?.value || "Não",
-                dmSN: document.getElementById("dmSN")?.value || "Não",
-                tbSN: document.getElementById("tbSN")?.value || "Não",
-                hansenSN: document.getElementById("hansenSN")?.value || "Não",
-                gestanteSN: document.getElementById("gestanteSN")?.value || "Não",
-                hasClassif: document.getElementById("hasClassif")?.value || "",
-                dmClassif: document.getElementById("dmClassif")?.value || ""
+                idade: paciente.idade_atual || 0,
+                has: hasValor,
+                dm: dmValor,
+                tb: tbValor,
+                hansen: hansenValor,
+                gestante: gestanteValor,
+                has_classificacao: document.getElementById("hasClassif")?.value || "",
+                dm_classificacao: document.getElementById("dmClassif")?.value || "",
+                has_pas: hasPAS,
+                has_pad: hasPAD,
+                obj_pas: objPAS,
+                obj_pad: objPAD,
+                dm_hba1c: document.getElementById("dmHbA1c")?.value || "",
+                has_retinopatia: document.getElementById("hasRetinopatia")?.value || "",
+                dm_retinopatia: document.getElementById("dmRetinopatia")?.value || "",
+                dm_pe_diabetico_grau: document.getElementById("dmPeDiabeticoGrau")?.value || ""
             }) || {};
 
         /* ==================================================
@@ -533,90 +676,92 @@ async function salvarProntuario() {
            Nomes padronizados conforme Supabase
            ================================================== */
 
+        const reavaliacao =
+            Number(document.getElementById("soapReavaliacaoDias")?.value || 0);
+
         const atendimento = {
-    usuario_id: usuario.id,
-    usuario_email: usuario.email,
+            usuario_id: usuario.id,
+            usuario_email: usuario.email,
+            usuario_nome: usuarioSessao.nome || usuario.email,
+            usuario_perfil: usuarioSessao.perfil || null,
 
-    paciente_cpf: paciente.cpf || null,
-    cpf: paciente.cpf || null,
+            paciente_cpf: paciente.cpf || null,
+            cpf: paciente.cpf || null,
+            cns: paciente.cns || null,
+            nome_paciente: paciente.nome,
 
-    cns: paciente.cns || null,
-    nome_paciente: paciente.nome,
+            ubs_vinculacao: paciente.ubs_vinculacao || null,
+            equipe_esf: paciente.equipe_esf || null,
 
-    ubs_vinculacao: paciente.ubs_vinculacao || null,
-    equipe_esf: paciente.equipe_esf || null,
+            subjetivo: document.getElementById("soapSubjetivo")?.value || "",
+            objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
+            avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
+            plano: document.getElementById("soapPlanoConduta")?.value || "",
 
-    subjetivo: document.getElementById("soapSubjetivo")?.value || "",
-    objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
-    avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
-    plano: document.getElementById("soapPlanoConduta")?.value || "",
+            soapSubjetivo: document.getElementById("soapSubjetivo")?.value || "",
+            soapObjetivoAlterado: document.getElementById("soapObjetivoAlterado")?.value || "",
+            inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
+            soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
 
-    soapSubjetivo: document.getElementById("soapSubjetivo")?.value || "",
-    soapObjetivoAlterado: document.getElementById("soapObjetivoAlterado")?.value || "",
-    inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
-    soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
+            retorno_dias: reavaliacao,
+            reavaliacaoDias: reavaliacao,
 
-    retorno_dias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
-    reavaliacaoDias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
+            pa:
+                objPAS || objPAD
+                    ? `${objPAS || ""}x${objPAD || ""}`
+                    : "",
 
-    pa: (
-        document.getElementById("objPAS")?.value ||
-        document.getElementById("objPAD")?.value
-    )
-        ? `${document.getElementById("objPAS")?.value || ""}x${document.getElementById("objPAD")?.value || ""}`
-        : "",
+            obj_pas: numeroOuNull(objPAS),
+            obj_pad: numeroOuNull(objPAD),
 
-    obj_pas: document.getElementById("objPAS")?.value || null,
-    obj_pad: document.getElementById("objPAD")?.value || null,
+            fc: document.getElementById("objFC")?.value || "",
+            fr: document.getElementById("objFR")?.value || "",
+            sat_o2: document.getElementById("objSatO2")?.value || "",
+            dor: document.getElementById("objDor")?.value || "",
+            peso: document.getElementById("objpeso")?.value || "",
+            altura: document.getElementById("objaltura")?.value || "",
+            imc: document.getElementById("objIMC")?.value || "",
 
-    fc: document.getElementById("objFC")?.value || "",
-    fr: document.getElementById("objFR")?.value || "",
-    sat_o2: document.getElementById("objSatO2")?.value || "",
-    dor: document.getElementById("objDor")?.value || "",
-    peso: document.getElementById("objpeso")?.value || "",
-    altura: document.getElementById("objaltura")?.value || "",
-    imc: document.getElementById("objIMC")?.value || "",
+            has: hasValor,
+            has_pas: numeroOuNull(hasPAS),
+            has_pad: numeroOuNull(hasPAD),
+            has_classificacao: document.getElementById("hasClassif")?.value || "",
+            has_data_retinopatia: dataOuNullSOAP(document.getElementById("hasDataRetinopatia")?.value),
+            has_retinopatia: document.getElementById("hasRetinopatia")?.value || "",
 
-    has: document.getElementById("hasSN")?.value || "Não",
-    has_pas: document.getElementById("hasPAS")?.value || null,
-    has_pad: document.getElementById("hasPAD")?.value || null,
-    has_classificacao: document.getElementById("hasClassif")?.value || "",
-    has_data_retinopatia: document.getElementById("hasDataRetinopatia")?.value || null,
-    has_retinopatia: document.getElementById("hasRetinopatia")?.value || "",
+            dm: dmValor,
+            dm_hba1c: numeroOuNull(document.getElementById("dmHbA1c")?.value),
+            dm_classificacao: document.getElementById("dmClassif")?.value || "",
+            dm_data_retinopatia: dataOuNullSOAP(document.getElementById("dmDataRetinopatia")?.value),
+            dm_retinopatia: document.getElementById("dmRetinopatia")?.value || "",
+            dm_pe_diabetico_grau: document.getElementById("dmPeDiabeticoGrau")?.value || "",
 
-    dm: document.getElementById("dmSN")?.value || "Não",
-    dm_hba1c: document.getElementById("dmHbA1c")?.value || null,
-    dm_classificacao: document.getElementById("dmClassif")?.value || "",
-    dm_data_retinopatia: document.getElementById("dmDataRetinopatia")?.value || null,
-    dm_retinopatia: document.getElementById("dmRetinopatia")?.value || "",
-    dm_pe_diabetico_grau: document.getElementById("dmPeDiabeticoGrau")?.value || "",
+            gestante: gestanteValor,
+            gestDUM: dataOuNullSOAP(document.getElementById("gestDUM")?.value),
+            gestIG: document.getElementById("gestIG")?.value || "",
+            gestDPP: document.getElementById("gestDPP")?.value || "",
 
-    gestante: document.getElementById("gestanteSN")?.value || "Não",
-    gestDUM: document.getElementById("gestDUM")?.value || null,
-    gestIG: document.getElementById("gestIG")?.value || "",
-    gestDPP: document.getElementById("gestDPP")?.value || "",
+            tb: tbValor,
+            tb_data_diagnostico: dataOuNullSOAP(document.getElementById("tbDataDiagnostico")?.value),
+            tb_fase_tratamento: document.getElementById("tbFaseTratamento")?.value || "",
+            tb_data_baciloscopia: dataOuNullSOAP(document.getElementById("tbDataBaciloscopia")?.value),
+            tb_resultado_baciloscopia: document.getElementById("tbResultadoBaciloscopia")?.value || "",
 
-    tb: document.getElementById("tbSN")?.value || "Não",
-    tb_data_diagnostico: document.getElementById("tbDataDiagnostico")?.value || null,
-    tb_fase_tratamento: document.getElementById("tbFaseTratamento")?.value || "",
-    tb_data_baciloscopia: document.getElementById("tbDataBaciloscopia")?.value || null,
-    tb_resultado_baciloscopia: document.getElementById("tbResultadoBaciloscopia")?.value || "",
+            hansen: hansenValor,
+            hansen_data_diagnostico: dataOuNullSOAP(document.getElementById("hansenDataDiagnostico")?.value),
+            hansen_classificacao: document.getElementById("hansenClassificacao")?.value || "",
+            hansen_grau_incapacidade: document.getElementById("hansenGrauIncapacidade")?.value || "",
+            hansen_situacao_tratamento: document.getElementById("hansenSituacaoTratamento")?.value || "",
 
-    hansen: document.getElementById("hansenSN")?.value || "Não",
-    hansen_data_diagnostico: document.getElementById("hansenDataDiagnostico")?.value || null,
-    hansen_classificacao: document.getElementById("hansenClassificacao")?.value || "",
-    hansen_grau_incapacidade: document.getElementById("hansenGrauIncapacidade")?.value || "",
-    hansen_situacao_tratamento: document.getElementById("hansenSituacaoTratamento")?.value || "",
+            risco_global: risco.classificacao || null,
+            risco_pontos: risco.pontos || 0,
 
-    risco_global: risco.classificacao || null,
-    risco_pontos: risco.pontos || 0,
+            plano_terapeutico: document.getElementById("planoTerapeuticoSingular")?.value || "",
+            nota_monitoramento: document.getElementById("notaMonitoramento")?.value || "",
 
-    plano_terapeutico: document.getElementById("planoTerapeuticoSingular")?.value || "",
-    nota_monitoramento: document.getElementById("notaMonitoramento")?.value || "",
-
-    criado_em: new Date().toISOString(),
-    data_atendimento: new Date().toISOString()
-};
+            criado_em: new Date().toISOString(),
+            data_atendimento: new Date().toISOString()
+        };
 
         /* ==================================================
            SALVAR ATENDIMENTO
@@ -627,7 +772,7 @@ async function salvarProntuario() {
             .insert([atendimento]);
 
         if (erroAtendimento) {
-            console.error(erroAtendimento);
+            console.error("Erro atendimento:", erroAtendimento);
             alert("Erro ao salvar atendimento.");
             return;
         }
@@ -642,6 +787,9 @@ async function salvarProntuario() {
             paciente.cns
         );
 
+        window.pacienteAtual = paciente;
+        window.pacienteSelecionado = paciente;
+
     } catch (erro) {
         console.error("Erro prontuário:", erro);
         alert("Erro inesperado.");
@@ -649,7 +797,7 @@ async function salvarProntuario() {
 }
 
 /* ==========================================================================
-   🧩 HELPERS
+   🧩 HELPERS VISUAIS
    ========================================================================== */
 
 function mostrarCard(id, valor) {
@@ -660,11 +808,11 @@ function mostrarCard(id, valor) {
 }
 
 function mostrarCardsLinhasCuidado() {
-    const has = document.getElementById("hasSN")?.value === "Sim";
-    const dm = document.getElementById("dmSN")?.value === "Sim";
-    const gest = document.getElementById("gestanteSN")?.value === "Sim";
-    const tb = document.getElementById("tbSN")?.value === "Sim";
-    const hansen = document.getElementById("hansenSN")?.value === "Sim";
+    const has = valorSimNaoCampo("hasSN") === "Sim";
+    const dm = valorSimNaoCampo("dmSN") === "Sim";
+    const gest = valorSimNaoCampo("gestanteSN") === "Sim";
+    const tb = valorSimNaoCampo("tbSN") === "Sim";
+    const hansen = valorSimNaoCampo("hansenSN") === "Sim";
 
     const cardHAS = document.getElementById("cardHAS");
     if (cardHAS) cardHAS.style.display = has ? "block" : "none";
@@ -708,6 +856,23 @@ function fecharProntuarioAtivo() {
 document.addEventListener("DOMContentLoaded", () => {
     iniciarAutocompletePaciente();
     mostrarCardsLinhasCuidado();
+
+    ["hasSN", "dmSN", "gestanteSN", "tbSN", "hansenSN"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("change", mostrarCardsLinhasCuidado);
+        }
+    });
+
+    const objPAS = document.getElementById("objPAS");
+    const objPAD = document.getElementById("objPAD");
+    const hasPAS = document.getElementById("hasPAS");
+    const hasPAD = document.getElementById("hasPAD");
+
+    if (objPAS) objPAS.addEventListener("input", sincronizarPAObjetivoParaHAS);
+    if (objPAD) objPAD.addEventListener("input", sincronizarPAObjetivoParaHAS);
+    if (hasPAS) hasPAS.addEventListener("input", sincronizarPAHASParaObjetivo);
+    if (hasPAD) hasPAD.addEventListener("input", sincronizarPAHASParaObjetivo);
 });
 
 /* ==========================================================================
@@ -728,3 +893,4 @@ window.mostrarCardsLinhasCuidado = mostrarCardsLinhasCuidado;
 window.fecharProntuarioAtivo = fecharProntuarioAtivo;
 window.sincronizarPAObjetivoParaHAS = sincronizarPAObjetivoParaHAS;
 window.sincronizarPAHASParaObjetivo = sincronizarPAHASParaObjetivo;
+window.valorSimNaoCampo = valorSimNaoCampo;
