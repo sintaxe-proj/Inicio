@@ -1663,3 +1663,24 @@ button.btn-info,
     color: #ffffff !important;
 }
 
+/* ==========================================================
+   DASHBOARD EPIDEMIOLÓGICO — FIX ALTURA DOS GRÁFICOS
+   ========================================================== */
+
+.grafico-card {
+    min-height: 360px;
+}
+
+.grafico-box {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    max-height: 280px;
+}
+
+.grafico-box canvas {
+    width: 100% !important;
+    height: 280px !important;
+    max-height: 280px !important;
+    display: block;
+}
