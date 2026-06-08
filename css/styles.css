@@ -791,7 +791,7 @@ button {
 /* AZUL - AÇÃO PRINCIPAL */
 
 .btn-primary,
-button {
+button {.btn-primary, button:not(.btn-success):not(.btn-danger):not(.btn-secondary):not(.btn-warning):not(.btn-info) {
 
     background:
         linear-gradient(
