@@ -1093,6 +1093,57 @@ document.addEventListener(
 );
 
 /* ==========================================================================
+   ❌ FECHAR PRONTUÁRIO ATIVO
+   ========================================================================== */
+
+function fecharProntuarioAtivo() {
+
+    window.pacienteAtual = null;
+    window.pacienteSelecionado = null;
+
+    const cabecalho =
+        document.getElementById(
+            "cabecalhoProntuario"
+        );
+
+    const cabecalhoNome =
+        document.getElementById(
+            "cabecalhoNome"
+        );
+
+    if (cabecalho) {
+        cabecalho.style.display = "none";
+    }
+
+    if (cabecalhoNome) {
+        cabecalhoNome.innerHTML = "";
+    }
+
+    document
+        .querySelectorAll(
+            "#view-prontuario input, #view-prontuario textarea, #view-prontuario select"
+        )
+        .forEach(campo => {
+
+            if (
+                campo.type === "checkbox"
+            ) {
+                campo.checked = false;
+            } else {
+                campo.value = "";
+            }
+
+        });
+
+    mostrarToast?.(
+        "📋 Prontuário encerrado."
+    );
+}
+
+window.fecharProntuarioAtivo =
+    fecharProntuarioAtivo;
+
+/* ==========================================================================
    🌎 GLOBAL
    ========================================================================== */
 
