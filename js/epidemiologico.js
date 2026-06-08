@@ -93,13 +93,13 @@ async function carregarDashboardEpidemiologicoTerritorial() {
         return;
     }
 
-    const base = consolidarBaseEpidemiologica(
+    baseEpidemiologicaCompleta = consolidarBaseEpidemiologica(
         pacientes || [],
         atendimentos || []
     );
 
-    atualizarCardsEpidemiologicos(base);
-    renderizarGraficosEpidemiologicos(base);
+    carregarFiltroEquipeDashboardEpi(baseEpidemiologicaCompleta);
+    aplicarFiltroEquipeDashboardEpi();
 
     mostrarToast?.("✅ Dashboard epidemiológico atualizado.");
 }
@@ -184,23 +184,56 @@ function consolidarBaseEpidemiologica(pacientes, atendimentos) {
 }
 
 function valorSimEpi(valor) {
-    return String(valor || "")
+    const v = String(valor || "")
         .trim()
-        .toLowerCase() === "sim";
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
 }
 
 function atualizarCardsEpidemiologicos(base) {
     const total = base.length;
-    const criticos = base.filter(p => Number(p.prazo) === 0).length;
-    const has = base.filter(p => p.has === "Sim").length;
-    const dm = base.filter(p => p.dm === "Sim").length;
-    const gestantes = base.filter(p => p.gestante === "Sim").length;
+
+    const has =
+        base.filter(p => valorSimEpi(p.has)).length;
+
+    const dm =
+        base.filter(p => valorSimEpi(p.dm)).length;
+
+    const gestantes =
+        base.filter(p => valorSimEpi(p.gestante)).length;
+
+    const criticos =
+        base.filter(p => {
+            const prazo = Number(p.prazo);
+            return !Number.isNaN(prazo) && prazo === 0;
+        }).length;
 
     setTextoEpi("epiTotalPacientes", total);
     setTextoEpi("epiCriticos", criticos);
     setTextoEpi("epiHAS", has);
     setTextoEpi("epiDM", dm);
     setTextoEpi("epiGestantes", gestantes);
+
+    console.log("📊 Cards epidemiológicos:", {
+        total,
+        has,
+        dm,
+        gestantes,
+        criticos
+    });
 }
 
 function setTextoEpi(id, valor) {
@@ -212,11 +245,11 @@ function renderizarGraficosEpidemiologicos(base) {
     criarGraficoBarra("graficoLinhasCuidado", {
         labels: ["HAS", "DM", "Gestantes", "TB", "Hanseníase"],
         data: [
-            base.filter(p => p.has === "Sim").length,
-            base.filter(p => p.dm === "Sim").length,
-            base.filter(p => p.gestante === "Sim").length,
-            base.filter(p => p.tb === "Sim").length,
-            base.filter(p => p.hansen === "Sim").length
+            base.filter(p => valorSimEpi(p.has)).length,
+            base.filter(p => valorSimEpi(p.dm)).length,
+            base.filter(p => valorSimEpi(p.gestante)).length,
+            base.filter(p => valorSimEpi(p.tb)).length,
+            base.filter(p => valorSimEpi(p.hansen)).length
         ],
         titulo: "Pessoas por linha de cuidado"
     });
@@ -240,11 +273,11 @@ function renderizarGraficosEpidemiologicos(base) {
     criarGraficoBarra("graficoComorbidades", {
         labels: ["HAS + DM", "HAS + Gestante", "DM + Gestante", "TB", "Hanseníase"],
         data: [
-            base.filter(p => p.has === "Sim" && p.dm === "Sim").length,
-            base.filter(p => p.has === "Sim" && p.gestante === "Sim").length,
-            base.filter(p => p.dm === "Sim" && p.gestante === "Sim").length,
-            base.filter(p => p.tb === "Sim").length,
-            base.filter(p => p.hansen === "Sim").length
+            base.filter(p => valorSimEpi(p.has) && valorSimEpi(p.dm)).length,
+            base.filter(p => valorSimEpi(p.has) && valorSimEpi(p.gestante)).length,
+            base.filter(p => valorSimEpi(p.dm) && valorSimEpi(p.gestante)).length,
+            base.filter(p => valorSimEpi(p.tb)).length,
+            base.filter(p => valorSimEpi(p.hansen)).length
         ],
         titulo: "Condições combinadas"
     });
@@ -269,6 +302,82 @@ function classificarPrazos(base) {
         "Acima de 90 dias": base.filter(p => Number(p.prazo) > 90).length,
         "Sem prazo": base.filter(p => p.prazo === null || p.prazo === undefined).length
     };
+}
+
+
+/* ==========================================================================
+   FILTRO POR EQUIPE
+   ========================================================================== */
+
+function carregarFiltroEquipeDashboardEpi(base) {
+    const select =
+        document.getElementById("filtroEquipeDashboardEpi");
+
+    if (!select) {
+        console.warn("Select filtroEquipeDashboardEpi não encontrado no HTML.");
+        return;
+    }
+
+    const valorAtual =
+        select.value || "TODAS";
+
+    const equipes =
+        [...new Set(
+            (base || [])
+                .map(p => p.equipe || "Não informado")
+                .filter(Boolean)
+        )].sort();
+
+    select.innerHTML = `
+        <option value="TODAS">Todas as equipes</option>
+    `;
+
+    equipes.forEach(equipe => {
+        const option =
+            document.createElement("option");
+
+        option.value =
+            equipe;
+
+        option.textContent =
+            equipe;
+
+        select.appendChild(option);
+    });
+
+    if (
+        valorAtual === "TODAS" ||
+        equipes.includes(valorAtual)
+    ) {
+        select.value =
+            valorAtual;
+    }
+}
+
+function aplicarFiltroEquipeDashboardEpi() {
+    const select =
+        document.getElementById("filtroEquipeDashboardEpi");
+
+    const equipe =
+        select?.value || "TODAS";
+
+    let baseFiltrada =
+        baseEpidemiologicaCompleta || [];
+
+    if (equipe !== "TODAS") {
+        baseFiltrada =
+            baseFiltrada.filter(p =>
+                String(p.equipe || "Não informado") === equipe
+            );
+    }
+
+    atualizarCardsEpidemiologicos(baseFiltrada);
+    renderizarGraficosEpidemiologicos(baseFiltrada);
+
+    console.log("📊 Dashboard filtrado por equipe:", {
+        equipe,
+        total: baseFiltrada.length
+    });
 }
 
 function criarGraficoBarra(canvasId, config) {
@@ -366,3 +475,5 @@ function opcoesPadraoEpi(usarEscalas = true) {
 window.abrirDashboardEpidemiologicoTerritorial = abrirDashboardEpidemiologicoTerritorial;
 window.fecharDashboardEpidemiologicoTerritorial = fecharDashboardEpidemiologicoTerritorial;
 window.carregarDashboardEpidemiologicoTerritorial = carregarDashboardEpidemiologicoTerritorial;
+window.carregarFiltroEquipeDashboardEpi = carregarFiltroEquipeDashboardEpi;
+window.aplicarFiltroEquipeDashboardEpi = aplicarFiltroEquipeDashboardEpi;
