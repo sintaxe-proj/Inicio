@@ -4,6 +4,7 @@
    ========================================================================== */
 
 let graficosEpidemiologicos = {};
+let baseEpidemiologicaCompleta = [];
 
 function abrirDashboardEpidemiologicoTerritorial() {
     const modal = document.getElementById("modalDashboardEpidemiologico");
