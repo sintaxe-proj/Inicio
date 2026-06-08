@@ -127,6 +127,7 @@ async function aplicarFiltrosRelatorio() {
             tb,
             hansen,
             "reavaliacaoDias",
+            nota_monitoramento,
             data_atendimento
         `)
         .order("data_atendimento", { ascending: false });
@@ -294,15 +295,55 @@ function renderizarTabelaMonitoramento(filtrados) {
         const documento =
             p.cpf || p.cns || "";
 
-        html += `
-            <tr>
-                <td><b>${p.nome || p.nome_paciente || "-"}</b></td>
-                <td>${documento || "-"}</td>
-                <td>${p.ubs || "Pendente"}</td>
-                <td>${p.equipe || "Pendente"}</td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:6px;">
-                        <span>${statusMonitoramento}</span>
+html += `
+    <tr>
+
+        <td>
+
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:6px;
+            ">
+
+                <b>
+                    ${p.nome || p.nome_paciente || "-"}
+                </b>
+
+                ${p.nota_monitoramento
+                    ? `
+                        <span
+                            title="${p.nota_monitoramento}"
+                            style="
+                                color:#38bdf8;
+                                cursor:help;
+                                font-size:14px;
+                                font-weight:bold;
+                            ">
+                            ℹ️
+                        </span>
+                    `
+                    : ""
+                }
+
+            </div>
+
+        </td>
+
+        <td>${documento || "-"}</td>
+
+        <td>${p.ubs || "Pendente"}</td>
+
+        <td>${p.equipe || "Pendente"}</td>
+
+        <td>
+            <div style="
+                display:flex;
+                flex-direction:column;
+                gap:6px;
+            ">
+                <span>${statusMonitoramento}</span>
+`;
 
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button
