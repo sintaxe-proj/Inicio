@@ -771,10 +771,15 @@
 
 <div class="form-grid">
 
-    <div>
-        <label>PA (Sistólica x Diastólica)</label>
-        <input type="text" id="objPA" placeholder="Ex: 120x80 mmHg">
-    </div>
+<div>
+    <label>PA Sistólica</label>
+    <input type="number" id="objPAS" placeholder="Ex: 120" oninput="sincronizarPAObjetivoParaHAS()">
+</div>
+
+<div>
+    <label>PA Diastólica</label>
+    <input type="number" id="objPAD" placeholder="Ex: 80" oninput="sincronizarPAObjetivoParaHAS()">
+</div>
 
     <div>
         <label>FC (Frequência Cardíaca)</label>
