@@ -151,7 +151,7 @@ function montarUsuarioLogado(user, perfil) {
             user.id,
 
         login:
-            perfil.login ||
+            perfil.email ||
             user.email,
 
         email:
@@ -221,33 +221,66 @@ async function buscarPerfilUsuarioPorEmail(email) {
         emailLimpo
     );
 
-    const {
-        data,
-        error
-    } =
-    await supabaseClient
-        .from("users")
-        .select("id, nome, email, perfil, ativo")
-        .eq("email", emailLimpo)
-        .maybeSingle();
+    if (!emailLimpo) {
+        return null;
+    }
 
-    console.log(
-        "👤 Perfil encontrado:",
-        data,
-        error
-    );
+    try {
 
-    if (error) {
+        /*
+           IMPORTANTE:
+           Não selecionar a coluna "login".
+           Se ela não existir no Supabase, a API REST retorna 400.
+        */
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+            .from("users")
+            .select("id, nome, email, perfil, ativo")
+            .eq("email", emailLimpo)
+            .maybeSingle();
+
+        console.log(
+            "👤 Perfil encontrado:",
+            data,
+            error
+        );
+
+        if (error) {
+
+            console.error(
+                "Erro perfil:",
+                error
+            );
+
+            return null;
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return {
+            id: data.id,
+            login: data.email,
+            nome: data.nome || data.email,
+            email: data.email,
+            perfil: data.perfil || "assistencial",
+            ativo: data.ativo !== false
+        };
+
+    } catch (erro) {
 
         console.error(
-            "Erro perfil:",
-            error
+            "Erro inesperado ao buscar perfil:",
+            erro
         );
 
         return null;
     }
-
-    return data;
 }
 
 /* ==========================================================
@@ -1037,6 +1070,9 @@ window.aplicarPermissoes =
 
 window.buscarPerfilUsuarioLogado =
     buscarPerfilUsuarioLogado;
+
+window.buscarPerfilUsuarioPorEmail =
+    buscarPerfilUsuarioPorEmail;
 
 window.mostrarTelaLogin =
     mostrarTelaLogin;
