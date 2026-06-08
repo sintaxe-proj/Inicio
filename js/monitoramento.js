@@ -3,6 +3,10 @@
    SUPABASE PURO
    pacientes = identificação
    atendimentos = dados clínicos
+
+   IMPORTANTE:
+   A função abrirAtendimentoExistente() pertence ao busca.js.
+   Este arquivo apenas chama essa função, sem sobrescrevê-la.
    ========================================================================== */
 
 let linhaCuidadoAtualVisualizacao = "has";
@@ -55,10 +59,10 @@ function fecharPainelEpidemiologico() {
 }
 
 /* ==========================================================================
-   🏥 CARREGAR FILTROS
+   🏥 CARREGAR FILTROS DINÂMICOS
    ========================================================================== */
 
-function carregarFiltrosModalUBS() {
+async function carregarFiltrosModalUBS() {
     const ubsSelect =
         document.getElementById("filtroUBS");
 
@@ -66,23 +70,75 @@ function carregarFiltrosModalUBS() {
         document.getElementById("filtroEquipe");
 
     if (ubsSelect) {
-        ubsSelect.innerHTML = `
-            <option value="TODAS">Todas as Unidades</option>
-            <option value="UBS Centro Médico">UBS Centro Médico</option>
-            <option value="UBS Vila Nova">UBS Vila Nova</option>
-            <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
-            <option value="UBS Integrada Norte">UBS Integrada Norte</option>
-        `;
+        ubsSelect.innerHTML =
+            `<option value="TODAS">Todas as Unidades</option>`;
     }
 
     if (equipeSelect) {
-        equipeSelect.innerHTML = `
-            <option value="TODAS">Todas as Equipes</option>
-            <option value="Equipe Verde">Equipe Verde</option>
-            <option value="Equipe Azul">Equipe Azul</option>
-            <option value="Equipe Esmeralda">Equipe Esmeralda</option>
-            <option value="Equipe Rubi">Equipe Rubi</option>
-        `;
+        equipeSelect.innerHTML =
+            `<option value="TODAS">Todas as Equipes</option>`;
+    }
+
+    try {
+        if (typeof supabaseClient !== "undefined") {
+            const { data, error } = await supabaseClient
+                .from("pacientes")
+                .select(`
+                    ubs,
+                    equipe,
+                    ubs_vinculacao,
+                    equipe_esf
+                `);
+
+            if (!error && data) {
+                const ubsLista =
+                    [...new Set(
+                        data
+                            .map(p =>
+                                p.ubs_vinculacao ||
+                                p.ubs
+                            )
+                            .filter(Boolean)
+                    )].sort();
+
+                const equipes =
+                    [...new Set(
+                        data
+                            .map(p =>
+                                p.equipe_esf ||
+                                p.equipe
+                            )
+                            .filter(Boolean)
+                    )].sort();
+
+                if (ubsSelect) {
+                    ubsLista.forEach(ubs => {
+                        ubsSelect.innerHTML += `
+                            <option value="${ubs}">
+                                ${ubs}
+                            </option>
+                        `;
+                    });
+                }
+
+                if (equipeSelect) {
+                    equipes.forEach(equipe => {
+                        equipeSelect.innerHTML += `
+                            <option value="${equipe}">
+                                ${equipe}
+                            </option>
+                        `;
+                    });
+                }
+            }
+        }
+    } catch (erro) {
+        console.warn(
+            "Não foi possível carregar filtros dinâmicos:",
+            erro
+        );
+
+        carregarFiltrosModalUBSFallback();
     }
 
     const risco =
@@ -93,6 +149,35 @@ function carregarFiltrosModalUBS() {
     }
 
     aplicarFiltrosRelatorio();
+}
+
+/* Fallback caso a busca dinâmica falhe */
+function carregarFiltrosModalUBSFallback() {
+    const ubsSelect =
+        document.getElementById("filtroUBS");
+
+    const equipeSelect =
+        document.getElementById("filtroEquipe");
+
+    if (ubsSelect && ubsSelect.children.length <= 1) {
+        ubsSelect.innerHTML = `
+            <option value="TODAS">Todas as Unidades</option>
+            <option value="UBS Centro Médico">UBS Centro Médico</option>
+            <option value="UBS Vila Nova">UBS Vila Nova</option>
+            <option value="Clínica da Família Zona Sul">Clínica da Família Zona Sul</option>
+            <option value="UBS Integrada Norte">UBS Integrada Norte</option>
+        `;
+    }
+
+    if (equipeSelect && equipeSelect.children.length <= 1) {
+        equipeSelect.innerHTML = `
+            <option value="TODAS">Todas as Equipes</option>
+            <option value="Equipe Verde">Equipe Verde</option>
+            <option value="Equipe Azul">Equipe Azul</option>
+            <option value="Equipe Esmeralda">Equipe Esmeralda</option>
+            <option value="Equipe Rubi">Equipe Rubi</option>
+        `;
+    }
 }
 
 /* ==========================================================================
@@ -128,11 +213,17 @@ async function aplicarFiltrosRelatorio() {
             tb,
             hansen,
             reavaliacaoDias,
+            retorno_dias,
             nota_monitoramento,
+            risco_global,
+            risco_pontos,
             data_atendimento,
             criado_em
         `)
-        .order("data_atendimento", { ascending: false });
+        .order("data_atendimento", {
+            ascending: false,
+            nullsFirst: false
+        });
 
     if (linhaCuidadoAtualVisualizacao === "has") {
         query = query.eq("has", "Sim");
@@ -145,13 +236,19 @@ async function aplicarFiltrosRelatorio() {
     } else if (linhaCuidadoAtualVisualizacao === "hanseniase") {
         query = query.eq("hansen", "Sim");
     } else if (linhaCuidadoAtualVisualizacao === "criticos") {
-        query = query.eq("reavaliacaoDias", 0);
+        query = query.or(
+            "reavaliacaoDias.eq.0,retorno_dias.eq.0"
+        );
     }
 
     if (risco === "CRITICO") {
-        query = query.eq("reavaliacaoDias", 0);
+        query = query.or(
+            "reavaliacaoDias.eq.0,retorno_dias.eq.0"
+        );
     } else if (risco === "ATENCAO") {
-        query = query.gt("reavaliacaoDias", 0).lte("reavaliacaoDias", 30);
+        query = query
+            .gt("reavaliacaoDias", 0)
+            .lte("reavaliacaoDias", 30);
     } else if (risco === "CONTROLADO") {
         query = query.gt("reavaliacaoDias", 30);
     }
@@ -165,16 +262,24 @@ async function aplicarFiltrosRelatorio() {
     }
 
     const lista =
-        await enriquecerAtendimentosComPacientes(atendimentos || []);
+        await enriquecerAtendimentosComPacientes(
+            atendimentos || []
+        );
 
     let filtrados = lista;
 
     if (ubs !== "TODAS") {
-        filtrados = filtrados.filter(p => p.ubs === ubs);
+        filtrados =
+            filtrados.filter(p =>
+                p.ubs === ubs
+            );
     }
 
     if (equipe !== "TODAS") {
-        filtrados = filtrados.filter(p => p.equipe === equipe);
+        filtrados =
+            filtrados.filter(p =>
+                p.equipe === equipe
+            );
     }
 
     renderizarGraficosModal(filtrados);
@@ -208,6 +313,7 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
             cpf,
             cns,
             nome,
+            telefone,
             ubs,
             equipe,
             ubs_vinculacao,
@@ -250,16 +356,24 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
 
         return {
             ...a,
-            cpf: cpfAtendimento,
+
+            cpf:
+                cpfAtendimento,
+
+            telefone:
+                paciente?.telefone || "",
+
             nome:
                 paciente?.nome ||
                 a.nome_paciente ||
                 "Sem nome",
+
             ubs:
                 paciente?.ubs_vinculacao ||
                 paciente?.ubs ||
                 a.ubs_vinculacao ||
                 "Pendente",
+
             equipe:
                 paciente?.equipe_esf ||
                 paciente?.equipe ||
@@ -296,6 +410,7 @@ function renderizarTabelaMonitoramento(filtrados) {
                     <th>CPF/CNS</th>
                     <th>UBS</th>
                     <th>Equipe</th>
+                    <th>Risco</th>
                     <th>Monitoramento</th>
                 </tr>
             </thead>
@@ -304,7 +419,11 @@ function renderizarTabelaMonitoramento(filtrados) {
 
     filtrados.forEach(p => {
         const dias =
-            parseInt(p.reavaliacaoDias ?? 0);
+            parseInt(
+                p.reavaliacaoDias ??
+                p.retorno_dias ??
+                0
+            );
 
         let statusMonitoramento = "";
 
@@ -329,7 +448,7 @@ function renderizarTabelaMonitoramento(filtrados) {
             p.nota_monitoramento
                 ? `
                     <span
-                        title="${p.nota_monitoramento}"
+                        title="${escaparMonitoramento(p.nota_monitoramento)}"
                         style="
                             color:#38bdf8;
                             cursor:help;
@@ -339,6 +458,27 @@ function renderizarTabelaMonitoramento(filtrados) {
                         ">
                         ℹ️
                     </span>
+                `
+                : "";
+
+        const riscoTexto =
+            p.risco_global ||
+            "-";
+
+        const riscoPontos =
+            p.risco_pontos !== null &&
+            p.risco_pontos !== undefined
+                ? ` (${p.risco_pontos} pts)`
+                : "";
+
+        const botaoWhatsApp =
+            typeof abrirWhatsAppMonitoramento === "function"
+                ? `
+                    <button
+                        onclick="abrirWhatsAppMonitoramento('${p.paciente_cpf || p.cpf || ""}', '${p.cns || ""}', '${linhaCuidadoAtualVisualizacao}')"
+                        style="background:#25d366; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
+                        💬 WhatsApp
+                    </button>
                 `
                 : "";
 
@@ -356,6 +496,12 @@ function renderizarTabelaMonitoramento(filtrados) {
                 <td>${p.equipe || "Pendente"}</td>
 
                 <td>
+                    <span style="font-size:12px;">
+                        ${riscoTexto}${riscoPontos}
+                    </span>
+                </td>
+
+                <td>
                     <div style="display:flex; flex-direction:column; gap:6px;">
                         <span>${statusMonitoramento}</span>
 
@@ -366,11 +512,7 @@ function renderizarTabelaMonitoramento(filtrados) {
                                 📋 Abrir
                             </button>
 
-                            <button
-                                onclick="abrirWhatsAppMonitoramento('${p.paciente_cpf || p.cpf || ""}', '${p.cns || ""}', '${linhaCuidadoAtualVisualizacao}')"
-                                style="background:#25d366; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
-                                💬 WhatsApp
-                            </button>
+                            ${botaoWhatsApp}
                         </div>
                     </div>
                 </td>
@@ -395,13 +537,21 @@ function renderizarGraficosModal(lista) {
 
     const criticos =
         lista.filter(p =>
-            parseInt(p.reavaliacaoDias ?? 0) === 0
+            parseInt(
+                p.reavaliacaoDias ??
+                p.retorno_dias ??
+                0
+            ) === 0
         ).length;
 
     const atencao =
         lista.filter(p => {
             const dias =
-                parseInt(p.reavaliacaoDias ?? 0);
+                parseInt(
+                    p.reavaliacaoDias ??
+                    p.retorno_dias ??
+                    0
+                );
 
             return dias > 0 && dias <= 30;
         }).length;
@@ -409,7 +559,11 @@ function renderizarGraficosModal(lista) {
     const controlados =
         lista.filter(p => {
             const dias =
-                parseInt(p.reavaliacaoDias ?? 0);
+                parseInt(
+                    p.reavaliacaoDias ??
+                    p.retorno_dias ??
+                    0
+                );
 
             return dias > 30;
         }).length;
@@ -505,112 +659,15 @@ function renderizarGraficosModal(lista) {
 }
 
 /* ==========================================================================
-   📋 ABRIR PRONTUÁRIO PELO MONITORAMENTO
+   HELPERS
    ========================================================================== */
 
-async function abrirAtendimentoExistente(cpf, cns) {
-    try {
-        const cpfLimpo = String(cpf || "").replace(/\D/g, "");
-        const cnsLimpo = String(cns || "").replace(/\D/g, "");
-
-        if (!cpfLimpo && !cnsLimpo) {
-            alert("CPF ou CNS não informado para abrir o prontuário.");
-            return;
-        }
-
-        let query = supabaseClient
-            .from("pacientes")
-            .select("*");
-
-        if (cpfLimpo) {
-            query = query.eq("cpf", cpfLimpo);
-        } else {
-            query = query.eq("cns", cnsLimpo);
-        }
-
-        const { data: paciente, error } = await query.maybeSingle();
-
-        if (error) {
-            console.error("Erro ao buscar paciente:", error);
-            alert("Erro ao buscar paciente no Supabase.");
-            return;
-        }
-
-        if (!paciente) {
-            alert("Paciente não encontrado na base territorial.");
-            return;
-        }
-
-        if (typeof navigate === "function") {
-            navigate("prontuario");
-        }
-
-        document.getElementById("nomePaciente").value =
-            paciente.nome || "";
-
-        document.getElementById("cpfPaciente").value =
-            paciente.cpf || "";
-
-        document.getElementById("cnsPaciente").value =
-            paciente.cns || "";
-
-        document.getElementById("telPaciente").value =
-            paciente.telefone || "";
-
-        document.getElementById("endPaciente").value =
-            paciente.endereco || "";
-
-        document.getElementById("unidadePaciente").value =
-            paciente.ubs_vinculacao ||
-            paciente.ubs ||
-            paciente.unidade ||
-            "";
-
-        document.getElementById("equipePaciente").value =
-            paciente.equipe_esf ||
-            paciente.equipe ||
-            "";
-
-        const modal =
-            document.getElementById("painelEpidemiologicoContainer");
-
-        if (modal) {
-            modal.style.display = "none";
-        }
-
-        const cabecalho =
-            document.getElementById("cabecalhoProntuario");
-
-        const cabecalhoNome =
-            document.getElementById("cabecalhoNome");
-
-        if (cabecalho) {
-            cabecalho.style.display = "flex";
-        }
-
-        if (cabecalhoNome) {
-            cabecalhoNome.innerText =
-                `📋 Prontuário Ativo: ${paciente.nome || "Paciente"} (CPF: ${paciente.cpf || "-"})`;
-        }
-
-        window.pacienteAtual = paciente;
-        window.pacienteSelecionado = paciente;
-
-        if (typeof carregarHistoricoClinicoPaciente === "function") {
-            await carregarHistoricoClinicoPaciente(
-                paciente.cpf,
-                paciente.cns
-            );
-        }
-
-    } catch (erro) {
-        console.error("Erro ao abrir prontuário:", erro);
-        alert("Erro ao abrir prontuário.");
-    }
+function escaparMonitoramento(valor) {
+    return String(valor || "")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
-
-window.abrirAtendimentoExistente =
-    abrirAtendimentoExistente;
 
 /* ==========================================================================
    GLOBAL
@@ -627,3 +684,12 @@ window.carregarFiltrosModalUBS =
 
 window.aplicarFiltrosRelatorio =
     aplicarFiltrosRelatorio;
+
+window.enriquecerAtendimentosComPacientes =
+    enriquecerAtendimentosComPacientes;
+
+window.renderizarTabelaMonitoramento =
+    renderizarTabelaMonitoramento;
+
+window.renderizarGraficosModal =
+    renderizarGraficosModal;
