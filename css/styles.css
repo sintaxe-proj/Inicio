@@ -1517,38 +1517,113 @@ th {
 /* ==========================================================
    AJUSTES REUNIÃO DE EQUIPE
    ========================================================== */
+/* ==========================================================
+   REUNIÃO DE EQUIPE - FORÇAR CORES DOS BOTÕES
+   ========================================================== */
+
+#view-reuniao .btn-primary {
+    background: linear-gradient(
+        135deg,
+        #2563eb,
+        #1d4ed8
+    ) !important;
+
+    color: white !important;
+}
+
+#view-reuniao .btn-success {
+    background: linear-gradient(
+        135deg,
+        #22c55e,
+        #16a34a
+    ) !important;
+
+    color: white !important;
+}
+
+#view-reuniao .btn-secondary {
+    background: linear-gradient(
+        135deg,
+        #334155,
+        #1e293b
+    ) !important;
+
+    color: white !important;
+}
+
+#view-reuniao .btn-danger {
+    background: linear-gradient(
+        135deg,
+        #ef4444,
+        #dc2626
+    ) !important;
+
+    color: white !important;
+}
+
+#view-reuniao .btn-warning {
+    background: linear-gradient(
+        135deg,
+        #f59e0b,
+        #d97706
+    ) !important;
+
+    color: #111827 !important;
+}
+
+#view-reuniao .btn-info {
+    background: linear-gradient(
+        135deg,
+        #06b6d4,
+        #0284c7
+    ) !important;
+
+    color: white !important;
+}
+
+/* ==========================================================
+   HOVER
+   ========================================================== */
+
+#view-reuniao .btn-primary:hover,
+#view-reuniao .btn-success:hover,
+#view-reuniao .btn-secondary:hover,
+#view-reuniao .btn-danger:hover,
+#view-reuniao .btn-warning:hover,
+#view-reuniao .btn-info:hover {
+
+    transform: translateY(-2px);
+
+    opacity: .95;
+
+    box-shadow:
+        0 4px 12px rgba(0,0,0,.25);
+}
+
+/* ==========================================================
+   TAMANHO PADRÃO DOS BOTÕES DA REUNIÃO
+   ========================================================== */
 
 #view-reuniao button {
 
-    margin-top: 6px;
+    min-height: 42px;
+
+    border-radius: 14px;
+
+    font-weight: 700;
 }
+
+/* ==========================================================
+   LINHA DE BOTÕES
+   ========================================================== */
 
 #view-reuniao .button-row {
 
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+
     margin-top: 15px;
-}
-
-#view-reuniao .form-section button:not(.btn-danger):not(.btn-success):not(.btn-secondary):not(.btn-warning):not(.btn-info) {
-
-    background:
-        linear-gradient(
-            135deg,
-            #2563eb,
-            #1d4ed8
-        );
-
-    color: white;
-}
-
-#view-reuniao textarea,
-#view-reuniao input,
-#view-reuniao select {
-
-    margin-bottom: 8px;
-}
-
-#historicoReunioes button {
-
-    margin-right: 6px;
-    margin-bottom: 6px;
 }
