@@ -3,6 +3,12 @@
    Fluxo:
    PENDENTE → AUTORIZADO → ENTREGUE
    PENDENTE → NEGADO
+
+   Compatível com:
+   - paciente_cpf
+   - paciente_cns
+   - paciente_nome
+   - auditoria do usuário logado
    ========================================================== */
 
 let itensSolicitacao = [];
@@ -17,7 +23,53 @@ function getUsuarioMateriais() {
     return {
         usuario_id: usuario.id || null,
         usuario_nome: usuario.nome || usuario.email || null,
+        usuario_email: usuario.email || null,
         usuario_perfil: usuario.perfil || null
+    };
+}
+
+function usuarioPodeGerenciarMateriais() {
+    const usuario = getUsuarioMateriais();
+
+    return (
+        usuario.usuario_perfil === "admin" ||
+        usuario.usuario_perfil === "gestor" ||
+        usuario.usuario_perfil === "coordenador"
+    );
+}
+
+/* ==========================================================
+   DADOS DO PACIENTE ATIVO
+   ========================================================== */
+
+function getPacienteAtivoMateriais() {
+    const pacienteGlobal =
+        window.pacienteAtual ||
+        window.pacienteSelecionado ||
+        {};
+
+    const nome =
+        document.getElementById("nomePaciente")?.value ||
+        pacienteGlobal.nome ||
+        pacienteGlobal.nome_paciente ||
+        null;
+
+    const cpf =
+        document.getElementById("cpfPaciente")?.value?.replace(/\D/g, "") ||
+        pacienteGlobal.cpf ||
+        pacienteGlobal.paciente_cpf ||
+        null;
+
+    const cns =
+        document.getElementById("cnsPaciente")?.value?.replace(/\D/g, "") ||
+        pacienteGlobal.cns ||
+        pacienteGlobal.paciente_cns ||
+        null;
+
+    return {
+        paciente_nome: nome || null,
+        paciente_cpf: cpf || null,
+        paciente_cns: cns || null
     };
 }
 
@@ -29,7 +81,15 @@ function abrirModuloSolicitacoesMateriais() {
     const modal = document.getElementById("modalSolicitacoesMateriais");
 
     if (modal) {
-        modal.style.display = "block";
+        modal.style.display = "flex";
+    }
+
+    const solicitante =
+        document.getElementById("solSolicitante");
+
+    if (solicitante && !solicitante.value) {
+        solicitante.value =
+            getUsuarioMateriais().usuario_nome || "";
     }
 
     limparSolicitacaoMaterial();
@@ -65,8 +125,11 @@ function adicionarItemSolicitacao() {
         categoria
     });
 
-    document.getElementById("itemNome").value = "";
-    document.getElementById("itemQtd").value = "1";
+    const itemNome = document.getElementById("itemNome");
+    const itemQtd = document.getElementById("itemQtd");
+
+    if (itemNome) itemNome.value = "";
+    if (itemQtd) itemQtd.value = "1";
 
     renderizarItensSolicitacao();
 }
@@ -96,8 +159,8 @@ function renderizarItensSolicitacao() {
         <tr>
             <td>${item.nome}</td>
             <td>${item.qtd}</td>
-            <td>${item.unidade}</td>
-            <td>${item.categoria}</td>
+            <td>${item.unidade || "-"}</td>
+            <td>${item.categoria || "-"}</td>
             <td>
                 <button onclick="removerItemSolicitacao(${index})">
                     Remover
@@ -123,8 +186,13 @@ async function salvarSolicitacaoMaterial() {
     }
 
     const auditoria = getUsuarioMateriais();
+    const paciente = getPacienteAtivoMateriais();
 
     const payload = {
+        paciente_cpf: paciente.paciente_cpf,
+        paciente_cns: paciente.paciente_cns,
+        paciente_nome: paciente.paciente_nome,
+
         destino: document.getElementById("solDestino")?.value || null,
         solicitante: document.getElementById("solSolicitante")?.value || auditoria.usuario_nome,
         setor: document.getElementById("solSetor")?.value || null,
@@ -140,6 +208,7 @@ async function salvarSolicitacaoMaterial() {
         autorizado_em: null,
         negado_por: null,
         negado_em: null,
+        motivo_negativa: null,
         entregue_por: null,
         entregue_em: null,
 
@@ -168,15 +237,32 @@ async function salvarSolicitacaoMaterial() {
    HISTÓRICO
    ========================================================== */
 
-async function carregarHistoricoSolicitacoes() {
+async function carregarHistoricoSolicitacoes(filtrarPaciente = false) {
     const container = document.getElementById("historicoSolicitacoes");
 
     if (!container) return;
 
-    const { data, error } = await supabaseClient
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML = `
+            <p style="color:var(--danger);">
+                Supabase não carregado.
+            </p>
+        `;
+        return;
+    }
+
+    let query = supabaseClient
         .from("solicitacoes_materiais")
         .select("*")
         .order("data_solicitacao", { ascending: false });
+
+    const paciente = getPacienteAtivoMateriais();
+
+    if (filtrarPaciente && paciente.paciente_cpf) {
+        query = query.eq("paciente_cpf", paciente.paciente_cpf);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("Erro ao carregar solicitações:", error);
@@ -199,6 +285,9 @@ async function carregarHistoricoSolicitacoes() {
 
     container.innerHTML = data.map(sol => {
         const itens = Array.isArray(sol.itens) ? sol.itens : [];
+
+        const podeGerenciar =
+            usuarioPodeGerenciarMateriais();
 
         return `
             <div style="
@@ -228,6 +317,18 @@ async function carregarHistoricoSolicitacoes() {
                     </span>
                 </div>
 
+                ${
+                    sol.paciente_nome || sol.paciente_cpf || sol.paciente_cns
+                    ? `
+                        <p style="font-size:13px; color:var(--text-muted); margin:8px 0;">
+                            Paciente: ${sol.paciente_nome || "-"} |
+                            CPF: ${sol.paciente_cpf || "-"} |
+                            CNS: ${sol.paciente_cns || "-"}
+                        </p>
+                    `
+                    : ""
+                }
+
                 <p style="font-size:13px; color:var(--text-muted); margin:8px 0;">
                     Solicitante: ${sol.solicitante || "-"} |
                     Prioridade: ${sol.prioridade || "-"} |
@@ -237,9 +338,9 @@ async function carregarHistoricoSolicitacoes() {
                 <ul style="margin-top:8px;">
                     ${itens.map(item => `
                         <li>
-                            ${item.qtd} ${item.unidade} — 
-                            <strong>${item.nome}</strong>
-                            (${item.categoria})
+                            ${item.qtd || "-"} ${item.unidade || ""} — 
+                            <strong>${item.nome || "-"}</strong>
+                            ${item.categoria ? `(${item.categoria})` : ""}
                         </li>
                     `).join("")}
                 </ul>
@@ -250,13 +351,20 @@ async function carregarHistoricoSolicitacoes() {
                     : ""
                 }
 
+                ${
+                    sol.motivo_negativa
+                    ? `<p style="font-size:13px; color:#fecaca;">🚫 Motivo da negativa: ${sol.motivo_negativa}</p>`
+                    : ""
+                }
+
                 <p style="font-size:12px; color:var(--text-muted);">
                     Criado por: ${sol.usuario_nome || "-"}
+                    ${sol.usuario_email ? ` • ${sol.usuario_email}` : ""}
                 </p>
 
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
                     ${
-                        sol.status === "PENDENTE"
+                        sol.status === "PENDENTE" && podeGerenciar
                         ? `
                             <button onclick="autorizarSolicitacaoMaterial('${sol.id}')"
                                 style="background:#22c55e; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
@@ -272,7 +380,7 @@ async function carregarHistoricoSolicitacoes() {
                     }
 
                     ${
-                        sol.status === "AUTORIZADO"
+                        sol.status === "AUTORIZADO" && podeGerenciar
                         ? `
                             <button onclick="entregarSolicitacaoMaterial('${sol.id}')"
                                 style="background:#2563eb; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
@@ -308,10 +416,23 @@ async function carregarHistoricoSolicitacoes() {
 }
 
 /* ==========================================================
+   HISTÓRICO DO PACIENTE ATIVO
+   ========================================================== */
+
+async function carregarSolicitacoesPacienteAtual() {
+    await carregarHistoricoSolicitacoes(true);
+}
+
+/* ==========================================================
    ALTERAR STATUS
    ========================================================== */
 
 async function autorizarSolicitacaoMaterial(id) {
+    if (!usuarioPodeGerenciarMateriais()) {
+        mostrarToast?.("🚫 Apenas gestores podem autorizar solicitações.");
+        return;
+    }
+
     const usuario = getUsuarioMateriais();
 
     const { error } = await supabaseClient
@@ -335,6 +456,11 @@ async function autorizarSolicitacaoMaterial(id) {
 }
 
 async function negarSolicitacaoMaterial(id) {
+    if (!usuarioPodeGerenciarMateriais()) {
+        mostrarToast?.("🚫 Apenas gestores podem negar solicitações.");
+        return;
+    }
+
     const motivo = prompt("Informe o motivo da negativa:");
 
     const usuario = getUsuarioMateriais();
@@ -361,6 +487,11 @@ async function negarSolicitacaoMaterial(id) {
 }
 
 async function entregarSolicitacaoMaterial(id) {
+    if (!usuarioPodeGerenciarMateriais()) {
+        mostrarToast?.("🚫 Apenas gestores podem entregar solicitações.");
+        return;
+    }
+
     const usuario = getUsuarioMateriais();
 
     const { error } = await supabaseClient
@@ -388,6 +519,11 @@ async function entregarSolicitacaoMaterial(id) {
    ========================================================== */
 
 async function atualizarDashboardEstoque() {
+    if (typeof supabaseClient === "undefined") {
+        console.warn("Supabase não carregado para dashboard de estoque.");
+        return;
+    }
+
     const { data, error } = await supabaseClient
         .from("solicitacoes_materiais")
         .select("status");
@@ -399,17 +535,30 @@ async function atualizarDashboardEstoque() {
 
     const banco = data || [];
 
-    const pendentes = banco.filter(x => x.status === "PENDENTE").length;
-    const aprovadas = banco.filter(x => x.status === "AUTORIZADO").length;
-    const entregues = banco.filter(x => x.status === "ENTREGUE").length;
+    const pendentes =
+        banco.filter(x => x.status === "PENDENTE").length;
+
+    const aprovadas =
+        banco.filter(x =>
+            x.status === "AUTORIZADO" ||
+            x.status === "APROVADO"
+        ).length;
+
+    const entregues =
+        banco.filter(x => x.status === "ENTREGUE").length;
+
+    const negadas =
+        banco.filter(x => x.status === "NEGADO").length;
 
     const dashPend = document.getElementById("dashSolicitacoesPendentes");
     const dashAprov = document.getElementById("dashSolicitacoesAprovadas");
     const dashEntr = document.getElementById("dashSolicitacoesEntregues");
+    const dashNeg = document.getElementById("dashSolicitacoesNegadas");
 
     if (dashPend) dashPend.innerText = pendentes;
     if (dashAprov) dashAprov.innerText = aprovadas;
     if (dashEntr) dashEntr.innerText = entregues;
+    if (dashNeg) dashNeg.innerText = negadas;
 }
 
 /* ==========================================================
@@ -420,7 +569,6 @@ function limparSolicitacaoMaterial() {
     itensSolicitacao = [];
 
     [
-        "solSolicitante",
         "solSetor",
         "solObservacoes",
         "itemNome"
@@ -432,6 +580,14 @@ function limparSolicitacaoMaterial() {
     const qtd = document.getElementById("itemQtd");
     if (qtd) qtd.value = "1";
 
+    const solicitante =
+        document.getElementById("solSolicitante");
+
+    if (solicitante && !solicitante.value) {
+        solicitante.value =
+            getUsuarioMateriais().usuario_nome || "";
+    }
+
     renderizarItensSolicitacao();
 }
 
@@ -442,6 +598,7 @@ function limparSolicitacaoMaterial() {
 function corStatusSolicitacao(status) {
     if (status === "PENDENTE") return "#f59e0b";
     if (status === "AUTORIZADO") return "#22c55e";
+    if (status === "APROVADO") return "#22c55e";
     if (status === "ENTREGUE") return "#2563eb";
     if (status === "NEGADO") return "#ef4444";
     return "#64748b";
@@ -463,6 +620,7 @@ window.adicionarItemSolicitacao = adicionarItemSolicitacao;
 window.removerItemSolicitacao = removerItemSolicitacao;
 window.salvarSolicitacaoMaterial = salvarSolicitacaoMaterial;
 window.carregarHistoricoSolicitacoes = carregarHistoricoSolicitacoes;
+window.carregarSolicitacoesPacienteAtual = carregarSolicitacoesPacienteAtual;
 window.autorizarSolicitacaoMaterial = autorizarSolicitacaoMaterial;
 window.negarSolicitacaoMaterial = negarSolicitacaoMaterial;
 window.entregarSolicitacaoMaterial = entregarSolicitacaoMaterial;
