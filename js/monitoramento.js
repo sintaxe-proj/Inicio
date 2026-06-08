@@ -307,58 +307,65 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
                 .filter(Boolean)
         )];
 
-    let query = supabaseClient
-        .from("pacientes")
-        .select(`
-            cpf,
-            cns,
-            nome,
-            telefone,
-            ubs,
-            equipe,
-            ubs_vinculacao,
-            equipe_esf
-        `);
+    const pacientes = [];
+    const tamanhoLote = 100;
 
-    if (cpfs.length && cnss.length) {
-        query = query.or(
-            `cpf.in.(${cpfs.join(",")}),cns.in.(${cnss.join(",")})`
-        );
-    } else if (cpfs.length) {
-        query = query.in("cpf", cpfs);
-    } else if (cnss.length) {
-        query = query.in("cns", cnss);
+    async function buscarPacientesPorCampo(campo, valores) {
+        for (let i = 0; i < valores.length; i += tamanhoLote) {
+            const lote = valores.slice(i, i + tamanhoLote);
+
+            const { data, error } = await supabaseClient
+                .from("pacientes")
+                .select(`
+                    cpf,
+                    cns,
+                    nome,
+                    telefone,
+                    ubs,
+                    equipe,
+                    ubs_vinculacao,
+                    equipe_esf
+                `)
+                .in(campo, lote);
+
+            if (error) {
+                console.error(`Erro ao buscar pacientes por ${campo}:`, error);
+                continue;
+            }
+
+            pacientes.push(...(data || []));
+        }
     }
 
-    const { data: pacientes, error } = await query;
-
-    if (error) {
-        console.error("Erro ao buscar pacientes:", error);
-
-        return atendimentos.map(a => ({
-            ...a,
-            cpf: a.paciente_cpf || a.cpf || "",
-            nome: a.nome_paciente || "Sem nome",
-            ubs: a.ubs_vinculacao || "Pendente",
-            equipe: a.equipe_esf || "Pendente"
-        }));
+    if (cpfs.length) {
+        await buscarPacientesPorCampo("cpf", cpfs);
     }
+
+    if (cnss.length) {
+        await buscarPacientesPorCampo("cns", cnss);
+    }
+
+    const mapaPorCpf = new Map();
+    const mapaPorCns = new Map();
+
+    pacientes.forEach(p => {
+        if (p.cpf) mapaPorCpf.set(p.cpf, p);
+        if (p.cns) mapaPorCns.set(p.cns, p);
+    });
 
     return atendimentos.map(a => {
         const cpfAtendimento =
             a.paciente_cpf || a.cpf || "";
 
         const paciente =
-            pacientes.find(p =>
-                (cpfAtendimento && p.cpf === cpfAtendimento) ||
-                (a.cns && p.cns === a.cns)
-            );
+            mapaPorCpf.get(cpfAtendimento) ||
+            mapaPorCns.get(a.cns) ||
+            null;
 
         return {
             ...a,
 
-            cpf:
-                cpfAtendimento,
+            cpf: cpfAtendimento,
 
             telefone:
                 paciente?.telefone || "",
