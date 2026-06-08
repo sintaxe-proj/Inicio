@@ -750,19 +750,24 @@ textarea:focus {
 }
 
 /* ==========================================================
-   BOTÕES
+   BOTÕES PADRÃO SINTAXEHUB
    ========================================================== */
 
 .button-row {
 
     display: flex;
     gap: 12px;
-
     flex-wrap: wrap;
 }
 
+/* BASE */
+
 .btn-primary,
 .btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
 button {
 
     border: none;
@@ -777,7 +782,13 @@ button {
     cursor: pointer;
 
     transition: .2s ease;
+
+    color: white;
+
+    line-height: 1.2;
 }
+
+/* AZUL - AÇÃO PRINCIPAL */
 
 .btn-primary,
 button {
@@ -788,22 +799,163 @@ button {
             #2563eb,
             #1d4ed8
         );
-
-    color: white;
 }
+
+/* CINZA - SECUNDÁRIO / RELATÓRIO */
 
 .btn-secondary {
 
     background:
-        #1e293b;
-
-    color: white;
+        linear-gradient(
+            135deg,
+            #334155,
+            #1e293b
+        );
 }
 
+/* VERDE - SALVAR / CONFIRMAR / AUTORIZAR */
+
+.btn-success {
+
+    background:
+        linear-gradient(
+            135deg,
+            #22c55e,
+            #16a34a
+        );
+}
+
+/* VERMELHO - EXCLUIR / LIMPAR / NEGAR */
+
+.btn-danger {
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+}
+
+/* AMARELO - ALERTA / PENDÊNCIA */
+
+.btn-warning {
+
+    background:
+        linear-gradient(
+            135deg,
+            #f59e0b,
+            #d97706
+        );
+
+    color: #111827;
+}
+
+/* CIANO - INFORMAÇÃO / VISUALIZAÇÃO */
+
+.btn-info {
+
+    background:
+        linear-gradient(
+            135deg,
+            #06b6d4,
+            #0284c7
+        );
+}
+
+/* HOVER */
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-success:hover,
+.btn-danger:hover,
+.btn-warning:hover,
+.btn-info:hover,
 button:hover {
 
     transform:
-        translateY(-1px);
+        translateY(-2px);
+
+    opacity: .95;
+
+    box-shadow:
+        0 4px 12px rgba(0,0,0,.20);
+}
+
+/* ACTIVE */
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-success:active,
+.btn-danger:active,
+.btn-warning:active,
+.btn-info:active,
+button:active {
+
+    transform:
+        translateY(0);
+}
+
+/* BOTÕES PEQUENOS DE TABELA */
+
+.btn-table-action {
+
+    padding: 7px 10px;
+
+    border-radius: 10px;
+
+    font-size: 11px;
+    font-weight: 800;
+
+    color: white;
+
+    border: none;
+
+    cursor: pointer;
+
+    transition: .2s ease;
+}
+
+.btn-edit {
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+}
+
+.btn-del {
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+}
+
+.btn-ok {
+
+    background:
+        linear-gradient(
+            135deg,
+            #22c55e,
+            #16a34a
+        );
+}
+
+.btn-warn {
+
+    background:
+        linear-gradient(
+            135deg,
+            #f59e0b,
+            #d97706
+        );
+
+    color: #111827;
 }
 
 /* ==========================================================
@@ -1359,4 +1511,44 @@ th {
     #tabelaPainelEpidemiologico table {
         min-width: 760px;
     }
+}
+
+
+/* ==========================================================
+   AJUSTES REUNIÃO DE EQUIPE
+   ========================================================== */
+
+#view-reuniao button {
+
+    margin-top: 6px;
+}
+
+#view-reuniao .button-row {
+
+    margin-top: 15px;
+}
+
+#view-reuniao .form-section button:not(.btn-danger):not(.btn-success):not(.btn-secondary):not(.btn-warning):not(.btn-info) {
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+    color: white;
+}
+
+#view-reuniao textarea,
+#view-reuniao input,
+#view-reuniao select {
+
+    margin-bottom: 8px;
+}
+
+#historicoReunioes button {
+
+    margin-right: 6px;
+    margin-bottom: 6px;
 }
