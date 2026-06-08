@@ -1,6 +1,9 @@
 /* ==========================================================================
-   📞 CENTRAL OPERACIONAL DE BUSCA ATIVA & WHATSAPP — SUPABASE / VIEW
-   Consulta: public.vw_prontuario_completo
+   📞 CENTRAL OPERACIONAL DE BUSCA ATIVA & WHATSAPP — SUPABASE PURO
+   Sem dependência da view vw_prontuario_completo
+   Busca direta em:
+   - pacientes = identificação
+   - atendimentos = dados clínicos
    ========================================================================== */
 
 const SCRIPTS_WHATSAPP_APS = {
@@ -13,11 +16,103 @@ const SCRIPTS_WHATSAPP_APS = {
     pn_rotina:
         "Olá! Estamos aguardando você para sua próxima consulta de Pré-Natal. O acompanhamento é fundamental para você e para o bebê!",
 
+    tb_busca:
+        "Olá! Aqui é do seu Time de Saúde. Precisamos atualizar seu acompanhamento de tuberculose. Poderia responder esta mensagem ou comparecer à unidade?",
+
+    hansen_busca:
+        "Olá! Aqui é do seu Time de Saúde. Precisamos atualizar seu acompanhamento de hanseníase. Poderia responder esta mensagem ou comparecer à unidade?",
+
     busca_ativa:
         "Olá! Tentamos contato recente para acompanhamento de saúde, mas não conseguimos. Por favor, responda esta mensagem ou passe na Unidade."
 };
 
 let timerBuscaDiscador = null;
+
+/* ==========================================================================
+   HELPERS
+   ========================================================================== */
+
+function limparNumeroWhatsapp(valor) {
+    return String(valor || "").replace(/\D/g, "");
+}
+
+function normalizarTextoWhatsapp(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function valorSimWhatsapp(valor) {
+    const v = normalizarTextoWhatsapp(valor);
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+function escaparWhatsapp(valor) {
+    return String(valor || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function obterDocumentoWhatsapp(p) {
+    return (
+        p.paciente_cpf ||
+        p.cpf ||
+        p.cns ||
+        ""
+    );
+}
+
+function obterNomeWhatsapp(p) {
+    return (
+        p.nome ||
+        p.nome_paciente ||
+        "Sem nome"
+    );
+}
+
+function obterUBSWhatsapp(p) {
+    return (
+        p.ubs_vinculacao ||
+        p.ubs ||
+        p.unidade ||
+        "Pendente"
+    );
+}
+
+function obterEquipeWhatsapp(p) {
+    return (
+        p.equipe_esf ||
+        p.equipe ||
+        "Pendente"
+    );
+}
+
+function obterDiasWhatsapp(p) {
+    const valor =
+        p.reavaliacaoDias ??
+        p.retorno_dias ??
+        999;
+
+    const dias = parseInt(valor);
+
+    return Number.isNaN(dias) ? 999 : dias;
+}
 
 /* ==========================================================================
    MENSAGENS
@@ -26,6 +121,13 @@ let timerBuscaDiscador = null;
 function carregarMensagensEditadas() {
     return JSON.parse(
         localStorage.getItem("mensagensEditadasAPS") || "{}"
+    );
+}
+
+function salvarMensagensEditadas(mensagens) {
+    localStorage.setItem(
+        "mensagensEditadasAPS",
+        JSON.stringify(mensagens || {})
     );
 }
 
@@ -140,15 +242,63 @@ function prepararDiscagemPacienteAtivo() {
                 <span style="font-size:12px; color:#166534;">
                     📞 Contato: ${telAtivo}
                 </span>
+
+                <button
+                    onclick="prepararWhatsAppPacienteAtivo()"
+                    style="
+                        margin-top:8px;
+                        background:#25d366;
+                        color:white;
+                        border:none;
+                        padding:6px 8px;
+                        border-radius:5px;
+                        font-size:12px;
+                        font-weight:bold;
+                        cursor:pointer;
+                    ">
+                    💬 Preparar mensagem
+                </button>
             </div>
         `;
     } else {
         displayStatus.innerHTML = `
             <em style="color:#94a3b8; font-size:12px;">
-                Digite nome, CPF, CNS, telefone ou filtro: HAS, hipertensão, DM, diabetes, gestante, crítico.
+                Digite nome, CPF, CNS, telefone ou filtro: HAS, hipertensão, DM, diabetes, gestante, TB, hanseníase, crítico.
             </em>
         `;
     }
+}
+
+function prepararWhatsAppPacienteAtivo() {
+    const telefone =
+        document.getElementById("telPaciente")?.value || "";
+
+    const nome =
+        document.getElementById("nomePaciente")?.value || "Paciente";
+
+    if (!telefone) {
+        mostrarToast?.("⚠️ Paciente ativo sem telefone.");
+        return;
+    }
+
+    const container =
+        document.getElementById("statusDiscadorPaciente");
+
+    if (!container) return;
+
+    renderizarContatosDiscador(
+        [
+            {
+                nome,
+                cpf: document.getElementById("cpfPaciente")?.value || "",
+                cns: document.getElementById("cnsPaciente")?.value || "",
+                telefone,
+                ubs: document.getElementById("unidadePaciente")?.value || "Prontuário ativo",
+                equipe: document.getElementById("equipePaciente")?.value || "-"
+            }
+        ],
+        container
+    );
 }
 
 /* ==========================================================================
@@ -183,14 +333,20 @@ async function buscarContatosSupabase(termo) {
         return;
     }
 
+    if (typeof supabaseClient === "undefined") {
+        displayStatus.innerHTML = `
+            <p style="color:var(--danger); font-size:12px;">
+                Supabase não carregado.
+            </p>
+        `;
+        return;
+    }
+
     const termoNumerico =
-        termo.replace(/\D/g, "");
+        limparNumeroWhatsapp(termo);
 
     const termoLower =
-        termo
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+        normalizarTextoWhatsapp(termo);
 
     const desejaHAS =
         termoLower.includes("has") ||
@@ -210,7 +366,8 @@ async function buscarContatosSupabase(termo) {
         termoLower.includes("tubercul");
 
     const desejaHansen =
-        termoLower.includes("hansen");
+        termoLower.includes("hansen") ||
+        termoLower.includes("hanseniase");
 
     const desejaCritico =
         termoLower.includes("critico") ||
@@ -265,13 +422,283 @@ async function buscarContatosSupabase(termo) {
         return;
     }
 
-    /* ======================================================
-       BUSCA NA VIEW
-       ====================================================== */
+    displayStatus.innerHTML = `
+        <em style="color:#94a3b8; font-size:12px;">
+            🔎 Buscando contatos no Supabase...
+        </em>
+    `;
 
-    let query =
-        supabaseClient
-            .from("vw_prontuario_completo")
+    try {
+        let pacientesBase = [];
+        let atendimentosBase = [];
+
+        /* ==================================================
+           BUSCA CLÍNICA EM ATENDIMENTOS
+           ================================================== */
+
+        if (temFiltroClinico) {
+            let queryAtendimentos = supabaseClient
+                .from("atendimentos")
+                .select(`
+                    id,
+                    paciente_cpf,
+                    cpf,
+                    cns,
+                    nome_paciente,
+                    has,
+                    dm,
+                    gestante,
+                    tb,
+                    hansen,
+                    reavaliacaoDias,
+                    retorno_dias,
+                    nota_monitoramento,
+                    risco_global,
+                    risco_pontos,
+                    data_atendimento,
+                    criado_em
+                `)
+                .order("data_atendimento", {
+                    ascending: false,
+                    nullsFirst: false
+                })
+                .limit(200);
+
+            if (desejaHAS) {
+                queryAtendimentos = queryAtendimentos.eq("has", "Sim");
+            } else if (desejaDM) {
+                queryAtendimentos = queryAtendimentos.eq("dm", "Sim");
+            } else if (desejaGestante) {
+                queryAtendimentos = queryAtendimentos.eq("gestante", "Sim");
+            } else if (desejaTB) {
+                queryAtendimentos = queryAtendimentos.eq("tb", "Sim");
+            } else if (desejaHansen) {
+                queryAtendimentos = queryAtendimentos.eq("hansen", "Sim");
+            } else if (desejaCritico) {
+                queryAtendimentos = queryAtendimentos.or(
+                    "reavaliacaoDias.eq.0,retorno_dias.eq.0"
+                );
+            }
+
+            const { data, error } = await queryAtendimentos;
+
+            if (error) {
+                throw error;
+            }
+
+            atendimentosBase = data || [];
+
+        } else {
+            /* ==================================================
+               BUSCA TERRITORIAL EM PACIENTES
+               ================================================== */
+
+            let queryPacientes = supabaseClient
+                .from("pacientes")
+                .select(`
+                    id,
+                    nome,
+                    cpf,
+                    cns,
+                    telefone,
+                    endereco,
+                    cep,
+                    ubs,
+                    equipe,
+                    ubs_vinculacao,
+                    equipe_esf
+                `)
+                .limit(50);
+
+            if (termoNumerico.length >= 3) {
+                queryPacientes = queryPacientes.or(
+                    `cpf.ilike.%${termoNumerico}%,cns.ilike.%${termoNumerico}%,telefone.ilike.%${termoNumerico}%`
+                );
+            } else {
+                queryPacientes = queryPacientes.ilike(
+                    "nome",
+                    `%${termo}%`
+                );
+            }
+
+            const { data, error } = await queryPacientes;
+
+            if (error) {
+                throw error;
+            }
+
+            pacientesBase = data || [];
+
+            /* também tenta localizar em atendimentos pelo nome_paciente */
+            let queryAtendimentosNome = supabaseClient
+                .from("atendimentos")
+                .select(`
+                    id,
+                    paciente_cpf,
+                    cpf,
+                    cns,
+                    nome_paciente,
+                    has,
+                    dm,
+                    gestante,
+                    tb,
+                    hansen,
+                    reavaliacaoDias,
+                    retorno_dias,
+                    nota_monitoramento,
+                    data_atendimento,
+                    criado_em
+                `)
+                .ilike("nome_paciente", `%${termo}%`)
+                .order("data_atendimento", {
+                    ascending: false,
+                    nullsFirst: false
+                })
+                .limit(50);
+
+            const { data: atendNome, error: erroAtendNome } =
+                await queryAtendimentosNome;
+
+            if (!erroAtendNome) {
+                atendimentosBase = atendNome || [];
+            }
+        }
+
+        const contatos =
+            await montarContatosWhatsapp(
+                pacientesBase,
+                atendimentosBase
+            );
+
+        if (!contatos.length) {
+            if (
+                !temFiltroClinico &&
+                termoNumerico.length >= 8
+            ) {
+                renderizarContatosDiscador(
+                    [
+                        {
+                            externo: true,
+                            nome: "Contato Externo",
+                            cpf: "",
+                            cns: "",
+                            telefone: termoNumerico,
+                            ubs: "Discagem Externa",
+                            equipe: "-"
+                        }
+                    ],
+                    displayStatus
+                );
+
+                return;
+            }
+
+            displayStatus.innerHTML = `
+                <p style="color:var(--danger); font-size:12px;">
+                    Nenhum contato localizado.
+                </p>
+            `;
+
+            return;
+        }
+
+        renderizarContatosDiscador(
+            contatos,
+            displayStatus
+        );
+
+    } catch (error) {
+        console.error("Erro ao buscar contatos:", error);
+
+        displayStatus.innerHTML = `
+            <p style="color:var(--danger); font-size:12px;">
+                Erro ao buscar contatos no Supabase.
+            </p>
+        `;
+    }
+}
+
+/* ==========================================================================
+   MONTAR CONTATOS — PACIENTES + ATENDIMENTOS
+   ========================================================================== */
+
+async function montarContatosWhatsapp(pacientesBase, atendimentosBase) {
+    const mapa = new Map();
+
+    pacientesBase.forEach(p => {
+        const chave =
+            p.cpf ||
+            p.cns ||
+            p.telefone ||
+            p.nome;
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            ...p
+        });
+    });
+
+    atendimentosBase.forEach(a => {
+        const cpf =
+            a.paciente_cpf ||
+            a.cpf ||
+            "";
+
+        const chave =
+            cpf ||
+            a.cns ||
+            a.nome_paciente ||
+            a.id;
+
+        if (!chave) return;
+
+        if (!mapa.has(chave)) {
+            mapa.set(chave, {
+                cpf,
+                cns: a.cns,
+                nome: a.nome_paciente,
+                nome_paciente: a.nome_paciente
+            });
+        }
+
+        const atual =
+            mapa.get(chave);
+
+        mapa.set(chave, {
+            ...atual,
+            ...a,
+            cpf:
+                atual.cpf ||
+                cpf,
+            cns:
+                atual.cns ||
+                a.cns,
+            nome:
+                atual.nome ||
+                a.nome_paciente,
+            ultimo_atendimento:
+                a
+        });
+    });
+
+    const cpfs =
+        [...new Set(
+            Array.from(mapa.values())
+                .map(p => p.paciente_cpf || p.cpf)
+                .filter(Boolean)
+        )];
+
+    const cnss =
+        [...new Set(
+            Array.from(mapa.values())
+                .map(p => p.cns)
+                .filter(Boolean)
+        )];
+
+    if (cpfs.length || cnss.length) {
+        let query = supabaseClient
+            .from("pacientes")
             .select(`
                 nome,
                 cpf,
@@ -280,93 +707,54 @@ async function buscarContatosSupabase(termo) {
                 endereco,
                 ubs,
                 equipe,
-                has,
-                dm,
-                gestante,
-                tb,
-                hansen,
-                "reavaliacaoDias"
-            `)
-            .limit(30);
+                ubs_vinculacao,
+                equipe_esf
+            `);
 
-    if (desejaHAS) {
-        query = query.eq("has", "Sim");
-    } else if (desejaDM) {
-        query = query.eq("dm", "Sim");
-    } else if (desejaGestante) {
-        query = query.eq("gestante", "Sim");
-    } else if (desejaTB) {
-        query = query.eq("tb", "Sim");
-    } else if (desejaHansen) {
-        query = query.eq("hansen", "Sim");
-    } else if (desejaCritico) {
-        query = query.eq("reavaliacaoDias", 0);
-    } else if (termoNumerico.length >= 3) {
-        query = query.or(
-            `cpf.ilike.%${termoNumerico}%,cns.ilike.%${termoNumerico}%,telefone.ilike.%${termoNumerico}%`
-        );
-    } else {
-        query = query.ilike(
-            "nome",
-            `%${termo}%`
-        );
-    }
-
-    const {
-        data,
-        error
-    } = await query;
-
-    if (error) {
-        console.error("Erro ao buscar contatos:", error);
-
-        displayStatus.innerHTML = `
-            <p style="color:var(--danger); font-size:12px;">
-                Erro ao buscar contatos no Supabase.
-            </p>
-        `;
-
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        if (
-            !temFiltroClinico &&
-            termoNumerico.length >= 8
-        ) {
-            renderizarContatosDiscador(
-                [
-                    {
-                        externo: true,
-                        nome: "Contato Externo",
-                        cpf: "",
-                        cns: "",
-                        telefone: termoNumerico,
-                        ubs: "Discagem Externa",
-                        equipe: "-"
-                    }
-                ],
-                displayStatus
+        if (cpfs.length && cnss.length) {
+            query = query.or(
+                `cpf.in.(${cpfs.join(",")}),cns.in.(${cnss.join(",")})`
             );
-
-            return;
+        } else if (cpfs.length) {
+            query = query.in("cpf", cpfs);
+        } else {
+            query = query.in("cns", cnss);
         }
 
-        displayStatus.innerHTML = `
-            <p style="color:var(--danger); font-size:12px;">
-                Nenhum contato localizado.
-            </p>
-        `;
+        const { data, error } = await query;
 
-        return;
+        if (!error && data) {
+            data.forEach(p => {
+                const chave =
+                    p.cpf ||
+                    p.cns;
+
+                const atual =
+                    mapa.get(p.cpf) ||
+                    mapa.get(p.cns) ||
+                    {};
+
+                mapa.set(chave, {
+                    ...atual,
+                    ...p,
+                    nome:
+                        p.nome ||
+                        atual.nome ||
+                        atual.nome_paciente,
+                    cpf:
+                        p.cpf ||
+                        atual.cpf ||
+                        atual.paciente_cpf,
+                    cns:
+                        p.cns ||
+                        atual.cns
+                });
+            });
+        }
     }
 
-    const contatosUnicos =
-        removerDuplicadosPorDocumento(data);
-
-    renderizarContatosDiscador(
-        contatosUnicos,
-        displayStatus
+    return removerDuplicadosPorDocumento(
+        Array.from(mapa.values())
     );
 }
 
@@ -376,6 +764,7 @@ function removerDuplicadosPorDocumento(lista) {
     lista.forEach(p => {
         const chave =
             p.cpf ||
+            p.paciente_cpf ||
             p.cns ||
             p.telefone ||
             p.nome;
@@ -409,13 +798,13 @@ function renderizarContatosDiscador(contatos, container) {
             p.telefone || "";
 
         const foneLimpo =
-            telefone.replace(/\D/g, "");
+            limparNumeroWhatsapp(telefone);
 
         const externo =
             p.externo === true;
 
         const dias =
-            parseInt(p.reavaliacaoDias ?? 999);
+            obterDiasWhatsapp(p);
 
         const status =
             dias === 0
@@ -423,6 +812,28 @@ function renderizarContatosDiscador(contatos, container) {
                 : dias <= 30
                     ? `⚠️ ${dias} dias`
                     : "";
+
+        const cpfSeguro =
+            escaparWhatsapp(p.paciente_cpf || p.cpf || "");
+
+        const cnsSeguro =
+            escaparWhatsapp(p.cns || "");
+
+        const nota =
+            p.nota_monitoramento
+                ? `
+                    <span
+                        title="${escaparWhatsapp(p.nota_monitoramento)}"
+                        style="
+                            color:#0284c7;
+                            cursor:help;
+                            font-size:12px;
+                            font-weight:bold;
+                        ">
+                        ℹ️ Nota
+                    </span>
+                `
+                : "";
 
         html += `
             <div style="
@@ -437,7 +848,7 @@ function renderizarContatosDiscador(contatos, container) {
             ">
 
                 <strong style="font-size:13px; color:#1e293b;">
-                    ${p.nome || "Sem nome"}
+                    ${obterNomeWhatsapp(p)}
                 </strong>
 
                 ${
@@ -454,6 +865,8 @@ function renderizarContatosDiscador(contatos, container) {
                     : ""
                 }
 
+                ${nota}
+
                 ${
                     externo
                     ? `
@@ -463,11 +876,11 @@ function renderizarContatosDiscador(contatos, container) {
                     `
                     : `
                         <span style="font-size:11px; color:#64748b;">
-                            CPF: ${p.cpf || "-"} | CNS: ${p.cns || "-"}
+                            CPF: ${p.paciente_cpf || p.cpf || "-"} | CNS: ${p.cns || "-"}
                         </span>
 
                         <span style="font-size:11px; color:#64748b;">
-                            UBS: ${p.ubs || "-"} | Equipe: ${p.equipe || "-"}
+                            UBS: ${obterUBSWhatsapp(p)} | Equipe: ${obterEquipeWhatsapp(p)}
                         </span>
                     `
                 }
@@ -530,7 +943,7 @@ function renderizarContatosDiscador(contatos, container) {
                     !externo
                     ? `
                         <button
-                            onclick="abrirAtendimentoExistente('${p.cpf || ""}', '${p.cns || ""}')"
+                            onclick="abrirAtendimentoExistente('${cpfSeguro}', '${cnsSeguro}')"
                             style="
                                 background:#2563eb;
                                 color:white;
@@ -576,7 +989,7 @@ function enviarWhatsAppTerritorial(telefonePuro, index) {
     }
 
     let telefoneFinal =
-        telefonePuro.replace(/\D/g, "");
+        limparNumeroWhatsapp(telefonePuro);
 
     if (
         telefoneFinal.length === 10 ||
@@ -584,6 +997,11 @@ function enviarWhatsAppTerritorial(telefonePuro, index) {
     ) {
         telefoneFinal =
             "55" + telefoneFinal;
+    }
+
+    if (telefoneFinal.length < 12) {
+        mostrarToast?.("⚠️ Telefone inválido.");
+        return;
     }
 
     const url =
@@ -597,103 +1015,126 @@ function enviarWhatsAppTerritorial(telefonePuro, index) {
    ========================================================================== */
 
 async function abrirWhatsAppMonitoramento(cpf, cns, linha) {
-    const filtros = [];
+    try {
+        const cpfLimpo =
+            limparNumeroWhatsapp(cpf);
 
-    if (cpf) {
-        filtros.push(`cpf.eq.${cpf}`);
-    }
+        const cnsLimpo =
+            limparNumeroWhatsapp(cns);
 
-    if (cns) {
-        filtros.push(`cns.eq.${cns}`);
-    }
+        if (!cpfLimpo && !cnsLimpo) {
+            mostrarToast?.(
+                "⚠️ Paciente sem CPF/CNS."
+            );
+            return;
+        }
 
-    if (filtros.length === 0) {
-        mostrarToast?.(
-            "⚠️ Paciente sem CPF/CNS."
-        );
-        return;
-    }
+        let query = supabaseClient
+            .from("pacientes")
+            .select("nome, cpf, cns, telefone")
+            .limit(1);
 
-    const {
-        data,
-        error
-    } =
-    await supabaseClient
-        .from("vw_prontuario_completo")
-        .select("nome, telefone")
-        .or(filtros.join(","))
-        .limit(1);
+        if (cpfLimpo) {
+            query = query.eq("cpf", cpfLimpo);
+        } else {
+            query = query.eq("cns", cnsLimpo);
+        }
 
-    if (
-        error ||
-        !data ||
-        data.length === 0
-    ) {
-        console.error(
-            "Erro ao buscar paciente:",
+        const {
+            data,
             error
+        } = await query;
+
+        if (
+            error ||
+            !data ||
+            data.length === 0
+        ) {
+            console.error(
+                "Erro ao buscar paciente:",
+                error
+            );
+
+            mostrarToast?.(
+                "⚠️ Paciente não encontrado."
+            );
+
+            return;
+        }
+
+        const p = data[0];
+
+        const telefone =
+            p.telefone || "";
+
+        if (!telefone) {
+            mostrarToast?.(
+                "⚠️ Paciente sem telefone cadastrado."
+            );
+            return;
+        }
+
+        let chaveMensagem =
+            "busca_ativa";
+
+        if (linha === "has") {
+            chaveMensagem =
+                "has_critico";
+        }
+
+        if (linha === "dm") {
+            chaveMensagem =
+                "dm_controle";
+        }
+
+        if (linha === "gestante") {
+            chaveMensagem =
+                "pn_rotina";
+        }
+
+        if (linha === "tuberculose") {
+            chaveMensagem =
+                "tb_busca";
+        }
+
+        if (linha === "hanseniase") {
+            chaveMensagem =
+                "hansen_busca";
+        }
+
+        let telefoneFinal =
+            limparNumeroWhatsapp(telefone);
+
+        if (
+            telefoneFinal.length === 10 ||
+            telefoneFinal.length === 11
+        ) {
+            telefoneFinal =
+                "55" + telefoneFinal;
+        }
+
+        if (telefoneFinal.length < 12) {
+            mostrarToast?.("⚠️ Telefone inválido.");
+            return;
+        }
+
+        const mensagem =
+            obterMensagemPadrao(
+                chaveMensagem
+            );
+
+        const url =
+            `https://api.whatsapp.com/send?phone=${telefoneFinal}&text=${encodeURIComponent(mensagem)}`;
+
+        window.open(
+            url,
+            "_blank"
         );
 
-        mostrarToast?.(
-            "⚠️ Paciente não encontrado."
-        );
-
-        return;
+    } catch (erro) {
+        console.error("Erro WhatsApp monitoramento:", erro);
+        mostrarToast?.("⚠️ Erro ao abrir WhatsApp.");
     }
-
-    const p = data[0];
-
-    const telefone =
-        p.telefone || "";
-
-    if (!telefone) {
-        mostrarToast?.(
-            "⚠️ Paciente sem telefone cadastrado."
-        );
-        return;
-    }
-
-    let chaveMensagem =
-        "busca_ativa";
-
-    if (linha === "has") {
-        chaveMensagem =
-            "has_critico";
-    }
-
-    if (linha === "dm") {
-        chaveMensagem =
-            "dm_controle";
-    }
-
-    if (linha === "gestante") {
-        chaveMensagem =
-            "pn_rotina";
-    }
-
-    let telefoneFinal =
-        telefone.replace(/\D/g, "");
-
-    if (
-        telefoneFinal.length === 10 ||
-        telefoneFinal.length === 11
-    ) {
-        telefoneFinal =
-            "55" + telefoneFinal;
-    }
-
-    const mensagem =
-        obterMensagemPadrao(
-            chaveMensagem
-        );
-
-    const url =
-        `https://api.whatsapp.com/send?phone=${telefoneFinal}&text=${encodeURIComponent(mensagem)}`;
-
-    window.open(
-        url,
-        "_blank"
-    );
 }
 
 /* ==========================================================================
@@ -714,3 +1155,12 @@ window.abrirWhatsAppMonitoramento =
 
 window.atualizarTextoMensagem =
     atualizarTextoMensagem;
+
+window.prepararWhatsAppPacienteAtivo =
+    prepararWhatsAppPacienteAtivo;
+
+window.obterMensagemPadrao =
+    obterMensagemPadrao;
+
+window.SCRIPTS_WHATSAPP_APS =
+    SCRIPTS_WHATSAPP_APS;
