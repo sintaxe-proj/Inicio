@@ -1846,57 +1846,33 @@ if (typeof window.buscarCEP !== "function") {
         }
     };
 
-    window.carregarDatalistCIAP = function carregarDatalistCIAP() {
-        const datalist = campo("listaCIAP");
-        if (!datalist) return;
+function carregarDatalistCIAP() {
+    const datalist = document.getElementById("listaCIAP");
 
-        const base =
-            window.CATALOGO_CIAPS2 ||
-            window.CATALOGO_CIAP2 ||
-            window.CIAP2 ||
-            window.ciap2 ||
-            window.listaCIAP2 ||
-            [];
+    if (!datalist) {
+        console.error("Elemento #listaCIAP não encontrado.");
+        return;
+    }
 
-        if (!Array.isArray(base) || base.length === 0) {
-            console.warn("CIAP-2 ainda não disponível para carregar no datalist.");
-            return;
-        }
+    if (!window.CIAP2 || typeof window.CIAP2 !== "object") {
+        console.warn("CIAP-2 ainda não disponível para carregar no datalist.");
+        return;
+    }
 
-        datalist.innerHTML = "";
+    datalist.innerHTML = "";
 
-        base.forEach(item => {
-            const option = document.createElement("option");
+    Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
+        const option = document.createElement("option");
+        option.value = `${codigo} - ${descricao}`;
+        datalist.appendChild(option);
+    });
 
-            if (typeof item === "string") {
-                option.value = item;
-            } else {
-                const codigo =
-                    item.codigo ||
-                    item.cod ||
-                    item.code ||
-                    item.CODIGO ||
-                    "";
+    console.log("✅ CIAP-2 carregado no datalist:", Object.keys(window.CIAP2).length);
+}
 
-                const descricao =
-                    item.descricao ||
-                    item.descrição ||
-                    item.nome ||
-                    item.descr ||
-                    item.DESCRICAO ||
-                    "";
-
-                option.value =
-                    codigo && descricao
-                        ? `${codigo} - ${descricao}`
-                        : `${codigo}${descricao}`;
-            }
-
-            datalist.appendChild(option);
-        });
-
-        console.log("✅ CIAP-2 carregado no datalist:", base.length);
-    };
+document.addEventListener("DOMContentLoaded", carregarDatalistCIAP);
+window.addEventListener("load", carregarDatalistCIAP);
+window.carregarDatalistCIAP = carregarDatalistCIAP;
 
     function limparCamposNovos() {
         [
