@@ -754,93 +754,107 @@ textarea:focus {
    ========================================================== */
 
 .button-row {
-
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 /* BASE */
 
+button,
 .btn-primary,
 .btn-secondary,
 .btn-success,
 .btn-danger,
 .btn-warning,
 .btn-info,
-button {
+.btn-login,
+.btn-table-action {
+    appearance: none;
+    -webkit-appearance: none;
 
     border: none;
-
     border-radius: 14px;
 
     padding: 13px 18px;
 
     font-size: 13px;
     font-weight: 700;
+    line-height: 1.2;
 
     cursor: pointer;
 
     transition: .2s ease;
 
-    color: white;
+    color: #ffffff;
 
-    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 42px;
+
+    text-decoration: none;
 }
 
 /* AZUL - AÇÃO PRINCIPAL */
 
-.btn-primary,
-button {.btn-primary, button:not(.btn-success):not(.btn-danger):not(.btn-secondary):not(.btn-warning):not(.btn-info) {
-
+button:not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info):not(.btn-login):not(.btn-table-action),
+.btn-primary {
     background:
         linear-gradient(
             135deg,
             #2563eb,
             #1d4ed8
         );
+
+    color: #ffffff;
 }
 
 /* CINZA - SECUNDÁRIO / RELATÓRIO */
 
 .btn-secondary {
-
     background:
         linear-gradient(
             135deg,
             #334155,
             #1e293b
         );
+
+    color: #ffffff;
 }
 
 /* VERDE - SALVAR / CONFIRMAR / AUTORIZAR */
 
 .btn-success {
-
     background:
         linear-gradient(
             135deg,
             #22c55e,
             #16a34a
         );
+
+    color: #ffffff;
 }
 
 /* VERMELHO - EXCLUIR / LIMPAR / NEGAR */
 
 .btn-danger {
-
     background:
         linear-gradient(
             135deg,
             #ef4444,
             #dc2626
         );
+
+    color: #ffffff;
 }
 
 /* AMARELO - ALERTA / PENDÊNCIA */
 
 .btn-warning {
-
     background:
         linear-gradient(
             135deg,
@@ -854,52 +868,32 @@ button {.btn-primary, button:not(.btn-success):not(.btn-danger):not(.btn-seconda
 /* CIANO - INFORMAÇÃO / VISUALIZAÇÃO */
 
 .btn-info {
-
     background:
         linear-gradient(
             135deg,
             #06b6d4,
             #0284c7
         );
+
+    color: #ffffff;
 }
 
-/* HOVER */
+/* LOGIN */
 
-.btn-primary:hover,
-.btn-secondary:hover,
-.btn-success:hover,
-.btn-danger:hover,
-.btn-warning:hover,
-.btn-info:hover,
-button:hover {
+.btn-login {
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
 
-    transform:
-        translateY(-2px);
-
-    opacity: .95;
-
-    box-shadow:
-        0 4px 12px rgba(0,0,0,.20);
-}
-
-/* ACTIVE */
-
-.btn-primary:active,
-.btn-secondary:active,
-.btn-success:active,
-.btn-danger:active,
-.btn-warning:active,
-.btn-info:active,
-button:active {
-
-    transform:
-        translateY(0);
+    color: #ffffff;
 }
 
 /* BOTÕES PEQUENOS DE TABELA */
 
 .btn-table-action {
-
     padding: 7px 10px;
 
     border-radius: 10px;
@@ -907,55 +901,88 @@ button:active {
     font-size: 11px;
     font-weight: 800;
 
-    color: white;
+    min-height: 32px;
 
-    border: none;
-
-    cursor: pointer;
-
-    transition: .2s ease;
+    color: #ffffff;
 }
 
 .btn-edit {
-
     background:
         linear-gradient(
             135deg,
             #2563eb,
             #1d4ed8
-        );
+        ) !important;
+
+    color: #ffffff !important;
 }
 
 .btn-del {
-
     background:
         linear-gradient(
             135deg,
             #ef4444,
             #dc2626
-        );
+        ) !important;
+
+    color: #ffffff !important;
 }
 
 .btn-ok {
-
     background:
         linear-gradient(
             135deg,
             #22c55e,
             #16a34a
-        );
+        ) !important;
+
+    color: #ffffff !important;
 }
 
 .btn-warn {
-
     background:
         linear-gradient(
             135deg,
             #f59e0b,
             #d97706
-        );
+        ) !important;
 
-    color: #111827;
+    color: #111827 !important;
+}
+
+/* HOVER */
+
+button:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-success:hover,
+.btn-danger:hover,
+.btn-warning:hover,
+.btn-info:hover,
+.btn-login:hover,
+.btn-table-action:hover {
+    transform:
+        translateY(-2px);
+
+    opacity: .95;
+
+    box-shadow:
+        0 4px 12px rgba(0,0,0,.25);
+}
+
+/* ACTIVE */
+
+button:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-success:active,
+.btn-danger:active,
+.btn-warning:active,
+.btn-info:active,
+.btn-login:active,
+.btn-table-action:active {
+    transform:
+        translateY(0);
 }
 
 /* ==========================================================
@@ -1513,117 +1540,126 @@ th {
     }
 }
 
-
 /* ==========================================================
-   AJUSTES REUNIÃO DE EQUIPE
-   ========================================================== */
-/* ==========================================================
-   REUNIÃO DE EQUIPE - FORÇAR CORES DOS BOTÕES
+   CORREÇÃO FINAL — BOTÕES, SELECTS E ABA REUNIÃO
    ========================================================== */
 
-#view-reuniao .btn-primary {
-    background: linear-gradient(
-        135deg,
-        #2563eb,
-        #1d4ed8
-    ) !important;
-
-    color: white !important;
+select,
+option {
+    background: #111c34 !important;
+    color: #ffffff !important;
 }
 
-#view-reuniao .btn-success {
-    background: linear-gradient(
-        135deg,
-        #22c55e,
-        #16a34a
-    ) !important;
-
-    color: white !important;
+select:focus,
+input:focus,
+textarea:focus {
+    color: #ffffff !important;
+    background: #111c34 !important;
 }
 
-#view-reuniao .btn-secondary {
-    background: linear-gradient(
-        135deg,
-        #334155,
-        #1e293b
-    ) !important;
+/* Força cores por classe, sem deixar o button global sobrescrever */
 
-    color: white !important;
+button.btn-primary,
+#view-reuniao button.btn-primary,
+#view-banco button.btn-primary {
+    background:
+        linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #ffffff !important;
 }
 
-#view-reuniao .btn-danger {
-    background: linear-gradient(
-        135deg,
-        #ef4444,
-        #dc2626
-    ) !important;
-
-    color: white !important;
+button.btn-success,
+#view-reuniao button.btn-success,
+#view-banco button.btn-success {
+    background:
+        linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: #ffffff !important;
 }
 
-#view-reuniao .btn-warning {
-    background: linear-gradient(
-        135deg,
-        #f59e0b,
-        #d97706
-    ) !important;
+button.btn-secondary,
+#view-reuniao button.btn-secondary,
+#view-banco button.btn-secondary {
+    background:
+        linear-gradient(135deg, #334155, #1e293b) !important;
+    color: #ffffff !important;
+}
 
+button.btn-danger,
+#view-reuniao button.btn-danger,
+#view-banco button.btn-danger {
+    background:
+        linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #ffffff !important;
+}
+
+button.btn-warning,
+#view-reuniao button.btn-warning,
+#view-banco button.btn-warning {
+    background:
+        linear-gradient(135deg, #f59e0b, #d97706) !important;
     color: #111827 !important;
 }
 
-#view-reuniao .btn-info {
-    background: linear-gradient(
-        135deg,
-        #06b6d4,
-        #0284c7
-    ) !important;
-
-    color: white !important;
+button.btn-info,
+#view-reuniao button.btn-info,
+#view-banco button.btn-info {
+    background:
+        linear-gradient(135deg, #06b6d4, #0284c7) !important;
+    color: #ffffff !important;
 }
 
-/* ==========================================================
-   HOVER
-   ========================================================== */
-
-#view-reuniao .btn-primary:hover,
-#view-reuniao .btn-success:hover,
-#view-reuniao .btn-secondary:hover,
-#view-reuniao .btn-danger:hover,
-#view-reuniao .btn-warning:hover,
-#view-reuniao .btn-info:hover {
-
-    transform: translateY(-2px);
-
-    opacity: .95;
-
-    box-shadow:
-        0 4px 12px rgba(0,0,0,.25);
+#view-reuniao .button-row,
+#view-banco .button-row {
+    display: flex !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
 }
 
-/* ==========================================================
-   TAMANHO PADRÃO DOS BOTÕES DA REUNIÃO
-   ========================================================== */
-
-#view-reuniao button {
-
-    min-height: 42px;
-
-    border-radius: 14px;
-
-    font-weight: 700;
+#view-reuniao button,
+#view-banco button {
+    min-height: 44px !important;
+    border-radius: 14px !important;
+    font-weight: 700 !important;
 }
 
-/* ==========================================================
-   LINHA DE BOTÕES
-   ========================================================== */
-
-#view-reuniao .button-row {
-
-    display: flex;
-
-    gap: 10px;
-
-    flex-wrap: wrap;
-
-    margin-top: 15px;
+#historicoReunioes button {
+    margin-right: 6px;
+    margin-bottom: 6px;
 }
+
+/* Botões que estão sem classe, usando onclick como fallback */
+
+#view-reuniao button[onclick*="adicionarItemPauta"],
+#view-reuniao button[onclick*="adicionarEncaminhamento"] {
+    background:
+        linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #ffffff !important;
+}
+
+#view-reuniao button[onclick*="salvarReuniaoEquipe"],
+#view-reuniao button[onclick*="registrarDiscussaoCasoNoProntuario"] {
+    background:
+        linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: #ffffff !important;
+}
+
+#view-reuniao button[onclick*="gerarAtaReuniao"],
+#view-reuniao button[onclick*="imprimirAtaReuniao"] {
+    background:
+        linear-gradient(135deg, #334155, #1e293b) !important;
+    color: #ffffff !important;
+}
+
+#view-reuniao button[onclick*="copiarAtaReuniao"] {
+    background:
+        linear-gradient(135deg, #06b6d4, #0284c7) !important;
+    color: #ffffff !important;
+}
+
+#view-reuniao button[onclick*="limparFormularioReuniao"],
+#view-reuniao button[onclick*="excluirReuniao"] {
+    background:
+        linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #ffffff !important;
+}
+
