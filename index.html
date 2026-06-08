@@ -574,12 +574,12 @@
                         <div class="form-grid">
                             <div>
                                 <label>PAS (Sistólica)</label>
-                                <input type="number" id="hasPAS" oninput="classificarHAS()">
+<input type="number" id="hasPAS" oninput="sincronizarPAHASParaObjetivo(); classificarHAS()">
                             </div>
 
                             <div>
                                 <label>PAD (Diastólica)</label>
-                                <input type="number" id="hasPAD" oninput="classificarHAS()">
+<input type="number" id="hasPAD" oninput="sincronizarPAHASParaObjetivo(); classificarHAS()">
                             </div>
 
                             <div>
@@ -859,6 +859,14 @@
                         <input type="number" id="soapReavaliacaoDias" value="30" min="0">
                     </div>
 
+                <div style="margin-top:15px;">
+    <label>Notas para Central de Avisos</label>
+    <textarea
+        id="notaMonitoramento"
+        rows="2"
+        placeholder="Ex: paciente solicita contato após 18h; dificuldade de locomoção; familiar responsável..."
+    ></textarea>
+</div>
                     <div id="linhaTempoEvolucoes" style="margin-bottom:20px;"></div>
 
                     <div style="display:flex; gap:10px; border-top:1px solid var(--border); padding-top:15px;">
