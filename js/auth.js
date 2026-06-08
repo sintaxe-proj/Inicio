@@ -1,7 +1,7 @@
 /* ==========================================================
    🔐 AUTH SUPABASE — LOGIN + PERMISSÕES
    ADMIN = acesso total
-   ASSISTENCIAL = sem configurações
+   ASSISTENCIAL = sem configurações/estoque
    RECEPÇÃO = sem SOAP/Clínico
    ========================================================== */
 
@@ -16,7 +16,7 @@ document.addEventListener(
     async () => {
 
         console.log(
-            "🔐 Autenticado"
+            "🔐 Auth carregado"
         );
 
         await verificarSessao();
@@ -51,19 +51,13 @@ async function autenticarUsuario() {
 
     try {
 
-        /* ==================================================
-           LOGIN SUPABASE
-           ================================================== */
-
         const {
             data,
             error
         } =
         await supabaseClient.auth.signInWithPassword({
-
             email,
             password: senha
-
         });
 
         if (error) {
@@ -79,10 +73,6 @@ async function autenticarUsuario() {
 
             return;
         }
-
-        /* ==================================================
-           PERFIL
-           ================================================== */
 
         const perfil =
             await buscarPerfilUsuarioPorEmail(
@@ -111,55 +101,21 @@ async function autenticarUsuario() {
             return;
         }
 
-        /* ==================================================
-           OBJETO GLOBAL
-           ================================================== */
-
-        usuarioLogado = {
-
-            id:
-                data.user.id,
-
-            login:
-                perfil.login ||
-                data.user.email,
-
-            email:
-                data.user.email,
-
-            nome:
-                perfil.nome ||
-                data.user.email,
-
-            perfil:
-                perfil.perfil || "assistencial",
-
-            logadoEm:
-                new Date().toISOString()
-        };
+        usuarioLogado = montarUsuarioLogado(
+            data.user,
+            perfil
+        );
 
         window.usuarioLogado =
             usuarioLogado;
-
-        /* ==================================================
-           SESSÃO
-           ================================================== */
 
         salvarSessaoLocal(
             usuarioLogado
         );
 
-        /* ==================================================
-           PERMISSÕES
-           ================================================== */
-
         aplicarPermissoes(
             usuarioLogado.perfil
         );
-
-        /* ==================================================
-           SISTEMA
-           ================================================== */
 
         mostrarSistema();
 
@@ -185,24 +141,109 @@ async function autenticarUsuario() {
 }
 
 /* ==========================================================
+   MONTAR USUÁRIO
+   ========================================================== */
+
+function montarUsuarioLogado(user, perfil) {
+
+    return {
+        id:
+            user.id,
+
+        login:
+            perfil.login ||
+            user.email,
+
+        email:
+            user.email,
+
+        nome:
+            perfil.nome ||
+            user.email,
+
+        perfil:
+            normalizarPerfil(
+                perfil.perfil || "assistencial"
+            ),
+
+        ativo:
+            perfil.ativo,
+
+        logadoEm:
+            new Date().toISOString()
+    };
+}
+
+/* ==========================================================
+   NORMALIZAR PERFIL
+   ========================================================== */
+
+function normalizarPerfil(perfil) {
+
+    const p =
+        String(perfil || "")
+            .trim()
+            .toLowerCase();
+
+    if (
+        p === "admin" ||
+        p === "administrador" ||
+        p === "gestor" ||
+        p === "coordenador"
+    ) {
+        return "admin";
+    }
+
+    if (
+        p === "recepcao" ||
+        p === "recepção" ||
+        p === "observador"
+    ) {
+        return "recepcao";
+    }
+
+    return "assistencial";
+}
+
+/* ==========================================================
    BUSCAR PERFIL
    ========================================================== */
 
 async function buscarPerfilUsuarioPorEmail(email) {
-    const emailLimpo = String(email || "").trim().toLowerCase();
 
-    console.log("🔎 Buscando perfil:", emailLimpo);
+    const emailLimpo =
+        String(email || "")
+            .trim()
+            .toLowerCase();
 
-    const { data, error } = await supabaseClient
+    console.log(
+        "🔎 Buscando perfil:",
+        emailLimpo
+    );
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
         .from("users")
         .select("id, login, nome, email, perfil, ativo")
         .eq("email", emailLimpo)
         .maybeSingle();
 
-    console.log("👤 Perfil encontrado:", data, error);
+    console.log(
+        "👤 Perfil encontrado:",
+        data,
+        error
+    );
 
     if (error) {
-        console.error("Erro perfil:", error);
+
+        console.error(
+            "Erro perfil:",
+            error
+        );
+
         return null;
     }
 
@@ -238,6 +279,14 @@ function salvarSessaoLocal(usuario) {
 async function verificarSessao() {
 
     try {
+
+        if (
+            typeof supabaseClient === "undefined" ||
+            !supabaseClient?.auth
+        ) {
+            mostrarTelaLogin();
+            return;
+        }
 
         const {
             data,
@@ -276,28 +325,11 @@ async function verificarSessao() {
             return;
         }
 
-        usuarioLogado = {
-
-            id:
-                data.user.id,
-
-            login:
-                perfil.login ||
-                data.user.email,
-
-            email:
-                data.user.email,
-
-            nome:
-                perfil.nome ||
-                data.user.email,
-
-            perfil:
-                perfil.perfil || "assistencial",
-
-            logadoEm:
-                new Date().toISOString()
-        };
+        usuarioLogado =
+            montarUsuarioLogado(
+                data.user,
+                perfil
+            );
 
         window.usuarioLogado =
             usuarioLogado;
@@ -336,29 +368,29 @@ async function verificarSessao() {
 function podeAcessar(view) {
 
     const perfil =
-        usuarioLogado?.perfil;
+        normalizarPerfil(
+            usuarioLogado?.perfil ||
+            window.usuarioLogado?.perfil
+        );
 
-    // ADMIN
     if (perfil === "admin") {
         return true;
     }
 
-    // ASSISTENCIAL
-if (perfil === "assistencial") {
+    if (perfil === "assistencial") {
 
-    if (
-        view === "config" ||
-        view === "configuracoes" ||
-        view === "auditoria" ||
-        view === "estoque"
-    ) {
-        return false;
+        if (
+            view === "config" ||
+            view === "configuracoes" ||
+            view === "auditoria" ||
+            view === "estoque"
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
-    return true;
-}
-
-    // RECEPÇÃO
     if (perfil === "recepcao") {
 
         return [
@@ -377,100 +409,173 @@ window.podeAcessar =
    APLICAR PERMISSÕES
    ========================================================== */
 
-function aplicarPermissoes(perfil) {
+function aplicarPermissoes(perfilRecebido) {
+
+    const perfil =
+        normalizarPerfil(
+            perfilRecebido ||
+            usuarioLogado?.perfil
+        );
 
     const btnAuditoria =
-        document.getElementById(
-            "btnAuditoria"
-        );
+        document.getElementById("btnAuditoria");
 
     const btnConfiguracoes =
-        document.getElementById(
-            "btnConfiguracoes"
-        );
+        document.getElementById("btnConfiguracoes") ||
+        document.querySelector('[onclick="navigate(\'config\')"]') ||
+        document.querySelector('[onclick="navigate(\'configuracoes\')"]');
 
     const abaProntuario =
-        document.querySelector(
-            '[onclick="navigate(\'prontuario\')"]'
-        );
+        document.querySelector('[onclick="navigate(\'prontuario\')"]');
+
+    const abaBanco =
+        document.querySelector('[onclick="navigate(\'banco\')"]');
 
     const abaReuniao =
-        document.querySelector(
-            '[onclick="navigate(\'reuniao\')"]'
-        );
+        document.querySelector('[onclick="navigate(\'reuniao\')"]');
 
     const abaMateriais =
-        document.querySelector(
-            '[onclick="navigate(\'estoque\')"]'
-        );
+        document.querySelector('[onclick="navigate(\'estoque\')"]') ||
+        document.querySelector('[onclick="navigate(\'materiais\')"]');
 
-    /* ==================================================
-       ADMIN
-       ================================================== */
+    const seletorNivel =
+        document.getElementById("seletorNivelAcesso");
 
     if (perfil === "admin") {
 
-        if (btnAuditoria)
-            btnAuditoria.style.display =
-                "inline-block";
+        if (btnAuditoria) {
+            btnAuditoria.style.display = "inline-block";
+        }
 
-        if (btnConfiguracoes)
-            btnConfiguracoes.style.display =
-                "inline-block";
+        if (btnConfiguracoes) {
+            btnConfiguracoes.style.display = "inline-block";
+        }
 
         [
             abaProntuario,
+            abaBanco,
             abaReuniao,
             abaMateriais
         ].forEach(aba => {
-
             if (aba) {
-                aba.style.display =
-                    "inline-block";
+                aba.style.display = "inline-block";
             }
         });
+
+        if (seletorNivel) {
+            seletorNivel.style.display = "inline-block";
+            seletorNivel.value = "admin";
+        }
     }
 
-    /* ==================================================
-       ASSISTENCIAL
-       ================================================== */
+    if (perfil === "assistencial") {
 
-  if (perfil === "assistencial") {
-    if (btnAuditoria) btnAuditoria.style.display = "none";
-    if (btnConfiguracoes) btnConfiguracoes.style.display = "none";
+        if (btnAuditoria) {
+            btnAuditoria.style.display = "none";
+        }
 
-    if (abaProntuario) abaProntuario.style.display = "inline-block";
-    if (abaReuniao) abaReuniao.style.display = "inline-block";
-    if (abaMateriais) abaMateriais.style.display = "none";
-}
-    /* ==================================================
-       RECEPÇÃO
-       ================================================== */
+        if (btnConfiguracoes) {
+            btnConfiguracoes.style.display = "none";
+        }
+
+        if (abaProntuario) {
+            abaProntuario.style.display = "inline-block";
+        }
+
+        if (abaBanco) {
+            abaBanco.style.display = "inline-block";
+        }
+
+        if (abaReuniao) {
+            abaReuniao.style.display = "inline-block";
+        }
+
+        if (abaMateriais) {
+            abaMateriais.style.display = "none";
+        }
+
+        if (seletorNivel) {
+            seletorNivel.style.display = "none";
+            seletorNivel.value = "assistencial";
+        }
+
+        redirecionarSeViewRestrita();
+    }
 
     if (perfil === "recepcao") {
 
-        if (btnAuditoria)
-            btnAuditoria.style.display =
-                "none";
+        if (btnAuditoria) {
+            btnAuditoria.style.display = "none";
+        }
 
-        if (btnConfiguracoes)
-            btnConfiguracoes.style.display =
-                "none";
+        if (btnConfiguracoes) {
+            btnConfiguracoes.style.display = "none";
+        }
 
-        [
-            abaProntuario,
-            abaReuniao,
-            abaMateriais
-        ].forEach(aba => {
+        if (abaProntuario) {
+            abaProntuario.style.display = "none";
+        }
 
-            if (aba) {
-                aba.style.display =
-                    "none";
-            }
-        });
+        if (abaReuniao) {
+            abaReuniao.style.display = "none";
+        }
+
+        if (abaMateriais) {
+            abaMateriais.style.display = "none";
+        }
+
+        if (abaBanco) {
+            abaBanco.style.display = "inline-block";
+        }
+
+        if (seletorNivel) {
+            seletorNivel.style.display = "none";
+            seletorNivel.value = "recepcao";
+        }
+
+        redirecionarSeViewRestrita();
     }
 
     atualizarCabecalhoUsuario();
+}
+
+/* Alias para o app.js */
+function aplicarPermissoesUsuario() {
+    aplicarPermissoes(
+        usuarioLogado?.perfil ||
+        window.usuarioLogado?.perfil
+    );
+}
+
+window.aplicarPermissoesUsuario =
+    aplicarPermissoesUsuario;
+
+/* ==========================================================
+   REDIRECIONAR SE VIEW RESTRITA
+   ========================================================== */
+
+function redirecionarSeViewRestrita() {
+
+    const viewAberta =
+        Array.from(
+            document.querySelectorAll(".view")
+        ).find(v => v.style.display === "block");
+
+    if (!viewAberta) return;
+
+    const id =
+        viewAberta.id || "";
+
+    const view =
+        id.replace("view-", "");
+
+    if (
+        view &&
+        typeof podeAcessar === "function" &&
+        !podeAcessar(view)
+    ) {
+        navigate?.("inicio");
+    }
 }
 
 /* ==========================================================
@@ -502,18 +607,17 @@ function atualizarCabecalhoUsuario() {
 
     if (cargoUsuario) {
 
-        if (
-            usuarioLogado?.perfil ===
-            "admin"
-        ) {
+        const perfil =
+            normalizarPerfil(
+                usuarioLogado?.perfil
+            );
+
+        if (perfil === "admin") {
 
             cargoUsuario.innerText =
-                "Administrador";
+                "Coordenador/Gestor";
 
-        } else if (
-            usuarioLogado?.perfil ===
-            "recepcao"
-        ) {
+        } else if (perfil === "recepcao") {
 
             cargoUsuario.innerText =
                 "Recepção";
@@ -554,11 +658,17 @@ function mostrarSistema() {
 
     navigate?.("inicio");
 
-setTimeout(() => {
-    atualizarIndicatorsDashboard?.();
-    atualizarCentralAvisosSininho?.();
-}, 500);
-   
+    if (
+        typeof atualizarDadosIniciais === "function"
+    ) {
+        atualizarDadosIniciais();
+    } else {
+        setTimeout(() => {
+            atualizarIndicatorsDashboard?.();
+            atualizarCentralAvisosSininho?.();
+            atualizarDashboardEstoque?.();
+        }, 500);
+    }
 }
 
 /* ==========================================================
@@ -630,7 +740,12 @@ async function efetuarLogout() {
 
     try {
 
-        await supabaseClient.auth.signOut();
+        if (
+            typeof supabaseClient !== "undefined" &&
+            supabaseClient?.auth
+        ) {
+            await supabaseClient.auth.signOut();
+        }
 
     } catch (e) {
 
@@ -763,28 +878,36 @@ document.addEventListener(
 );
 
 /* ==========================================================
-   GLOBAL
-   ========================================================== */
-
-window.autenticarUsuario =
-    autenticarUsuario;
-
-window.verificarSessao =
-    verificarSessao;
-
-window.efetuarLogout =
-    efetuarLogout;
-
-/* ==========================================================
    ALTERNAR VISÃO GESTOR / ASSISTENCIAL
    ========================================================== */
 
 function alternarVisaoGestor(perfilSelecionado) {
+
+    const perfilNormalizado =
+        normalizarPerfil(perfilSelecionado);
+
+    if (
+        usuarioLogado?.perfil !== "admin" &&
+        window.usuarioLogado?.perfil !== "admin"
+    ) {
+        aplicarPermissoes(
+            usuarioLogado?.perfil ||
+            window.usuarioLogado?.perfil
+        );
+
+        return;
+    }
+
     const btnAuditoria =
         document.getElementById("btnAuditoria");
 
+    const btnConfiguracoes =
+        document.getElementById("btnConfiguracoes") ||
+        document.querySelector('[onclick="navigate(\'config\')"]');
+
     const abaEstoque =
-        document.querySelector('[onclick="navigate(\'estoque\')"]');
+        document.querySelector('[onclick="navigate(\'estoque\')"]') ||
+        document.querySelector('[onclick="navigate(\'materiais\')"]');
 
     const viewConfig =
         document.getElementById("view-config");
@@ -792,9 +915,14 @@ function alternarVisaoGestor(perfilSelecionado) {
     const viewEstoque =
         document.getElementById("view-estoque");
 
-    if (perfilSelecionado === "admin") {
+    if (perfilNormalizado === "admin") {
+
         if (btnAuditoria) {
             btnAuditoria.style.display = "inline-block";
+        }
+
+        if (btnConfiguracoes) {
+            btnConfiguracoes.style.display = "inline-block";
         }
 
         if (abaEstoque) {
@@ -808,6 +936,10 @@ function alternarVisaoGestor(perfilSelecionado) {
         btnAuditoria.style.display = "none";
     }
 
+    if (btnConfiguracoes) {
+        btnConfiguracoes.style.display = "none";
+    }
+
     if (abaEstoque) {
         abaEstoque.style.display = "none";
     }
@@ -816,8 +948,98 @@ function alternarVisaoGestor(perfilSelecionado) {
         viewConfig?.style.display === "block" ||
         viewEstoque?.style.display === "block"
     ) {
-        navigate("inicio");
+        navigate?.("inicio");
     }
 }
 
-window.alternarVisaoGestor = alternarVisaoGestor;
+/* ==========================================================
+   BUSCAR PERFIL USUÁRIO LOGADO
+   Compatibilidade com app.js novo
+   ========================================================== */
+
+async function buscarPerfilUsuarioLogado() {
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient.auth.getUser();
+
+        if (
+            error ||
+            !data?.user
+        ) {
+            return null;
+        }
+
+        const perfil =
+            await buscarPerfilUsuarioPorEmail(
+                data.user.email
+            );
+
+        if (!perfil) {
+            return null;
+        }
+
+        usuarioLogado =
+            montarUsuarioLogado(
+                data.user,
+                perfil
+            );
+
+        window.usuarioLogado =
+            usuarioLogado;
+
+        salvarSessaoLocal(
+            usuarioLogado
+        );
+
+        aplicarPermissoes(
+            usuarioLogado.perfil
+        );
+
+        return usuarioLogado;
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao buscar perfil do usuário logado:",
+            erro
+        );
+
+        return null;
+    }
+}
+
+/* ==========================================================
+   GLOBAL
+   ========================================================== */
+
+window.autenticarUsuario =
+    autenticarUsuario;
+
+window.verificarSessao =
+    verificarSessao;
+
+window.efetuarLogout =
+    efetuarLogout;
+
+window.alternarVisaoGestor =
+    alternarVisaoGestor;
+
+window.normalizarPerfil =
+    normalizarPerfil;
+
+window.aplicarPermissoes =
+    aplicarPermissoes;
+
+window.buscarPerfilUsuarioLogado =
+    buscarPerfilUsuarioLogado;
+
+window.mostrarTelaLogin =
+    mostrarTelaLogin;
+
+window.mostrarSistema =
+    mostrarSistema;
