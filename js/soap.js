@@ -375,8 +375,14 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
 
     const filtros = [];
 
-    if (cpf) filtros.push(`cpf.eq.${cpf}`);
-    if (cns) filtros.push(`cns.eq.${cns}`);
+    if (cpf) {
+        filtros.push(`paciente_cpf.eq.${cpf}`);
+        filtros.push(`cpf.eq.${cpf}`);
+    }
+
+    if (cns) {
+        filtros.push(`cns.eq.${cns}`);
+    }
     if (filtros.length === 0) return;
 
     const { data, error } = await supabaseClient
@@ -553,7 +559,13 @@ async function salvarProntuario() {
     retorno_dias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
     reavaliacaoDias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
 
-    pa: `${document.getElementById("objPAS")?.value || ""}x${document.getElementById("objPAD")?.value || ""}`,
+    pa: (
+        document.getElementById("objPAS")?.value ||
+        document.getElementById("objPAD")?.value
+    )
+        ? `${document.getElementById("objPAS")?.value || ""}x${document.getElementById("objPAD")?.value || ""}`
+        : "",
+
     obj_pas: document.getElementById("objPAS")?.value || null,
     obj_pad: document.getElementById("objPAD")?.value || null,
 
