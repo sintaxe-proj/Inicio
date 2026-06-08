@@ -144,6 +144,35 @@ Observação: plano gerado automaticamente e deve ser revisado pela equipe respo
     return plano;
 }
 
+function calcularRiscoCardiovascular10AnosSimples(paciente) {
+    let pontos = 0;
+
+    const idade = parseInt(paciente.idadePaciente || paciente.idade || 0);
+    const has = paciente.hasSN === "Sim";
+    const dm = paciente.dmSN === "Sim";
+    const pas = parseInt(paciente.hasPAS || paciente.pas || 0);
+    const pad = parseInt(paciente.hasPAD || paciente.pad || 0);
+
+    if (idade >= 45) pontos += 1;
+    if (idade >= 60) pontos += 2;
+    if (idade >= 75) pontos += 2;
+
+    if (has) pontos += 2;
+    if (dm) pontos += 3;
+
+    if (pas >= 140 || pad >= 90) pontos += 2;
+    if (pas >= 180 || pad >= 110) pontos += 3;
+
+    if (pontos <= 2) return "Baixo";
+    if (pontos <= 5) return "Moderado";
+    if (pontos <= 8) return "Alto";
+
+    return "Muito alto";
+}
+
+window.calcularRiscoCardiovascular10AnosSimples =
+    calcularRiscoCardiovascular10AnosSimples;
+
 function exibirPainelRiscoClinico(paciente) {
 
     const container =
