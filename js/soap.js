@@ -528,70 +528,83 @@ async function salvarProntuario() {
            ================================================== */
 
         const atendimento = {
-            usuario_id: usuario.id,
-            usuario_email: usuario.email,
+    usuario_id: usuario.id,
+    usuario_email: usuario.email,
 
-            cpf: paciente.cpf || null,
-            cns: paciente.cns || null,
-            nome_paciente: paciente.nome,
+    paciente_cpf: paciente.cpf || null,
+    cpf: paciente.cpf || null,
 
-            ubs_vinculacao: paciente.ubs_vinculacao || null,
-            equipe_esf: paciente.equipe_esf || null,
+    cns: paciente.cns || null,
+    nome_paciente: paciente.nome,
 
-            soapSubjetivo: document.getElementById("soapSubjetivo")?.value || "",
-            soapObjetivoAlterado: document.getElementById("soapObjetivoAlterado")?.value || "",
-            inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
-            soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
+    ubs_vinculacao: paciente.ubs_vinculacao || null,
+    equipe_esf: paciente.equipe_esf || null,
 
-            reavaliacaoDias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
+    subjetivo: document.getElementById("soapSubjetivo")?.value || "",
+    objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
+    avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
+    plano: document.getElementById("soapPlanoConduta")?.value || "",
 
-            obj_pas: document.getElementById("objPAS")?.value || null,
-            obj_pad: document.getElementById("objPAD")?.value || null,
+    soapSubjetivo: document.getElementById("soapSubjetivo")?.value || "",
+    soapObjetivoAlterado: document.getElementById("soapObjetivoAlterado")?.value || "",
+    inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
+    soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
 
-            fc: document.getElementById("objFC")?.value || "",
-            fr: document.getElementById("objFR")?.value || "",
-            sat_o2: document.getElementById("objSatO2")?.value || "",
-            dor: document.getElementById("objDor")?.value || "",
-            peso: document.getElementById("objpeso")?.value || "",
-            altura: document.getElementById("objaltura")?.value || "",
-            imc: document.getElementById("objIMC")?.value || "",
+    retorno_dias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
+    reavaliacaoDias: Number(document.getElementById("soapReavaliacaoDias")?.value || 0),
 
-            has: document.getElementById("hasSN")?.value || "Não",
-            has_pas: document.getElementById("hasPAS")?.value || null,
-            has_pad: document.getElementById("hasPAD")?.value || null,
-            has_classificacao: document.getElementById("hasClassif")?.value || "",
-            has_data_retinopatia: document.getElementById("hasDataRetinopatia")?.value || null,
-            has_retinopatia: document.getElementById("hasRetinopatia")?.value || "",
+    pa: `${document.getElementById("objPAS")?.value || ""}x${document.getElementById("objPAD")?.value || ""}`,
+    obj_pas: document.getElementById("objPAS")?.value || null,
+    obj_pad: document.getElementById("objPAD")?.value || null,
 
-            dm: document.getElementById("dmSN")?.value || "Não",
-            dm_hba1c: document.getElementById("dmHbA1c")?.value || null,
-            dm_classificacao: document.getElementById("dmClassif")?.value || "",
-            dm_data_retinopatia: document.getElementById("dmDataRetinopatia")?.value || null,
-            dm_retinopatia: document.getElementById("dmRetinopatia")?.value || "",
-            dm_pe_diabetico_grau: document.getElementById("dmPeDiabeticoGrau")?.value || "",
+    fc: document.getElementById("objFC")?.value || "",
+    fr: document.getElementById("objFR")?.value || "",
+    sat_o2: document.getElementById("objSatO2")?.value || "",
+    dor: document.getElementById("objDor")?.value || "",
+    peso: document.getElementById("objpeso")?.value || "",
+    altura: document.getElementById("objaltura")?.value || "",
+    imc: document.getElementById("objIMC")?.value || "",
 
-            gestante: document.getElementById("gestanteSN")?.value || "Não",
+    has: document.getElementById("hasSN")?.value || "Não",
+    has_pas: document.getElementById("hasPAS")?.value || null,
+    has_pad: document.getElementById("hasPAD")?.value || null,
+    has_classificacao: document.getElementById("hasClassif")?.value || "",
+    has_data_retinopatia: document.getElementById("hasDataRetinopatia")?.value || null,
+    has_retinopatia: document.getElementById("hasRetinopatia")?.value || "",
 
-            tb: document.getElementById("tbSN")?.value || "Não",
-            tb_data_diagnostico: document.getElementById("tbDataDiagnostico")?.value || null,
-            tb_fase_tratamento: document.getElementById("tbFaseTratamento")?.value || "",
-            tb_data_baciloscopia: document.getElementById("tbDataBaciloscopia")?.value || null,
-            tb_resultado_baciloscopia: document.getElementById("tbResultadoBaciloscopia")?.value || "",
+    dm: document.getElementById("dmSN")?.value || "Não",
+    dm_hba1c: document.getElementById("dmHbA1c")?.value || null,
+    dm_classificacao: document.getElementById("dmClassif")?.value || "",
+    dm_data_retinopatia: document.getElementById("dmDataRetinopatia")?.value || null,
+    dm_retinopatia: document.getElementById("dmRetinopatia")?.value || "",
+    dm_pe_diabetico_grau: document.getElementById("dmPeDiabeticoGrau")?.value || "",
 
-            hansen: document.getElementById("hansenSN")?.value || "Não",
-            hansen_data_diagnostico: document.getElementById("hansenDataDiagnostico")?.value || null,
-            hansen_classificacao: document.getElementById("hansenClassificacao")?.value || "",
-            hansen_grau_incapacidade: document.getElementById("hansenGrauIncapacidade")?.value || "",
-            hansen_situacao_tratamento: document.getElementById("hansenSituacaoTratamento")?.value || "",
+    gestante: document.getElementById("gestanteSN")?.value || "Não",
+    gestDUM: document.getElementById("gestDUM")?.value || null,
+    gestIG: document.getElementById("gestIG")?.value || "",
+    gestDPP: document.getElementById("gestDPP")?.value || "",
 
-            risco_global: risco.classificacao || null,
-            risco_pontos: risco.pontos || 0,
+    tb: document.getElementById("tbSN")?.value || "Não",
+    tb_data_diagnostico: document.getElementById("tbDataDiagnostico")?.value || null,
+    tb_fase_tratamento: document.getElementById("tbFaseTratamento")?.value || "",
+    tb_data_baciloscopia: document.getElementById("tbDataBaciloscopia")?.value || null,
+    tb_resultado_baciloscopia: document.getElementById("tbResultadoBaciloscopia")?.value || "",
 
-            plano_terapeutico: document.getElementById("planoTerapeuticoSingular")?.value || "",
-            nota_monitoramento: document.getElementById("notaMonitoramento")?.value || "",
+    hansen: document.getElementById("hansenSN")?.value || "Não",
+    hansen_data_diagnostico: document.getElementById("hansenDataDiagnostico")?.value || null,
+    hansen_classificacao: document.getElementById("hansenClassificacao")?.value || "",
+    hansen_grau_incapacidade: document.getElementById("hansenGrauIncapacidade")?.value || "",
+    hansen_situacao_tratamento: document.getElementById("hansenSituacaoTratamento")?.value || "",
 
-            criado_em: new Date().toISOString()
-        };
+    risco_global: risco.classificacao || null,
+    risco_pontos: risco.pontos || 0,
+
+    plano_terapeutico: document.getElementById("planoTerapeuticoSingular")?.value || "",
+    nota_monitoramento: document.getElementById("notaMonitoramento")?.value || "",
+
+    criado_em: new Date().toISOString(),
+    data_atendimento: new Date().toISOString()
+};
 
         /* ==================================================
            SALVAR ATENDIMENTO
