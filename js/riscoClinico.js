@@ -434,6 +434,65 @@ function gerarPDFPlanoCuidado() {
     mostrarToast?.("📄 PDF do plano gerado.");
 }
 
+/* ==========================================================================
+   ☁️ SALVAR PLANO DE CUIDADO NO SUPABASE
+   ========================================================================== */
+
+async function salvarPlanoCuidadoSupabase() {
+
+    try {
+
+        const cpf =
+            document.getElementById("cpfPaciente")?.value || "";
+
+        const cns =
+            document.getElementById("cnsPaciente")?.value || "";
+
+        const plano =
+            document.getElementById("planoTerapeuticoSingular")?.value || "";
+
+        if (!plano.trim()) {
+            mostrarToast?.("⚠️ Gere o plano antes de salvar.");
+            return;
+        }
+
+        if (!cpf && !cns) {
+            mostrarToast?.("⚠️ Paciente não identificado.");
+            return;
+        }
+
+        const registro = {
+            cpf,
+            cns,
+            plano_terapeutico: plano,
+            atualizado_em: new Date().toISOString()
+        };
+
+        const { error } = await supabaseClient
+            .from("planos_cuidado")
+            .upsert(registro);
+
+        if (error) {
+            console.error(error);
+            mostrarToast?.("❌ Erro ao salvar plano.");
+            return;
+        }
+
+        mostrarToast?.("☁️ Plano salvo no Supabase.");
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao salvar plano:",
+            erro
+        );
+
+        mostrarToast?.(
+            "❌ Falha ao salvar plano."
+        );
+    }
+}
+
 window.gerarPDFPlanoCuidado = gerarPDFPlanoCuidado;
 
 window.calcularIMC = calcularIMC;
@@ -444,4 +503,4 @@ window.exibirPainelRiscoClinico = exibirPainelRiscoClinico;
 window.gerarRiscoDoFormularioAtual = gerarRiscoDoFormularioAtual;
 window.copiarPlanoTerapeutico = copiarPlanoTerapeutico;
 window.registrarPlanoNoSOAP = registrarPlanoNoSOAP;
-
+window.salvarPlanoCuidadoSupabase = salvarPlanoCuidadoSupabase;
