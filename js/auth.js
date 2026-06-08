@@ -572,7 +572,8 @@ setTimeout(() => {
     atualizarIndicatorsDashboard?.();
     atualizarCentralAvisosSininho?.();
 }, 500);
-
+   
+}
 
 /* ==========================================================
    MOSTRAR LOGIN
