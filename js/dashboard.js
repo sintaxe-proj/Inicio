@@ -74,8 +74,17 @@ async function atualizarCentralAvisosSininho() {
 
     const { data, error } = await supabaseClient
         .from("atendimentos")
-        .select("id, cpf, cns, nome_paciente, reavaliacaoDias, nota_monitoramento")
-        .eq("reavaliacaoDias", 0);
+        .select(`
+            id,
+            paciente_cpf,
+            cpf,
+            cns,
+            nome_paciente,
+            reavaliacaoDias,
+            retorno_dias,
+            nota_monitoramento
+        `)
+        .or("reavaliacaoDias.eq.0,retorno_dias.eq.0");
 
     if (error) {
         console.error("Erro ao atualizar central de avisos:", error);
@@ -84,26 +93,58 @@ async function atualizarCentralAvisosSininho() {
 
     const alertas = data || [];
 
-    const contador = document.getElementById("contadorAvisosSininho");
-    const container = document.getElementById("centralAvisosContainer");
+    const contador =
+        document.getElementById("contadorAvisosSininho");
+
+    const container =
+        document.getElementById("centralAvisosContainer");
+
+    const iconeNota =
+        document.getElementById("iconeNotaAviso");
 
     if (contador) {
         contador.innerText = alertas.length;
     }
 
+    const primeiraNota =
+        alertas.find(a =>
+            a.nota_monitoramento &&
+            a.nota_monitoramento.trim()
+        );
+
     if (container) {
         if (alertas.length > 0) {
             container.classList.add("tem-alerta");
+
             container.title =
                 `${alertas.length} cidadão(s) com alerta urgente ou prazo vencido.`;
         } else {
             container.classList.remove("tem-alerta");
+
             container.title =
                 "Nenhum alerta crítico no momento.";
         }
     }
 
-    console.log("Central de avisos Supabase atualizada:", alertas.length);
+    if (iconeNota) {
+        if (primeiraNota) {
+            iconeNota.style.display =
+                "inline-block";
+
+            iconeNota.title =
+                primeiraNota.nota_monitoramento;
+        } else {
+            iconeNota.style.display =
+                "none";
+
+            iconeNota.title = "";
+        }
+    }
+
+    console.log(
+        "Central de avisos Supabase atualizada:",
+        alertas.length
+    );
 }
 
 /* ==========================================================================
@@ -111,8 +152,14 @@ async function atualizarCentralAvisosSininho() {
    ========================================================================== */
 
 function abrirPainelCriticosDireto() {
-    if (typeof abrirPainelEpidemiologico === "function") {
-        abrirPainelEpidemiologico("criticos");
+
+    if (
+        typeof abrirPainelEpidemiologico ===
+        "function"
+    ) {
+        abrirPainelEpidemiologico(
+            "criticos"
+        );
     }
 }
 
@@ -120,6 +167,11 @@ function abrirPainelCriticosDireto() {
    GLOBAL
    ========================================================================== */
 
-window.atualizarIndicatorsDashboard = atualizarIndicatorsDashboard;
-window.atualizarCentralAvisosSininho = atualizarCentralAvisosSininho;
-window.abrirPainelCriticosDireto = abrirPainelCriticosDireto;
+window.atualizarIndicatorsDashboard =
+    atualizarIndicatorsDashboard;
+
+window.atualizarCentralAvisosSininho =
+    atualizarCentralAvisosSininho;
+
+window.abrirPainelCriticosDireto =
+    abrirPainelCriticosDireto;
