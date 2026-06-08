@@ -118,6 +118,7 @@ async function aplicarFiltrosRelatorio() {
         .from("atendimentos")
         .select(`
             id,
+            paciente_cpf,
             cpf,
             cns,
             nome_paciente,
@@ -126,9 +127,10 @@ async function aplicarFiltrosRelatorio() {
             gestante,
             tb,
             hansen,
-            "reavaliacaoDias",
+            reavaliacaoDias,
             nota_monitoramento,
-            data_atendimento
+            data_atendimento,
+            criado_em
         `)
         .order("data_atendimento", { ascending: false });
 
@@ -189,7 +191,7 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
     const cpfs =
         [...new Set(
             atendimentos
-                .map(a => a.cpf)
+                .map(a => a.paciente_cpf || a.cpf)
                 .filter(Boolean)
         )];
 
@@ -202,7 +204,15 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
 
     let query = supabaseClient
         .from("pacientes")
-        .select("cpf, cns, nome, ubs, equipe");
+        .select(`
+            cpf,
+            cns,
+            nome,
+            ubs,
+            equipe,
+            ubs_vinculacao,
+            equipe_esf
+        `);
 
     if (cpfs.length && cnss.length) {
         query = query.or(
@@ -218,26 +228,43 @@ async function enriquecerAtendimentosComPacientes(atendimentos) {
 
     if (error) {
         console.error("Erro ao buscar pacientes:", error);
+
         return atendimentos.map(a => ({
             ...a,
-            nome: a.nome_paciente,
-            ubs: "Pendente",
-            equipe: "Pendente"
+            cpf: a.paciente_cpf || a.cpf || "",
+            nome: a.nome_paciente || "Sem nome",
+            ubs: a.ubs_vinculacao || "Pendente",
+            equipe: a.equipe_esf || "Pendente"
         }));
     }
 
     return atendimentos.map(a => {
+        const cpfAtendimento =
+            a.paciente_cpf || a.cpf || "";
+
         const paciente =
             pacientes.find(p =>
-                (a.cpf && p.cpf === a.cpf) ||
+                (cpfAtendimento && p.cpf === cpfAtendimento) ||
                 (a.cns && p.cns === a.cns)
             );
 
         return {
             ...a,
-            nome: paciente?.nome || a.nome_paciente || "Sem nome",
-            ubs: paciente?.ubs || "Pendente",
-            equipe: paciente?.equipe || "Pendente"
+            cpf: cpfAtendimento,
+            nome:
+                paciente?.nome ||
+                a.nome_paciente ||
+                "Sem nome",
+            ubs:
+                paciente?.ubs_vinculacao ||
+                paciente?.ubs ||
+                a.ubs_vinculacao ||
+                "Pendente",
+            equipe:
+                paciente?.equipe_esf ||
+                paciente?.equipe ||
+                a.equipe_esf ||
+                "Pendente"
         };
     });
 }
@@ -293,7 +320,10 @@ function renderizarTabelaMonitoramento(filtrados) {
         }
 
         const documento =
-            p.cpf || p.cns || "";
+            p.paciente_cpf ||
+            p.cpf ||
+            p.cns ||
+            "";
 
         const notaIcone =
             p.nota_monitoramento
@@ -331,13 +361,13 @@ function renderizarTabelaMonitoramento(filtrados) {
 
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button
-                                onclick="abrirAtendimentoExistente('${p.cpf || ""}', '${p.cns || ""}')"
+                                onclick="abrirAtendimentoExistente('${p.paciente_cpf || p.cpf || ""}', '${p.cns || ""}')"
                                 style="background:#2563eb; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
                                 📋 Abrir
                             </button>
 
                             <button
-                                onclick="abrirWhatsAppMonitoramento('${p.cpf || ""}', '${p.cns || ""}', '${linhaCuidadoAtualVisualizacao}')"
+                                onclick="abrirWhatsAppMonitoramento('${p.paciente_cpf || p.cpf || ""}', '${p.cns || ""}', '${linhaCuidadoAtualVisualizacao}')"
                                 style="background:#25d366; color:white; border:none; padding:5px 8px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;">
                                 💬 WhatsApp
                             </button>
@@ -531,10 +561,15 @@ async function abrirAtendimentoExistente(cpf, cns) {
             paciente.endereco || "";
 
         document.getElementById("unidadePaciente").value =
-            paciente.ubs || paciente.unidade || "";
+            paciente.ubs_vinculacao ||
+            paciente.ubs ||
+            paciente.unidade ||
+            "";
 
         document.getElementById("equipePaciente").value =
-            paciente.equipe || "";
+            paciente.equipe_esf ||
+            paciente.equipe ||
+            "";
 
         const modal =
             document.getElementById("painelEpidemiologicoContainer");
@@ -550,7 +585,7 @@ async function abrirAtendimentoExistente(cpf, cns) {
             document.getElementById("cabecalhoNome");
 
         if (cabecalho) {
-            cabecalho.style.display = "block";
+            cabecalho.style.display = "flex";
         }
 
         if (cabecalhoNome) {
@@ -560,6 +595,13 @@ async function abrirAtendimentoExistente(cpf, cns) {
 
         window.pacienteAtual = paciente;
         window.pacienteSelecionado = paciente;
+
+        if (typeof carregarHistoricoClinicoPaciente === "function") {
+            await carregarHistoricoClinicoPaciente(
+                paciente.cpf,
+                paciente.cns
+            );
+        }
 
     } catch (erro) {
         console.error("Erro ao abrir prontuário:", erro);
