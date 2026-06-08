@@ -963,6 +963,20 @@
               📊 Dashboard Epidemiológico Territorial
             </h2>
 
+            <div class="form-grid" style="margin:20px 0;">
+
+    <div>
+        <label>Filtrar por equipe</label>
+
+        <select
+            id="filtroEquipeDashboardEpi"
+            onchange="aplicarFiltroEquipeDashboardEpi()">
+            <option value="TODAS">Todas as equipes</option>
+        </select>
+    </div>
+
+</div>
+
             <button
                 class="btn-danger"
                 onclick="fecharDashboardEpidemiologicoTerritorial()">
