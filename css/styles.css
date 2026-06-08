@@ -1213,3 +1213,150 @@ th {
     color:
         #111827;
 }
+
+
+/* ==========================================================
+   AJUSTES SINTAXEHUB — MONITORAMENTO, MODAIS E PRONTUÁRIO
+   ========================================================== */
+
+/* Modal centralizado e acima dos demais elementos */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+    width: 95%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: auto;
+}
+
+/* Painel Epidemiológico / Monitoramento */
+#painelEpidemiologicoContainer {
+    align-items: center;
+    justify-content: center;
+}
+
+#tabelaPainelEpidemiologico {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#tabelaPainelEpidemiologico table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#tabelaPainelEpidemiologico tr:hover {
+    background: rgba(37,99,235,.08);
+}
+
+#tabelaPainelEpidemiologico td,
+#tabelaPainelEpidemiologico th {
+    vertical-align: middle;
+}
+
+/* Ícone de nota do monitoramento */
+.info-monitoramento,
+#tabelaPainelEpidemiologico span[title] {
+    color: #38bdf8;
+    cursor: help;
+    margin-left: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.info-monitoramento:hover,
+#tabelaPainelEpidemiologico span[title]:hover {
+    transform: scale(1.15);
+}
+
+/* Central de avisos / sino */
+#centralAvisosContainer {
+    transition: .2s ease;
+}
+
+#centralAvisosContainer:hover {
+    transform: scale(1.03);
+}
+
+#contadorAvisosSininho {
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Cabeçalho do prontuário ativo */
+#cabecalhoProntuario {
+    align-items: center;
+    justify-content: space-between;
+}
+
+#cabecalhoNome {
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* Botão X do prontuário ativo */
+.btn-fechar-prontuario {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-fechar-prontuario:hover {
+    background: rgba(239,68,68,.85);
+}
+
+/* Cards clínicos dinâmicos */
+.clinical-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-left: 5px solid #2563eb;
+    background: rgba(17,28,52,.72);
+}
+
+/* Campos PAS/PAD lado a lado quando estiverem em form-grid */
+.pa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+/* Responsividade do monitoramento */
+@media (max-width: 700px) {
+    .modal-content {
+        width: 100%;
+        max-height: 92vh;
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    #tabelaPainelEpidemiologico table {
+        min-width: 760px;
+    }
+}
