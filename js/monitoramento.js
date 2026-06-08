@@ -450,6 +450,102 @@ function renderizarGraficosModal(lista) {
 }
 
 /* ==========================================================================
+   📋 ABRIR PRONTUÁRIO PELO MONITORAMENTO
+   ========================================================================== */
+
+async function abrirAtendimentoExistente(cpf, cns) {
+    try {
+        const cpfLimpo = String(cpf || "").replace(/\D/g, "");
+        const cnsLimpo = String(cns || "").replace(/\D/g, "");
+
+        if (!cpfLimpo && !cnsLimpo) {
+            alert("CPF ou CNS não informado para abrir o prontuário.");
+            return;
+        }
+
+        let query = supabaseClient
+            .from("pacientes")
+            .select("*");
+
+        if (cpfLimpo) {
+            query = query.eq("cpf", cpfLimpo);
+        } else {
+            query = query.eq("cns", cnsLimpo);
+        }
+
+        const { data: paciente, error } = await query.maybeSingle();
+
+        if (error) {
+            console.error("Erro ao buscar paciente:", error);
+            alert("Erro ao buscar paciente no Supabase.");
+            return;
+        }
+
+        if (!paciente) {
+            alert("Paciente não encontrado na base territorial.");
+            return;
+        }
+
+        if (typeof navigate === "function") {
+            navigate("prontuario");
+        }
+
+        document.getElementById("nomePaciente").value =
+            paciente.nome || "";
+
+        document.getElementById("cpfPaciente").value =
+            paciente.cpf || "";
+
+        document.getElementById("cnsPaciente").value =
+            paciente.cns || "";
+
+        document.getElementById("telPaciente").value =
+            paciente.telefone || "";
+
+        document.getElementById("endPaciente").value =
+            paciente.endereco || "";
+
+        document.getElementById("unidadePaciente").value =
+            paciente.ubs || paciente.unidade || "";
+
+        document.getElementById("equipePaciente").value =
+            paciente.equipe || "";
+
+        const modal =
+            document.getElementById("painelEpidemiologicoContainer");
+
+        if (modal) {
+            modal.style.display = "none";
+        }
+
+        const cabecalho =
+            document.getElementById("cabecalhoProntuario");
+
+        const cabecalhoNome =
+            document.getElementById("cabecalhoNome");
+
+        if (cabecalho) {
+            cabecalho.style.display = "block";
+        }
+
+        if (cabecalhoNome) {
+            cabecalhoNome.innerText =
+                `📋 Prontuário Ativo: ${paciente.nome || "Paciente"} (CPF: ${paciente.cpf || "-"})`;
+        }
+
+        window.pacienteAtual = paciente;
+        window.pacienteSelecionado = paciente;
+
+    } catch (erro) {
+        console.error("Erro ao abrir prontuário:", erro);
+        alert("Erro ao abrir prontuário.");
+    }
+}
+
+window.abrirAtendimentoExistente =
+    abrirAtendimentoExistente;
+
+/* ==========================================================================
    GLOBAL
    ========================================================================== */
 
