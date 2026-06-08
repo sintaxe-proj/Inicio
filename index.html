@@ -334,7 +334,7 @@
         <div class="login-card">
             <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight: 800; letter-spacing: 0.5px;">SintaxeHub</h2>
             <p style="color:var(--text-muted); margin:0 0 20px 0; font-size:14px;">Prontuário de Busca Ativa Territorial</p>
-            <input type="text" id="loginUser" placeholder="Login Supabase">
+            <input type="text" id="loginUser" placeholder="E-mail Supabase">
             <input type="password" id="loginSenha" placeholder="Senha">
             <div id="loginErro" style="color:var(--danger); font-size:12px; margin-bottom:10px; font-weight:600; display:none;"></div>
             <button class="btn-login" onclick="autenticarUsuario()">Entrar no Sistema</button>
@@ -372,7 +372,7 @@
             <a class="nav-link" onclick="navigate('banco')">Base Territorial</a>
             <a class="nav-link" onclick="navigate('reuniao')">Reunião de Equipe</a>
             <a class="nav-link" onclick="navigate('estoque')">Estoque</a>
-            <a class="nav-link" id="btnAuditoria" onclick="navigate('config')">Configurações & Carga</a>
+            <a class="nav-link" id="btnConfiguracoes" onclick="navigate('config')">Configurações & Carga</a>
         </nav>
 
 <div id="cabecalhoProntuario"
@@ -480,14 +480,14 @@
                         </div>
                         <div>
                             <label>Telefone / Celular de Contato</label>
-                            <input type="text" id="telPaciente" placeholder="(XX) XXXXX-XXXX">
+                            <input type="text" id="telPaciente" oninput="mascaraTelefone(this)" placeholder="(XX) XXXXX-XXXX">
                         </div>
                     </div>
 
                     <div class="form-grid" style="margin-top:15px;">
                         <div>
                             <label>CEP</label>
-                            <input type="text" id="CEP" onblur="buscarCEP()" placeholder="Somente números">
+                            <input type="text" id="CEP" oninput="mascaraCEP(this)" onblur="if (typeof buscarCEP === 'function') buscarCEP()" placeholder="Somente números">
                         </div>
                         <div style="grid-column: span 2;">
                             <label>Endereço Residencial Completo</label>
@@ -1016,6 +1016,11 @@
                 <h3 id="dashSolicitacoesEntregues">0</h3>
                 <p>Entregues</p>
             </div>
+
+            <div class="dash-card" style="border-top:4px solid #ef4444;">
+                <h3 id="dashSolicitacoesNegadas">0</h3>
+                <p>Negadas</p>
+            </div>
         </div>
 
         <div class="form-section" style="background:#111c2e;">
@@ -1051,7 +1056,7 @@
 
         <div>
             <label>Usuário / Login</label>
-            <input type="text" id="novoUsuarioLogin" placeholder="Ex: maria">
+            <input type="text" id="novoUsuarioLogin" placeholder="Ex: maria@email.com">
         </div>
 
         <div>
@@ -1360,7 +1365,7 @@
     const SUPABASE_URL = "https://cjsgtqblqppztjxkvqvc.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_fVp0iSRjhADvXqxcvh4jGQ_PN46rrrZ";
 
-    const supabaseClient = window.supabase.createClient(
+    window.supabaseClient = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_ANON_KEY
     );
@@ -1377,598 +1382,20 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-<!-- Módulos SintaxeHub -->
+<!-- Módulos SintaxeHub — ordem corrigida -->
+<script src="./js/utils.js"></script>
 <script src="./js/auth.js"></script>
 <script src="./js/dashboard.js"></script>
+<script src="./js/riscoClinico.js"></script>
 <script src="./js/soap.js"></script>
 <script src="./js/busca.js"></script>
 <script src="./js/importador.js"></script>
 <script src="./js/monitoramento.js"></script>
 <script src="./js/whatsapp.js"></script>
 <script src="./js/configuracoes.js"></script>
-<script src="./js/utils.js"></script>
 <script src="./js/reuniao.js"></script>
-<script src="./js/riscoClinico.js"></script>
 <script src="./js/materiais.js"></script>
 <script src="./js/app.js"></script>
-
-<!-- Central de Busca Ativa Territorial corrigida sem sobrescrever o painel original -->
-<script>
-(function () {
-    "use strict";
-
-    const CAMPOS_BUSCA_TEXTO = [
-        "nome", "nome_completo", "cpf", "cns", "telefone", "celular",
-        "endereco", "microarea", "micro_area", "equipe", "unidade",
-        "unidadePaciente", "equipePaciente", "classificacao_risco", "risco",
-        "status", "condicoes", "condicao", "linha_cuidado", "diagnosticos",
-        "observacoes", "soapSubjetivo", "soapPlanoConduta"
-    ];
-
-    function normalizarTexto(valor) {
-        return String(valor ?? "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .trim();
-    }
-
-    function somenteNumeros(valor) {
-        return String(valor ?? "").replace(/\D/g, "");
-    }
-
-    function valorSim(valor) {
-        const v = normalizarTexto(valor);
-        return valor === true || valor === 1 ||
-            ["sim", "s", "true", "1", "ativo", "positiva", "positivo", "presente"].includes(v);
-    }
-
-    function campoSim(p, nomes) {
-        return nomes.some(nome => valorSim(p?.[nome]));
-    }
-
-    function textoPaciente(p) {
-        return CAMPOS_BUSCA_TEXTO.map(campo => p?.[campo] ?? "").join(" ");
-    }
-
-    function pacienteTemHAS(p) {
-        const texto = normalizarTexto(textoPaciente(p));
-        return campoSim(p, ["has", "hasSN", "has_sn", "hipertensao", "hipertenso", "hipertensa"]) ||
-               texto.includes("hipertens") ||
-               /(^|\s)has($|\s)/.test(texto);
-    }
-
-    function pacienteTemDM(p) {
-        const texto = normalizarTexto(textoPaciente(p));
-        return campoSim(p, ["dm", "dmSN", "dm_sn", "diabetes", "diabetico", "diabetica"]) ||
-               texto.includes("diabetes") ||
-               texto.includes("diabet") ||
-               /(^|\s)dm($|\s)/.test(texto);
-    }
-
-    function pacienteTemPN(p) {
-        const texto = normalizarTexto(textoPaciente(p));
-        return campoSim(p, ["pn", "pre_natal", "prenatal", "gestante", "gestanteSN", "gestante_sn"]) ||
-               texto.includes("gestante") ||
-               texto.includes("pre natal") ||
-               texto.includes("prenatal") ||
-               /(^|\s)pn($|\s)/.test(texto);
-    }
-
-    function pacienteTemTB(p) {
-        const texto = normalizarTexto(textoPaciente(p));
-        return campoSim(p, ["tb", "tbSN", "tb_sn", "tuberculose"]) ||
-               texto.includes("tuberculose") ||
-               /(^|\s)tb($|\s)/.test(texto);
-    }
-
-    function pacienteTemHansen(p) {
-        const texto = normalizarTexto(textoPaciente(p));
-        return campoSim(p, ["hansen", "hansenSN", "hansen_sn", "hanseniase", "hanseniaseSN", "hanseniase_sn"]) ||
-               texto.includes("hansen") ||
-               texto.includes("hanseniase");
-    }
-
-    function pacienteCritico(p) {
-        const texto = normalizarTexto(`${p?.classificacao_risco ?? ""} ${p?.risco ?? ""} ${p?.status ?? ""} ${p?.condicoes ?? ""} ${p?.condicao ?? ""}`);
-        return texto.includes("crit") || texto.includes("grave") || texto.includes("alto risco") || texto.includes("risco alto") || texto.includes("vermelho");
-    }
-
-    function obterLinhasPaciente(p) {
-        const linhas = [];
-        if (pacienteTemHAS(p)) linhas.push({ sigla: "HAS", cor: "#dc2626" });
-        if (pacienteTemDM(p)) linhas.push({ sigla: "DM", cor: "#16a34a" });
-        if (pacienteTemPN(p)) linhas.push({ sigla: "PN", cor: "#d97706" });
-        if (pacienteTemTB(p)) linhas.push({ sigla: "TB", cor: "#9333ea" });
-        if (pacienteTemHansen(p)) linhas.push({ sigla: "HANSEN", cor: "#2563eb" });
-        return linhas;
-    }
-
-    function escaparHtml(valor) {
-        return String(valor ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
-
-    function escaparParametro(valor) {
-        return String(valor ?? "")
-            .replace(/\\/g, "\\\\")
-            .replace(/'/g, "\\'")
-            .replace(/"/g, "&quot;")
-            .replace(/\n/g, " ");
-    }
-
-    function idPaciente(p) {
-        return p?.id || p?.paciente_id || p?.uuid || p?.cpf || p?.cns || "";
-    }
-
-    async function carregarPacientesCentral() {
-        try {
-            if (typeof supabaseClient !== "undefined") {
-                const { data, error } = await supabaseClient
-                    .from("pacientes")
-                    .select("*")
-                    .order("nome", { ascending: true });
-
-                if (!error && Array.isArray(data)) {
-                    window.pacientes = data;
-                    return data;
-                }
-
-                console.error("Erro ao buscar pacientes no Supabase:", error);
-            }
-
-            return Array.isArray(window.pacientes) ? window.pacientes : [];
-        } catch (erro) {
-            console.error("Erro geral na Central de Busca:", erro);
-            return Array.isArray(window.pacientes) ? window.pacientes : [];
-        }
-    }
-
-    function filtrarPacientesCentral(pacientes, termoOriginal) {
-        const termo = normalizarTexto(termoOriginal);
-        const termoNumerico = somenteNumeros(termoOriginal);
-        if (!termo && !termoNumerico) return pacientes;
-
-        const tokens = termo.split(/\s+/).filter(Boolean);
-
-        return pacientes.filter(p => {
-            const cpf = somenteNumeros(p.cpf || "");
-            const cns = somenteNumeros(p.cns || "");
-            const telefone = somenteNumeros(p.telefone || p.celular || "");
-
-            if (termoNumerico && (cpf.includes(termoNumerico) || cns.includes(termoNumerico) || telefone.includes(termoNumerico))) {
-                return true;
-            }
-
-            const mapa = {
-                has: pacienteTemHAS(p), hipertensao: pacienteTemHAS(p), hipertenso: pacienteTemHAS(p), hipertensa: pacienteTemHAS(p),
-                dm: pacienteTemDM(p), diabetes: pacienteTemDM(p), diabetico: pacienteTemDM(p), diabetica: pacienteTemDM(p),
-                pn: pacienteTemPN(p), gestante: pacienteTemPN(p), prenatal: pacienteTemPN(p), "pre-natal": pacienteTemPN(p),
-                tb: pacienteTemTB(p), tuberculose: pacienteTemTB(p),
-                hansen: pacienteTemHansen(p), hanseniase: pacienteTemHansen(p),
-                critico: pacienteCritico(p), critica: pacienteCritico(p), crítico: pacienteCritico(p), crítica: pacienteCritico(p)
-            };
-
-            const textoLivre = normalizarTexto(`
-                ${textoPaciente(p)}
-                ${pacienteTemHAS(p) ? "has hipertensao hipertenso hipertensa" : ""}
-                ${pacienteTemDM(p) ? "dm diabetes diabetico diabetica" : ""}
-                ${pacienteTemPN(p) ? "pn gestante prenatal pre natal" : ""}
-                ${pacienteTemTB(p) ? "tb tuberculose" : ""}
-                ${pacienteTemHansen(p) ? "hansen hanseniase" : ""}
-                ${pacienteCritico(p) ? "critico critica grave alto risco" : ""}
-            `);
-
-            return tokens.every(token => {
-                if (Object.prototype.hasOwnProperty.call(mapa, token)) return mapa[token];
-                return textoLivre.includes(token);
-            });
-        });
-    }
-
-    function renderizarResultadoInicio(pacientes, termo) {
-        const resultadoDiv = document.getElementById("resultadoInicio");
-        if (!resultadoDiv) return;
-
-        if (!pacientes || pacientes.length === 0) {
-            resultadoDiv.innerHTML = `
-                <div style="padding:15px; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); background:#111c2e;">
-                    Nenhum paciente encontrado${termo ? ` para: <strong>${escaparHtml(termo)}</strong>` : ""}.
-                </div>
-            `;
-            return;
-        }
-
-        resultadoDiv.innerHTML = `
-            <div style="margin-bottom:10px; color:var(--text-muted); font-size:12px;">
-                ${pacientes.length} paciente(s) encontrado(s).
-            </div>
-            ${pacientes.map(p => {
-                const id = idPaciente(p);
-                const nome = p.nome || p.nome_completo || "Paciente sem nome";
-                const cpf = p.cpf || "Não informado";
-                const cns = p.cns || "Não informado";
-                const telefone = p.telefone || p.celular || "Não informado";
-                const equipe = p.equipe || p.equipePaciente || "Não informada";
-                const microarea = p.microarea || p.micro_area || "Não informada";
-                const risco = p.classificacao_risco || p.risco || "Não classificado";
-                const linhas = obterLinhasPaciente(p);
-                const corRisco = pacienteCritico(p) ? "#ef4444" : "#22c55e";
-
-                return `
-                    <div class="card-monitoramento" style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:10px;">
-                        <div style="display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:flex-start;">
-                            <div style="flex:1; min-width:260px;">
-                                <div style="font-size:16px; font-weight:800; color:var(--primary-neon); margin-bottom:8px;">${escaparHtml(nome)}</div>
-                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">CPF: ${escaparHtml(cpf)} | CNS: ${escaparHtml(cns)}</div>
-                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📞 ${escaparHtml(telefone)} | Equipe: ${escaparHtml(equipe)} | Microárea: ${escaparHtml(microarea)}</div>
-                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin:8px 0;">
-                                    ${linhas.length ? linhas.map(l => `<span class="tag-clinica" style="background:${l.cor};">${l.sigla}</span>`).join("") : `<span class="tag-clinica" style="background:#64748b;">SEM LINHA</span>`}
-                                </div>
-                                <div style="font-size:12px; font-weight:800; color:${corRisco};">Risco: ${escaparHtml(risco)}</div>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
-                                <button class="btn-table-action btn-edit" onclick="abrirPacienteCentral('${escaparParametro(id)}')">Abrir</button>
-                                <button class="btn-table-action" style="background:var(--success-dark);" onclick="ligarPacienteCentral('${escaparParametro(telefone)}')">📞 Ligar</button>
-                                <button class="btn-table-action" style="background:var(--success);" onclick="whatsPacienteCentral('${escaparParametro(telefone)}', '${escaparParametro(nome)}')">WhatsApp</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join("")}
-        `;
-    }
-
-    function obterPacientePorId(id) {
-        const idNorm = String(id ?? "");
-        const lista = Array.isArray(window.pacientes) ? window.pacientes : [];
-        return lista.find(p => String(idPaciente(p)) === idNorm) || null;
-    }
-
-    function preencherFormularioPaciente(p) {
-        const mapa = {
-            nomePaciente: p.nome || p.nome_completo || "",
-            cpfPaciente: p.cpf || "",
-            cnsPaciente: p.cns || "",
-            nascPaciente: p.data_nascimento || p.nascimento || p.nascPaciente || "",
-            telPaciente: p.telefone || p.celular || "",
-            endPaciente: p.endereco || "",
-            unidadePaciente: p.unidade || p.unidadePaciente || "",
-            equipePaciente: p.equipe || p.equipePaciente || "",
-            hasSN: pacienteTemHAS(p) ? "Sim" : "Não",
-            dmSN: pacienteTemDM(p) ? "Sim" : "Não",
-            gestanteSN: pacienteTemPN(p) ? "Sim" : "Não",
-            hasPAS: p.hasPAS || p.pas || "",
-            hasPAD: p.hasPAD || p.pad || "",
-            hasDataRetinopatia: p.hasDataRetinopatia || p.has_data_retinopatia || "",
-            hasRetinopatia: p.hasRetinopatia || p.has_retinopatia || "",
-            hasClassif: p.hasClassif || p.classificacao_risco || p.risco || "",
-            dmHbA1c: p.dmHbA1c || p.hba1c || "",
-            dmDataRetinopatia: p.dmDataRetinopatia || p.dm_data_retinopatia || "",
-            dmRetinopatia: p.dmRetinopatia || p.dm_retinopatia || "",
-            dmPeDiabeticoGrau: p.dmPeDiabeticoGrau || p.dm_pe_diabetico_grau || "",
-            dmClassif: p.dmClassif || "",
-            tbSN: pacienteTemTB(p) ? "Sim" : "Não",
-            hansenSN: pacienteTemHansen(p) ? "Sim" : "Não",
-            tbDataDiagnostico: p.tbDataDiagnostico || p.tb_data_diagnostico || "",
-            tbFaseTratamento: p.tbFaseTratamento || p.tb_fase_tratamento || "",
-            tbDataBaciloscopia: p.tbDataBaciloscopia || p.tb_data_baciloscopia || "",
-            tbResultadoBaciloscopia: p.tbResultadoBaciloscopia || p.tb_resultado_baciloscopia || "",
-            hansenDataDiagnostico: p.hansenDataDiagnostico || p.hansen_data_diagnostico || "",
-            hansenClassificacao: p.hansenClassificacao || p.hansen_classificacao || "",
-            hansenGrauIncapacidade: p.hansenGrauIncapacidade || p.hansen_grau_incapacidade || "",
-            hansenSituacaoTratamento: p.hansenSituacaoTratamento || p.hansen_situacao_tratamento || "",
-            soapSubjetivo: p.soapSubjetivo || "",
-            soapPlanoConduta: p.soapPlanoConduta || ""
-        };
-
-        Object.entries(mapa).forEach(([id, valor]) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.value = valor ?? "";
-                el.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-        });
-
-        const tb = document.getElementById("tbSN");
-        if (tb) tb.value = pacienteTemTB(p) ? "Sim" : "Não";
-
-        const hansen = document.getElementById("hansenSN");
-        if (hansen) hansen.value = pacienteTemHansen(p) ? "Sim" : "Não";
-
-        if (typeof mostrarCard === "function") {
-            mostrarCard("cardHAS", pacienteTemHAS(p) ? "Sim" : "Não");
-            mostrarCard("cardDM", pacienteTemDM(p) ? "Sim" : "Não");
-            mostrarCard("cardGestante", pacienteTemPN(p) ? "Sim" : "Não");
-            mostrarCard("cardTB", pacienteTemTB(p) ? "Sim" : "Não");
-            mostrarCard("cardHansen", pacienteTemHansen(p) ? "Sim" : "Não");
-        }
-
-        const cabecalho = document.getElementById("cabecalhoProntuario");
-        const cabecalhoNome = document.getElementById("cabecalhoNome");
-        if (cabecalho) cabecalho.style.display = "flex";
-        if (cabecalhoNome) cabecalhoNome.textContent = `Prontuário aberto: ${p.nome || p.nome_completo || "Paciente"}`;
-
-        window.pacienteSelecionado = p;
-        window.pacienteAtual = p;
-        window.pacienteAtualId = idPaciente(p);
-    }
-
-    window.buscarInicio = async function buscarInicio() {
-        const campoBusca = document.getElementById("buscaNomeInicio");
-        const resultadoDiv = document.getElementById("resultadoInicio");
-        if (!resultadoDiv) return;
-        const termo = campoBusca ? campoBusca.value.trim() : "";
-        resultadoDiv.innerHTML = `<div style="padding:15px; color:var(--text-muted);">Buscando no território...</div>`;
-        const pacientes = await carregarPacientesCentral();
-        const filtrados = filtrarPacientesCentral(pacientes, termo);
-        renderizarResultadoInicio(filtrados, termo);
-    };
-
-    window.abrirPacienteCentral = function abrirPacienteCentral(id) {
-        const paciente = obterPacientePorId(id);
-        if (paciente) {
-            preencherFormularioPaciente(paciente);
-            if (typeof navigate === "function") navigate("prontuario");
-            else {
-                document.querySelectorAll(".view").forEach(v => v.style.display = "none");
-                const view = document.getElementById("view-prontuario");
-                if (view) view.style.display = "block";
-            }
-            const modal = document.getElementById("painelEpidemiologicoContainer");
-            if (modal) modal.style.display = "none";
-            return;
-        }
-        if (typeof navigate === "function") navigate("prontuario");
-        alert("Paciente localizado, mas não foi possível carregar os dados no formulário.");
-    };
-
-    if (typeof window.abrirProntuarioPaciente !== "function") {
-        window.abrirProntuarioPaciente = window.abrirPacienteCentral;
-    }
-
-    window.ligarPacienteCentral = function ligarPacienteCentral(telefone) {
-        const numero = somenteNumeros(telefone);
-        if (!numero) return alert("Paciente sem telefone cadastrado.");
-        window.location.href = `tel:${numero}`;
-    };
-
-    window.whatsPacienteCentral = function whatsPacienteCentral(telefone, nome) {
-        let numero = somenteNumeros(telefone);
-        if (!numero) return alert("Paciente sem telefone cadastrado.");
-        if (!numero.startsWith("55")) numero = `55${numero}`;
-        const mensagem = encodeURIComponent(`Olá, ${nome || "paciente"}. Entramos em contato pela equipe de saúde para acompanhamento territorial.`);
-        window.open(`https://wa.me/${numero}?text=${mensagem}`, "_blank");
-    };
-
-    function inicializarCentralBuscaAtiva() {
-        const campo = document.getElementById("buscaNomeInicio");
-        if (!campo) return;
-        campo.removeAttribute("onkeyup");
-        campo.onkeyup = null;
-        campo.addEventListener("input", window.buscarInicio);
-    }
-
-    document.addEventListener("DOMContentLoaded", inicializarCentralBuscaAtiva);
-    window.addEventListener("load", inicializarCentralBuscaAtiva);
-
-    window.SintaxeHubCentralBusca = {
-        pacienteTemHAS, pacienteTemDM, pacienteTemPN, pacienteTemTB, pacienteTemHansen, pacienteCritico
-    };
-})();
-</script>
-
-<!-- Fallback seguro do CEP: só entra se o utils.js não tiver carregado a função -->
-<script>
-if (typeof window.buscarCEP !== "function") {
-    window.buscarCEP = async function buscarCEP() {
-        const campoCep = document.getElementById("CEP");
-        const campoEndereco = document.getElementById("endPaciente");
-        const cep = String(campoCep?.value || "").replace(/\D/g, "");
-
-        if (!cep) return;
-        if (cep.length !== 8) {
-            alert("CEP inválido. Digite 8 números.");
-            return;
-        }
-
-        try {
-            const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const dados = await resposta.json();
-
-            if (dados.erro) {
-                alert("CEP não encontrado.");
-                return;
-            }
-
-            if (campoEndereco) {
-                campoEndereco.value = `${dados.logradouro || ""}, ${dados.bairro || ""}, ${dados.localidade || ""} - ${dados.uf || ""}`.replace(/^,\s*/, "").trim();
-            }
-        } catch (erro) {
-            console.error("Erro ao buscar CEP:", erro);
-            alert("Erro ao buscar CEP. Verifique sua conexão.");
-        }
-    };
-}
-</script>
-
-
-<!-- Oculta o discador na tela de login e mostra somente quando o app estiver visível -->
-<script>
-    function atualizarVisibilidadeDiscador() {
-        const app = document.getElementById("app");
-        const botao = document.querySelector(".btn-flutuante-discador");
-        const painel = document.getElementById("painelDiscagemContainer");
-
-        const appVisivel = app && app.style.display !== "none";
-
-        if (botao) {
-            botao.style.display = appVisivel ? "flex" : "none";
-        }
-
-        if (!appVisivel && painel) {
-            painel.style.display = "none";
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        atualizarVisibilidadeDiscador();
-
-        const app = document.getElementById("app");
-        if (app) {
-            const observer = new MutationObserver(atualizarVisibilidadeDiscador);
-            observer.observe(app, { attributes: true, attributeFilter: ["style"] });
-        }
-
-        setInterval(atualizarVisibilidadeDiscador, 500);
-    });
-</script>
-
-
-<!-- Correções clínicas complementares: CIAP-2, exame físico e novos campos -->
-<script>
-(function () {
-    "use strict";
-
-    function campo(id) {
-        return document.getElementById(id);
-    }
-
-    window.mostrarCard = function mostrarCard(id, valor) {
-        const el = campo(id);
-        if (!el) return;
-        el.style.display = valor === "Sim" ? "block" : "none";
-    };
-
-    window.alternarExameFisico = function alternarExameFisico(valor) {
-        const bloco = campo("blocoExameAlterado");
-        const texto = campo("soapObjetivoAlterado");
-
-        if (!bloco) return;
-
-        if (valor === "Alterado") {
-            bloco.style.display = "block";
-            if (texto) texto.focus();
-        } else {
-            bloco.style.display = "none";
-            if (texto) texto.value = "";
-        }
-    };
-
-function carregarDatalistCIAP() {
-    const datalist = document.getElementById("listaCIAP");
-
-    if (!datalist) {
-        console.error("Elemento #listaCIAP não encontrado.");
-        return;
-    }
-
-    if (!window.CIAP2 || typeof window.CIAP2 !== "object") {
-        console.warn("CIAP-2 ainda não disponível para carregar no datalist.");
-        return;
-    }
-
-    datalist.innerHTML = "";
-
-    Object.entries(window.CIAP2).forEach(([codigo, descricao]) => {
-        const option = document.createElement("option");
-        option.value = `${codigo} - ${descricao}`;
-        datalist.appendChild(option);
-    });
-
-    console.log("✅ CIAP-2 carregado no datalist:", Object.keys(window.CIAP2).length);
-}
-
-document.addEventListener("DOMContentLoaded", carregarDatalistCIAP);
-window.addEventListener("load", carregarDatalistCIAP);
-window.carregarDatalistCIAP = carregarDatalistCIAP;
-
-    function limparCamposNovos() {
-        [
-            "hasDataRetinopatia",
-            "hasRetinopatia",
-            "dmDataRetinopatia",
-            "dmRetinopatia",
-            "dmPeDiabeticoGrau",
-            "tbDataDiagnostico",
-            "tbFaseTratamento",
-            "tbDataBaciloscopia",
-            "tbResultadoBaciloscopia",
-            "hansenDataDiagnostico",
-            "hansenClassificacao",
-            "hansenGrauIncapacidade",
-            "hansenSituacaoTratamento"
-        ].forEach(id => {
-            const el = campo(id);
-            if (el) el.value = "";
-        });
-
-        const tb = campo("tbSN");
-        if (tb) tb.value = "Não";
-
-        const hansen = campo("hansenSN");
-        if (hansen) hansen.value = "Não";
-
-        mostrarCard("cardTB", "Não");
-        mostrarCard("cardHansen", "Não");
-    }
-
-    const limparOriginal = window.limparFormularioProntuario;
-    window.limparFormularioProntuario = function limparFormularioProntuarioCorrigido() {
-        if (typeof limparOriginal === "function") {
-            limparOriginal();
-        } else {
-            document
-                .querySelectorAll("#view-prontuario input, #view-prontuario textarea, #view-prontuario select")
-                .forEach(el => {
-                    if (el.type === "checkbox" || el.type === "radio") {
-                        el.checked = false;
-                    } else {
-                        el.value = "";
-                    }
-                });
-        }
-
-        limparCamposNovos();
-
-        const normal = document.querySelector('input[name="exameFisicoStatus"][value="Normal"]');
-        if (normal) normal.checked = true;
-
-        alternarExameFisico("Normal");
-    };
-
-    window.fecharProntuarioAtivo = function fecharProntuarioAtivo() {
-        window.pacienteAtual = null;
-        window.pacienteSelecionado = null;
-        window.pacienteAtualId = null;
-
-        const cabecalho = campo("cabecalhoProntuario");
-        const nome = campo("cabecalhoNome");
-
-        if (cabecalho) cabecalho.style.display = "none";
-        if (nome) nome.innerHTML = "";
-
-        window.limparFormularioProntuario();
-
-        if (typeof mostrarToast === "function") {
-            mostrarToast("📋 Prontuário encerrado.");
-        }
-    };
-
-    document.addEventListener("DOMContentLoaded", function () {
-        setTimeout(window.carregarDatalistCIAP, 300);
-        setTimeout(window.carregarDatalistCIAP, 1200);
-    });
-
-    window.addEventListener("load", function () {
-        setTimeout(window.carregarDatalistCIAP, 500);
-    });
-})();
-</script>
 
 </body>
 </html>
