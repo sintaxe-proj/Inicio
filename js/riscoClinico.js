@@ -439,17 +439,10 @@ function gerarPDFPlanoCuidado() {
    ========================================================================== */
 
 async function salvarPlanoCuidadoSupabase() {
-
     try {
-
-        const cpf =
-            document.getElementById("cpfPaciente")?.value || "";
-
-        const cns =
-            document.getElementById("cnsPaciente")?.value || "";
-
-        const plano =
-            document.getElementById("planoTerapeuticoSingular")?.value || "";
+        const cpf = document.getElementById("cpfPaciente")?.value || "";
+        const cns = document.getElementById("cnsPaciente")?.value || "";
+        const plano = document.getElementById("planoTerapeuticoSingular")?.value || "";
 
         if (!plano.trim()) {
             mostrarToast?.("⚠️ Gere o plano antes de salvar.");
@@ -457,41 +450,39 @@ async function salvarPlanoCuidadoSupabase() {
         }
 
         if (!cpf && !cns) {
-            mostrarToast?.("⚠️ Paciente não identificado.");
+            mostrarToast?.("⚠️ Paciente sem CPF ou CNS.");
             return;
         }
 
-        const registro = {
-            cpf,
-            cns,
-            plano_terapeutico: plano,
-            atualizado_em: new Date().toISOString()
-        };
+        let query = supabaseClient
+            .from("atendimentos")
+            .update({
+                plano_terapeutico: plano
+            });
 
-        const { error } = await supabaseClient
-            .from("planos_cuidado")
-            .upsert(registro);
+        if (cpf) {
+            query = query.eq("cpf", cpf);
+        } else {
+            query = query.eq("cns", cns);
+        }
+
+        const { error } = await query;
 
         if (error) {
-            console.error(error);
+            console.error("Erro ao salvar plano:", error);
             mostrarToast?.("❌ Erro ao salvar plano.");
             return;
         }
 
-        mostrarToast?.("☁️ Plano salvo no Supabase.");
+        mostrarToast?.("☁️ Plano salvo no atendimento.");
 
     } catch (erro) {
-
-        console.error(
-            "Erro ao salvar plano:",
-            erro
-        );
-
-        mostrarToast?.(
-            "❌ Falha ao salvar plano."
-        );
+        console.error("Erro geral ao salvar plano:", erro);
+        mostrarToast?.("❌ Falha ao salvar plano.");
     }
 }
+
+window.salvarPlanoCuidadoSupabase = salvarPlanoCuidadoSupabase;
 
 window.gerarPDFPlanoCuidado = gerarPDFPlanoCuidado;
 
