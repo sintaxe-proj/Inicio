@@ -227,11 +227,32 @@ function atualizarCardsEpidemiologicos(base) {
     setTextoEpi("epiDM", dm);
     setTextoEpi("epiGestantes", gestantes);
 
+    const tb =
+        base.filter(p => valorSimEpi(p.tb)).length;
+
+    const hansen =
+        base.filter(p => valorSimEpi(p.hansen)).length;
+
+    // Sincroniza também os cards da Base Territorial 2.0
+    setTextoEpi("baseTotalPacientes", total);
+    setTextoEpi("baseCriticos", criticos);
+    setTextoEpi("baseHAS", has);
+    setTextoEpi("baseDM", dm);
+    setTextoEpi("baseGestantes", gestantes);
+    setTextoEpi("baseTB", tb);
+    setTextoEpi("baseHansen", hansen);
+
+    // Sincroniza os cards executivos do Painel Inicial, quando existirem
+    setTextoEpi("dashTotalPacientes", total);
+    setTextoEpi("dashCriticos", criticos);
+
     console.log("📊 Cards epidemiológicos:", {
         total,
         has,
         dm,
         gestantes,
+        tb,
+        hansen,
         criticos
     });
 }
