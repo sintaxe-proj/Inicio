@@ -668,17 +668,15 @@ async function salvarItemEstoque() {
         return;
     }
 
-    const payload = {
-        nome_item: nomeItem,
-        marca: document.getElementById("estoqueMarca")?.value?.trim() || null,
-        referencia_lote: document.getElementById("estoqueLote")?.value?.trim() || null,
-        data_fabricacao: document.getElementById("estoqueFabricacao")?.value || null,
-        data_validade: document.getElementById("estoqueValidade")?.value || null,
-        quantidade_atual: Number(document.getElementById("estoqueQuantidadeAtual")?.value || 0),
-        quantidade_minima: Number(document.getElementById("estoqueQuantidadeMinima")?.value || 0),
-        status: "ATIVO",
-        atualizado_em: new Date().toISOString(),
-        ...auditoria
+   const payload = {
+       nome_item: nomeItem,
+       marca: document.getElementById("estoqueMarca")?.value?.trim() || null,
+       referencia_lote: document.getElementById("estoqueLote")?.value?.trim() || null,
+       data_fabricacao: document.getElementById("estoqueFabricacao")?.value || null,
+       data_validade: document.getElementById("estoqueValidade")?.value || null,
+       quantidade_atual: Number(document.getElementById("estoqueQuantidadeAtual")?.value || 0),
+       quantidade_minima: Number(document.getElementById("estoqueQuantidadeMinima")?.value || 0),
+       status: "ATIVO"
     };
 
     const { error } = await supabaseClient
