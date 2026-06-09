@@ -162,7 +162,7 @@ function renderizarItensSolicitacao() {
             <td>${item.unidade || "-"}</td>
             <td>${item.categoria || "-"}</td>
             <td>
-                <button onclick="removerItemSolicitacao(${index})">
+                <button class="btn-danger" onclick="removerItemSolicitacao(${index})">
                     Remover
                 </button>
             </td>
@@ -202,7 +202,7 @@ async function salvarSolicitacaoMaterial() {
         itens: itensSolicitacao,
 
         status: "PENDENTE",
-        data_solicitacao: new Date().toISOString(),
+        criado_em: new Date().toISOString(),
 
         autorizado_por: null,
         autorizado_em: null,
@@ -332,7 +332,7 @@ async function carregarHistoricoSolicitacoes(filtrarPaciente = false) {
                 <p style="font-size:13px; color:var(--text-muted); margin:8px 0;">
                     Solicitante: ${sol.solicitante || "-"} |
                     Prioridade: ${sol.prioridade || "-"} |
-                    Data: ${formatarDataHora(sol.data_solicitacao)}
+                    Data: ${formatarDataHora(sol.criado_em || sol.created_at || sol.data_solicitacao)}
                 </p>
 
                 <ul style="margin-top:8px;">
@@ -366,14 +366,12 @@ async function carregarHistoricoSolicitacoes(filtrarPaciente = false) {
                     ${
                         sol.status === "PENDENTE" && podeGerenciar
                         ? `
-                            <button onclick="autorizarSolicitacaoMaterial('${sol.id}')"
-                                style="background:#22c55e; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
-                                Autorizar
+                            <button class="btn-success" onclick="autorizarSolicitacaoMaterial('${sol.id}')">
+                                ✅ Autorizar
                             </button>
 
-                            <button onclick="negarSolicitacaoMaterial('${sol.id}')"
-                                style="background:#ef4444; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
-                                Negar
+                            <button class="btn-danger" onclick="negarSolicitacaoMaterial('${sol.id}')">
+                                🚫 Negar
                             </button>
                         `
                         : ""
@@ -382,9 +380,8 @@ async function carregarHistoricoSolicitacoes(filtrarPaciente = false) {
                     ${
                         sol.status === "AUTORIZADO" && podeGerenciar
                         ? `
-                            <button onclick="entregarSolicitacaoMaterial('${sol.id}')"
-                                style="background:#2563eb; color:white; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;">
-                                Marcar como Entregue
+                            <button class="btn-primary" onclick="entregarSolicitacaoMaterial('${sol.id}')">
+                                📦 Marcar como Entregue
                             </button>
                         `
                         : ""
@@ -494,6 +491,30 @@ async function entregarSolicitacaoMaterial(id) {
 
     const usuario = getUsuarioMateriais();
 
+    const { data: solicitacao, error: erroBusca } = await supabaseClient
+        .from("solicitacoes_materiais")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+    if (erroBusca || !solicitacao) {
+        console.error("Erro ao buscar solicitação:", erroBusca);
+        mostrarToast?.("❌ Erro ao localizar solicitação.");
+        return;
+    }
+
+    if (solicitacao.status === "ENTREGUE") {
+        mostrarToast?.("⚠️ Esta solicitação já foi entregue.");
+        return;
+    }
+
+    const baixaOk =
+        await baixarEstoquePorSolicitacao(solicitacao);
+
+    if (!baixaOk) {
+        return;
+    }
+
     const { error } = await supabaseClient
         .from("solicitacoes_materiais")
         .update({
@@ -509,8 +530,9 @@ async function entregarSolicitacaoMaterial(id) {
         return;
     }
 
-    mostrarToast?.("📦 Solicitação entregue.");
+    mostrarToast?.("📦 Solicitação entregue e estoque atualizado.");
     carregarHistoricoSolicitacoes();
+    carregarEstoqueItens?.();
     atualizarDashboardEstoque?.();
 }
 
@@ -592,6 +614,254 @@ function limparSolicitacaoMaterial() {
 }
 
 /* ==========================================================
+   ESTOQUE DINÂMICO — estoque_itens
+   ========================================================== */
+
+function abrirModalCadastroEstoque() {
+    const modal = document.getElementById("modalCadastroEstoque");
+
+    if (modal) {
+        modal.style.display = "flex";
+    }
+}
+
+function fecharModalCadastroEstoque() {
+    const modal = document.getElementById("modalCadastroEstoque");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function limparFormularioEstoque() {
+    [
+        "estoqueNomeItem",
+        "estoqueMarca",
+        "estoqueLote",
+        "estoqueFabricacao",
+        "estoqueValidade",
+        "estoqueQuantidadeAtual",
+        "estoqueQuantidadeMinima"
+    ].forEach(id => {
+        const campo = document.getElementById(id);
+
+        if (campo) {
+            campo.value = "";
+        }
+    });
+}
+
+async function salvarItemEstoque() {
+    if (typeof supabaseClient === "undefined") {
+        mostrarToast?.("❌ Supabase não carregado.");
+        return;
+    }
+
+    const auditoria =
+        getUsuarioMateriais();
+
+    const nomeItem =
+        document.getElementById("estoqueNomeItem")?.value?.trim() || "";
+
+    if (!nomeItem) {
+        mostrarToast?.("⚠️ Informe o nome do item.");
+        return;
+    }
+
+    const payload = {
+        nome_item: nomeItem,
+        marca: document.getElementById("estoqueMarca")?.value?.trim() || null,
+        referencia_lote: document.getElementById("estoqueLote")?.value?.trim() || null,
+        data_fabricacao: document.getElementById("estoqueFabricacao")?.value || null,
+        data_validade: document.getElementById("estoqueValidade")?.value || null,
+        quantidade_atual: Number(document.getElementById("estoqueQuantidadeAtual")?.value || 0),
+        quantidade_minima: Number(document.getElementById("estoqueQuantidadeMinima")?.value || 0),
+        status: "ATIVO",
+        atualizado_em: new Date().toISOString(),
+        ...auditoria
+    };
+
+    const { error } = await supabaseClient
+        .from("estoque_itens")
+        .insert(payload);
+
+    if (error) {
+        console.error("Erro ao salvar item de estoque:", error);
+        mostrarToast?.("❌ Erro ao salvar item no estoque.");
+        return;
+    }
+
+    mostrarToast?.("✅ Item cadastrado no estoque.");
+
+    limparFormularioEstoque();
+    fecharModalCadastroEstoque();
+    carregarEstoqueItens();
+}
+
+async function carregarEstoqueItens() {
+    const container =
+        document.getElementById("tabelaEstoqueItens");
+
+    if (!container) return;
+
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("estoque_itens")
+        .select("*")
+        .order("nome_item", { ascending: true });
+
+    if (error) {
+        console.error("Erro ao carregar estoque:", error);
+        container.innerHTML =
+            `<p style="color:var(--danger);">Erro ao carregar estoque.</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Nenhum item cadastrado no estoque.</p>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Marca</th>
+                    <th>Lote/Referência</th>
+                    <th>Fabricação</th>
+                    <th>Validade</th>
+                    <th>Saldo</th>
+                    <th>Mínimo</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(item => {
+                    const vencido =
+                        item.data_validade &&
+                        new Date(item.data_validade) < new Date();
+
+                    const baixo =
+                        Number(item.quantidade_atual || 0) <=
+                        Number(item.quantidade_minima || 0);
+
+                    const status =
+                        vencido
+                            ? "🔴 Vencido"
+                            : baixo
+                                ? "🟡 Estoque baixo"
+                                : "🟢 Disponível";
+
+                    return `
+                        <tr>
+                            <td><strong>${item.nome_item || "-"}</strong></td>
+                            <td>${item.marca || "-"}</td>
+                            <td>${item.referencia_lote || "-"}</td>
+                            <td>${formatarDataSimples(item.data_fabricacao)}</td>
+                            <td>${formatarDataSimples(item.data_validade)}</td>
+                            <td>${item.quantidade_atual ?? 0}</td>
+                            <td>${item.quantidade_minima ?? 0}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+async function baixarEstoquePorSolicitacao(solicitacao) {
+    const itens =
+        Array.isArray(solicitacao.itens)
+            ? solicitacao.itens
+            : [];
+
+    if (!itens.length) {
+        mostrarToast?.("⚠️ Solicitação sem itens para baixa.");
+        return false;
+    }
+
+    for (const item of itens) {
+        const nome =
+            item.nome || item.nome_item || "";
+
+        const quantidade =
+            Number(item.qtd || item.quantidade || 0);
+
+        if (!nome || quantidade <= 0) {
+            continue;
+        }
+
+        const { data: estoque, error: erroBusca } =
+            await supabaseClient
+                .from("estoque_itens")
+                .select("*")
+                .ilike("nome_item", nome)
+                .order("data_validade", { ascending: true, nullsFirst: false })
+                .limit(1)
+                .maybeSingle();
+
+        if (erroBusca) {
+            console.error("Erro ao buscar item no estoque:", erroBusca);
+            mostrarToast?.(`❌ Erro ao buscar ${nome} no estoque.`);
+            return false;
+        }
+
+        if (!estoque) {
+            mostrarToast?.(`⚠️ Item não encontrado no estoque: ${nome}`);
+            return false;
+        }
+
+        const saldoAtual =
+            Number(estoque.quantidade_atual || 0);
+
+        if (saldoAtual < quantidade) {
+            mostrarToast?.(
+                `⚠️ Estoque insuficiente para ${nome}. Saldo: ${saldoAtual}, solicitado: ${quantidade}.`
+            );
+            return false;
+        }
+
+        const novoSaldo =
+            saldoAtual - quantidade;
+
+        const { error: erroUpdate } =
+            await supabaseClient
+                .from("estoque_itens")
+                .update({
+                    quantidade_atual: novoSaldo,
+                    atualizado_em: new Date().toISOString()
+                })
+                .eq("id", estoque.id);
+
+        if (erroUpdate) {
+            console.error("Erro ao baixar estoque:", erroUpdate);
+            mostrarToast?.(`❌ Erro ao baixar estoque de ${nome}.`);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function formatarDataSimples(valor) {
+    if (!valor) return "-";
+
+    try {
+        return new Date(valor).toLocaleDateString("pt-BR");
+    } catch {
+        return "-";
+    }
+}
+
+/* ==========================================================
    HELPERS
    ========================================================== */
 
@@ -625,3 +895,11 @@ window.autorizarSolicitacaoMaterial = autorizarSolicitacaoMaterial;
 window.negarSolicitacaoMaterial = negarSolicitacaoMaterial;
 window.entregarSolicitacaoMaterial = entregarSolicitacaoMaterial;
 window.atualizarDashboardEstoque = atualizarDashboardEstoque;
+
+
+window.abrirModalCadastroEstoque = abrirModalCadastroEstoque;
+window.fecharModalCadastroEstoque = fecharModalCadastroEstoque;
+window.limparFormularioEstoque = limparFormularioEstoque;
+window.salvarItemEstoque = salvarItemEstoque;
+window.carregarEstoqueItens = carregarEstoqueItens;
+window.baixarEstoquePorSolicitacao = baixarEstoquePorSolicitacao;
