@@ -14,6 +14,7 @@ let pacientesReuniao = [];
 async function abrirModuloReuniao() {
     await carregarPacientesParaDiscussao();
     await carregarHistoricoReunioes();
+    await carregarPacientesReuniao();
 }
 
 /* ======================================================
