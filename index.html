@@ -13,6 +13,69 @@
     <link rel="icon" href="./favicon.ico">
     <link rel="stylesheet" href="./css/styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<style id="cssCopilotoAPS">
+/* ==========================================================
+   COPILOTO APS — SINTAXEHUB
+   ========================================================== */
+
+.btn-copiloto-aps {
+    position: fixed;
+    right: 24px;
+    bottom: 104px;
+    width: 66px;
+    height: 66px;
+    min-height: 66px;
+    padding: 0 !important;
+    border-radius: 50%;
+    z-index: 9999;
+    font-size: 28px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
+    box-shadow: 0 18px 36px rgba(124,58,237,.32);
+}
+
+.btn-copiloto-aps:hover {
+    transform: translateY(-3px) scale(1.03);
+}
+
+#modalCopilotoAPS .modal-content {
+    width: 95%;
+    max-width: 1200px;
+}
+
+#respostaCopilotoAPS .status-badge {
+    margin: 2px;
+}
+
+.copiloto-comandos {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.copiloto-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+@media (max-width: 700px) {
+    .copiloto-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-copiloto-aps {
+        width: 58px;
+        height: 58px;
+        min-height: 58px;
+        right: 16px;
+        bottom: 88px;
+    }
+}
+</style>
+
 </head>
 <body>
 
@@ -197,6 +260,13 @@
                         title="Avisos e pendências">
                         🔔 <span id="contadorAvisosSininho">0</span>
                     </div>
+
+                    <button
+                        class="alert-badge topbar-alert"
+                        onclick="abrirCopilotoAPS()"
+                        title="Copiloto APS">
+                        🧠
+                    </button>
 
                     <div class="usuario-avatar">
                         👤
@@ -3422,6 +3492,7 @@
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
 <script src="./js/dashboardInicial.js"></script>
+<script src="./js/copilotoAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
@@ -3535,6 +3606,115 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 </script>
+
+
+<!-- ======================================================
+     COPILOTO APS — INTERFACE
+     ====================================================== -->
+
+<button
+    class="btn-copiloto-aps"
+    onclick="abrirCopilotoAPS()"
+    title="Copiloto APS">
+    🧠
+</button>
+
+<div
+    id="modalCopilotoAPS"
+    class="modal"
+    style="display:none;">
+
+    <div
+        class="modal-content"
+        style="max-width:1200px;">
+
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:16px;
+                margin-bottom:16px;
+            ">
+
+            <div>
+                <h2 style="margin:0;">🧠 Copiloto APS</h2>
+                <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                    Pergunte sobre território, risco, pendências, busca ativa e linhas de cuidado.
+                </p>
+            </div>
+
+            <button
+                class="btn-danger"
+                onclick="fecharCopilotoAPS()">
+                ✕ Fechar
+            </button>
+
+        </div>
+
+        <div class="form-section">
+
+            <label>Digite um comando APS</label>
+
+            <div class="copiloto-input-row">
+                <input
+                    type="text"
+                    id="inputCopilotoAPS"
+                    placeholder="Ex: listar diabéticos sem HbA1c; gestantes atrasadas; quem devo visitar hoje?"
+                    onkeydown="if(event.key === 'Enter') executarCopilotoAPS()">
+
+                <button
+                    class="btn-primary"
+                    onclick="executarCopilotoAPS()">
+                    Executar
+                </button>
+            </div>
+
+            <div class="copiloto-comandos">
+
+                <button
+                    class="btn-secondary"
+                    onclick="comandoRapidoCopilotoAPS('quais pacientes devo visitar hoje?')">
+                    Visitar hoje
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="comandoRapidoCopilotoAPS('listar hipertensos sem PA registrada')">
+                    HAS sem PA
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="comandoRapidoCopilotoAPS('listar diabéticos sem HbA1c')">
+                    DM sem HbA1c
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="comandoRapidoCopilotoAPS('gestantes atrasadas')">
+                    Gestantes atrasadas
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="comandoRapidoCopilotoAPS('resumo dos pacientes críticos por equipe')">
+                    Resumo crítico
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="respostaCopilotoAPS">
+            <p style="color:var(--text-muted);">
+                O Copiloto APS aguardará sua pergunta.
+            </p>
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>
