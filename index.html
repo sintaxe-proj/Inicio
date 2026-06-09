@@ -76,6 +76,18 @@
 }
 </style>
 
+
+<style id="cssMotorPredicaoDashboard">
+#dashInicialRecomendacoesIA .dashboard-list-item,
+#dashInicialGemeoDigital .dashboard-list-item {
+    margin-bottom: 8px;
+}
+
+#view-motor-predicao-aps .form-section {
+    overflow-x: auto;
+}
+</style>
+
 </head>
 <body>
 
@@ -116,59 +128,81 @@
             <nav class="main-tabs">
 
                 <a class="nav-link active" onclick="navigate('inicio')">
-                    <span class="nav-emoji">🏠</span><span class="nav-text">Painel Inicial</span>
+                    <span class="nav-emoji">🏠</span><span class="nav-text">Dashboard</span>
                 </a>
+
+                <div class="sidebar-section-title">Operação APS</div>
 
                 <a class="nav-link" onclick="navigate('banco')">
                     <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial</span>
                 </a>
 
+                <a class="nav-link" onclick="navigate('central-aps')">
+                    <span class="nav-emoji">🎯</span><span class="nav-text">Central Operacional</span>
+                </a>
+
                 <a class="nav-link" onclick="navigate('mapa-territorial')">
-                    <span class="nav-emoji">🗺️</span><span class="nav-text">Mapa Territorial APS</span>
+                    <span class="nav-emoji">🗺️</span><span class="nav-text">Mapa Territorial</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('georreferenciamento')">
-                    <span class="nav-emoji">🌎</span><span class="nav-text">Georreferenciamento APS</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('central-aps')">
-                    <span class="nav-emoji">🎯</span><span class="nav-text">Central Operacional APS</span>
+                    <span class="nav-emoji">🌎</span><span class="nav-text">Georreferenciamento</span>
                 </a>
 
                 <a class="nav-link" onclick="abrirPainelEpidemiologico('criticos')">
                     <span class="nav-emoji">📞</span><span class="nav-text">Monitoramento</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('reuniao')">
-                    <span class="nav-emoji">🗓️</span><span class="nav-text">Reunião de Equipe</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('estoque')">
-                    <span class="nav-emoji">📦</span><span class="nav-text">Estoque / Materiais</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('auditoria-estoque')">
-                    <span class="nav-emoji">🧾</span><span class="nav-text">Auditoria de Estoque</span>
-                </a>
-
-                <div class="sidebar-section-title">Atendimento Clínico</div>
+                <div class="sidebar-section-title">Assistência</div>
 
                 <a class="nav-link" onclick="navigate('prontuario')">
                     <span class="nav-emoji">🩺</span><span class="nav-text">Prontuário SOAP</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('linha-tempo-territorial')">
+                    <span class="nav-emoji">🧬</span><span class="nav-text">Linha do Tempo</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('pendencias-clinicas')">
+                    <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
+                </a>
+
+                <div class="sidebar-section-title">Inteligência APS</div>
+
+                <a class="nav-link" onclick="abrirCopilotoAPS()">
+                    <span class="nav-emoji">🧠</span><span class="nav-text">Copiloto APS</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('motor-predicao-aps')">
+                    <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('torre-controle-aps')">
+                    <span class="nav-emoji">🧠</span><span class="nav-text">Torre APS</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('sala-situacao-aps')">
+                    <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação</span>
+                </a>
+
+                <div class="sidebar-section-title">Logística</div>
+
+                <a class="nav-link" onclick="navigate('estoque')">
+                    <span class="nav-emoji">📦</span><span class="nav-text">Estoque / Materiais</span>
                 </a>
 
                 <a class="nav-link" onclick="abrirModuloSolicitacoesMateriais()">
                     <span class="nav-emoji">📋</span><span class="nav-text">Solicitar Material</span>
                 </a>
 
-                <div class="sidebar-section-title">Dashboards</div>
-
-                <a class="nav-link" onclick="abrirDashboardEpidemiologicoTerritorial()">
-                    <span class="nav-emoji">📊</span><span class="nav-text">Epidemiológico</span>
+                <a class="nav-link" onclick="navigate('auditoria-estoque')">
+                    <span class="nav-emoji">🧾</span><span class="nav-text">Auditoria de Estoque</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('inicio')">
-                    <span class="nav-emoji">📈</span><span class="nav-text">Indicadores</span>
+                <div class="sidebar-section-title">Gestão</div>
+
+                <a class="nav-link" onclick="navigate('reuniao')">
+                    <span class="nav-emoji">🗓️</span><span class="nav-text">Reunião de Equipe</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('relatorios')">
@@ -179,20 +213,8 @@
                     <span class="nav-emoji">📊</span><span class="nav-text">Painel Executivo</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('pendencias-clinicas')">
-                    <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('linha-tempo-territorial')">
-                    <span class="nav-emoji">🧬</span><span class="nav-text">Linha do Tempo</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('torre-controle-aps')">
-                    <span class="nav-emoji">🧠</span><span class="nav-text">Torre APS</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('sala-situacao-aps')">
-                    <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação APS</span>
+                <a class="nav-link" onclick="abrirDashboardEpidemiologicoTerritorial()">
+                    <span class="nav-emoji">📈</span><span class="nav-text">Epidemiológico</span>
                 </a>
 
                 <div class="sidebar-section-title">Sistema</div>
@@ -306,6 +328,26 @@
 
             <div id="view-inicio" class="view" style="display:block;">
 
+                <div class="page-header">
+                    <div>
+                        <h2>🏠 Dashboard Executivo APS</h2>
+                        <p>
+                            Visão operacional integrada: produção, risco, logística,
+                            inteligência territorial e recomendações da IA APS.
+                        </p>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn-primary" onclick="carregarDashboardInicialSintaxeHub?.(); carregarMotorPredicaoAPS?.();">
+                            🔄 Atualizar Dashboard
+                        </button>
+
+                        <button class="btn-info" onclick="abrirCopilotoAPS()">
+                            🧠 Abrir Copiloto APS
+                        </button>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid dashboard-hero-grid">
 
                     <div class="dash-card dashboard-kpi-card" onclick="navigate('banco')">
@@ -314,17 +356,17 @@
                             <span class="card-label">Pessoas monitoradas</span>
                             <h3 id="dashInicialPessoas">0</h3>
                             <p>Base territorial ativa</p>
-                            <span class="card-trend" id="dashInicialPessoasTrend">Atualizado agora</span>
+                            <span class="card-trend" id="dashInicialPessoasTrend">Supabase</span>
                         </div>
                     </div>
 
                     <div class="dash-card dashboard-kpi-card" onclick="navigate('relatorios')">
                         <div class="dash-icon icon-green">✅</div>
                         <div>
-                            <span class="card-label">Atendimentos realizados</span>
+                            <span class="card-label">Atendimentos</span>
                             <h3 id="dashInicialAtendimentos">0</h3>
-                            <p>Este mês</p>
-                            <span class="card-trend trend-positive" id="dashInicialAtendimentosTrend">Produção APS</span>
+                            <p>Produção do mês</p>
+                            <span class="card-trend trend-positive">APS</span>
                         </div>
                     </div>
 
@@ -341,20 +383,20 @@
                     <div class="dash-card dashboard-kpi-card" onclick="abrirPainelEpidemiologico('criticos')">
                         <div class="dash-icon icon-red">🚨</div>
                         <div>
-                            <span class="card-label">Em situação crítica</span>
+                            <span class="card-label">Críticos</span>
                             <h3 id="dashInicialCriticos">0</h3>
-                            <p>Acompanhamento</p>
-                            <span class="card-trend trend-danger">Priorizar hoje</span>
+                            <p>Priorizar hoje</p>
+                            <span class="card-trend trend-danger">Alerta</span>
                         </div>
                     </div>
 
-                    <div class="dash-card dashboard-kpi-card" onclick="navigate('estoque')">
-                        <div class="dash-icon icon-cyan">📦</div>
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('motor-predicao-aps')">
+                        <div class="dash-icon icon-purple">🔮</div>
                         <div>
-                            <span class="card-label">Estoque baixo</span>
-                            <h3 id="dashInicialEstoqueBaixo">0</h3>
-                            <p>Itens críticos</p>
-                            <span class="card-trend">Ver estoque →</span>
+                            <span class="card-label">IA Preditiva</span>
+                            <h3 id="dashInicialPredicao">IA</h3>
+                            <p>Risco e gêmeo digital</p>
+                            <span class="card-trend">Ver motor →</span>
                         </div>
                     </div>
 
@@ -365,38 +407,14 @@
                     <div class="panel-card dashboard-panel-large">
                         <div class="panel-header-row">
                             <div>
-                                <h3>Atendimentos recentes</h3>
-                                <p>Últimos registros assistenciais da base territorial.</p>
+                                <h3>📈 Evolução mensal de atendimentos</h3>
+                                <p>Produção assistencial dos últimos meses.</p>
                             </div>
-                            <button class="btn-secondary btn-sm" onclick="navigate('banco')">Ver todos</button>
-                        </div>
 
-                        <div id="dashInicialAtendimentosRecentes" class="table-responsive">
-                            <p style="color:var(--text-muted);">Carregando atendimentos recentes...</p>
-                        </div>
-                    </div>
-
-                    <div class="panel-card">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>Solicitações de materiais</h3>
-                                <p>Status operacional de materiais.</p>
-                            </div>
-                            <button class="btn-secondary btn-sm" onclick="navigate('estoque')">Ver todas</button>
-                        </div>
-
-                        <div id="dashInicialSolicitacoesMateriais">
-                            <p style="color:var(--text-muted);">Carregando solicitações...</p>
-                        </div>
-                    </div>
-
-                    <div class="panel-card dashboard-panel-large">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>Evolução mensal de atendimentos</h3>
-                                <p>Produção assistencial dos últimos 6 meses.</p>
-                            </div>
-                            <select id="dashInicialPeriodoGrafico" onchange="carregarDashboardInicialSintaxeHub()" style="max-width:170px;">
+                            <select
+                                id="dashInicialPeriodoGrafico"
+                                onchange="carregarDashboardInicialSintaxeHub()"
+                                style="max-width:170px;">
                                 <option value="6">Últimos 6 meses</option>
                                 <option value="12">Últimos 12 meses</option>
                             </select>
@@ -410,7 +428,40 @@
                     <div class="panel-card">
                         <div class="panel-header-row">
                             <div>
-                                <h3>Estoque crítico</h3>
+                                <h3>🧠 Recomendações da IA APS</h3>
+                                <p>Alertas proativos do motor preditivo.</p>
+                            </div>
+
+                            <button class="btn-secondary btn-sm" onclick="navigate('motor-predicao-aps')">
+                                Ver IA
+                            </button>
+                        </div>
+
+                        <div id="dashInicialRecomendacoesIA">
+                            <p style="color:var(--text-muted);">
+                                Abra o Motor de Predição APS para gerar recomendações.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card dashboard-panel-large">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>🩺 Atendimentos recentes</h3>
+                                <p>Últimos registros assistenciais da base territorial.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('banco')">Ver todos</button>
+                        </div>
+
+                        <div id="dashInicialAtendimentosRecentes" class="table-responsive">
+                            <p style="color:var(--text-muted);">Carregando atendimentos recentes...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>📦 Estoque crítico</h3>
                                 <p>Itens abaixo do mínimo ou vencidos.</p>
                             </div>
                             <button class="btn-secondary btn-sm" onclick="navigate('estoque')">Ver estoque</button>
@@ -418,6 +469,38 @@
 
                         <div id="dashInicialEstoqueCritico">
                             <p style="color:var(--text-muted);">Carregando estoque crítico...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card dashboard-panel-large">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>📋 Solicitações de materiais</h3>
+                                <p>Status operacional de solicitações recentes.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('estoque')">Ver todas</button>
+                        </div>
+
+                        <div id="dashInicialSolicitacoesMateriais">
+                            <p style="color:var(--text-muted);">Carregando solicitações...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>🌎 Gêmeo digital territorial</h3>
+                                <p>Pressão assistencial simulada por território.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('motor-predicao-aps')">
+                                Simular
+                            </button>
+                        </div>
+
+                        <div id="dashInicialGemeoDigital">
+                            <p style="color:var(--text-muted);">
+                                Atualize o Motor de Predição APS para visualizar a simulação territorial.
+                            </p>
                         </div>
                     </div>
 
@@ -441,11 +524,19 @@
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-purple" onclick="navigate('reuniao')">
-                        <div style="font-size:24px;">👥</div>
+                    <div class="quick-action-card quick-action-purple" onclick="abrirCopilotoAPS()">
+                        <div style="font-size:24px;">🧠</div>
                         <div>
-                            <strong>Reunião de equipe</strong>
-                            <small>Registrar ata da reunião</small>
+                            <strong>Copiloto APS</strong>
+                            <small>Perguntar ao sistema</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-cyan" onclick="navigate('motor-predicao-aps')">
+                        <div style="font-size:24px;">🔮</div>
+                        <div>
+                            <strong>Predição APS</strong>
+                            <small>Riscos e recomendações</small>
                         </div>
                     </div>
 
@@ -454,14 +545,6 @@
                         <div>
                             <strong>Solicitar material</strong>
                             <small>Nova solicitação</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-cyan" onclick="navigate('relatorios')">
-                        <div style="font-size:24px;">📄</div>
-                        <div>
-                            <strong>Relatórios</strong>
-                            <small>Gerar relatórios</small>
                         </div>
                     </div>
 
@@ -2851,6 +2934,50 @@
 
 
 
+
+<div id="view-motor-predicao-aps" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>🔮 Motor de Predição APS</h2>
+            <p>
+                Risco de abandono, descompensação, internação evitável,
+                recomendações proativas e gêmeo digital territorial inicial.
+            </p>
+        </div>
+
+        <div class="button-row">
+            <button
+                class="btn-primary"
+                onclick="carregarMotorPredicaoAPS()">
+                🔄 Atualizar Predição
+            </button>
+
+            <button
+                class="btn-info"
+                onclick="abrirCopilotoAPS()">
+                🧠 Perguntar ao Copiloto
+            </button>
+        </div>
+    </div>
+
+    <div class="form-section" style="border-left:5px solid var(--purple);">
+        <h3 style="margin-top:0;">Modelo atual</h3>
+        <p style="color:var(--text-muted); margin-bottom:0;">
+            Predição explicável por score ponderado. Este módulo estima risco de abandono,
+            descompensação, internação evitável, evasão gestacional e pressão assistencial territorial.
+        </p>
+    </div>
+
+    <div id="conteudoMotorPredicaoAPS">
+        <p style="color:var(--text-muted);">
+            Clique em atualizar predição para calcular os riscos.
+        </p>
+    </div>
+
+</div>
+
+
 <div id="view-sala-situacao-aps" class="view">
 
     <div class="page-header">
@@ -3492,6 +3619,7 @@
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
 <script src="./js/dashboardInicial.js"></script>
+<script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/app.js"></script>
 
