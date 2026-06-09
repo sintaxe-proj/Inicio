@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0
 // ======================================================
 
 
@@ -230,7 +230,14 @@ function navigate(view) {
         view === "torre-controle-aps" &&
         typeof carregarTorreControleAPS === "function"
     ) {
-        carregarTorreControleAPS();
+        Promise
+            .resolve(carregarTorreControleAPS())
+            .then(() => {
+                if (typeof atualizarResumoTorreDashboardInicial === "function") {
+                    atualizarResumoTorreDashboardInicial();
+                }
+            })
+            .catch(console.warn);
     }
 
 
@@ -352,6 +359,72 @@ function atualizarResumoIADashboardInicial() {
                     </div>
                 `).join("")}
             </div>`;
+    }
+}
+
+
+// ======================================================
+// TORRE APS 2.0 — RESUMO NO DASHBOARD INICIAL
+// ======================================================
+
+function atualizarResumoTorreDashboardInicial() {
+    const torre =
+        window.torreControleAPSAtual || {};
+
+    const base =
+        Array.isArray(torre.base)
+            ? torre.base
+            : [];
+
+    if (!base.length) {
+        return;
+    }
+
+    const criticos =
+        base.filter(p =>
+            Number(p.score_ia || 0) >= 80 ||
+            p.prioridade_ia === "Crítica" ||
+            Number(p.predicao?.score || 0) >= 10 ||
+            Number(p.prazo) === 0
+        ).length;
+
+    const pendencias =
+        base.reduce(
+            (total, p) => total + (p.pendencias?.length || 0),
+            0
+        );
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialCriticos", criticos);
+        setTextoApp("dashInicialPendentes", pendencias);
+    }
+
+    const recomendacoesBox =
+        document.getElementById("dashInicialRecomendacoesIA");
+
+    if (
+        recomendacoesBox &&
+        Array.isArray(torre.recomendacoesIA) &&
+        torre.recomendacoesIA.length
+    ) {
+        recomendacoesBox.innerHTML =
+            `<div class="dashboard-list">
+                ${torre.recomendacoesIA.slice(0, 4).map(r => `
+                    <div class="dashboard-list-item">
+                        <div>
+                            <strong>${r.icone || "🏢"} ${r.titulo || "Recomendação da Torre APS"}</strong>
+                            <small>${r.acao || r.justificativa || ""}</small>
+                        </div>
+                        <span class="status-badge status-warning">${r.impacto || "Torre APS"}</span>
+                    </div>
+                `).join("")}
+            </div>`;
+    }
+}
+
+function abrirTorreControleAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("torre-controle-aps");
     }
 }
 
@@ -500,6 +573,12 @@ function atualizarDadosIniciais() {
                 console.log("🧠 Território Inteligente pronto:", resumo?.total || 0);
             })
             .catch(console.warn);
+    }
+
+    if (
+        typeof atualizarResumoTorreDashboardInicial === "function"
+    ) {
+        atualizarResumoTorreDashboardInicial();
     }
 }
 
@@ -772,3 +851,5 @@ window.setTextoApp = setTextoApp;
 window.calcularStatusValidadeApp = calcularStatusValidadeApp;
 window.atualizarResumoIADashboardInicial = atualizarResumoIADashboardInicial;
 window.abrirLinhaTempoPacienteAtualApp = abrirLinhaTempoPacienteAtualApp;
+window.atualizarResumoTorreDashboardInicial = atualizarResumoTorreDashboardInicial;
+window.abrirTorreControleAPSApp = abrirTorreControleAPSApp;
