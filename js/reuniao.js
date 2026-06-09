@@ -802,9 +802,236 @@ function selecionarPacienteReuniaoSupabase(id) {
     pacientesReuniao =
         [paciente];
 
+    carregarResumoPacienteReuniao(paciente);
+
     mostrarToast?.(
         `✅ Paciente selecionado: ${paciente.nome || "Sem nome"}`
     );
+}
+
+
+/* ======================================================
+   RESUMO CLÍNICO DO PACIENTE NA REUNIÃO
+   ====================================================== */
+
+async function carregarResumoPacienteReuniao(paciente) {
+    const container =
+        document.getElementById("resumoPacienteReuniao");
+
+    if (!container || !paciente) return;
+
+    container.style.display =
+        "block";
+
+    container.innerHTML =
+        `<p style="color:var(--text-muted);">Carregando resumo clínico...</p>`;
+
+    const cpf =
+        paciente.cpf || "";
+
+    const cns =
+        paciente.cns || "";
+
+    let query =
+        supabaseClient
+            .from("atendimentos")
+            .select(`
+                id,
+                paciente_cpf,
+                cpf,
+                cns,
+                nome_paciente,
+                has,
+                dm,
+                gestante,
+                tb,
+                hansen,
+                risco_global,
+                risco_pontos,
+                reavaliacaoDias,
+                retorno_dias,
+                inputBuscaCIAPS,
+                ciapSelecionado,
+                soapSubjetivo,
+                subjetivo,
+                soapPlanoConduta,
+                plano,
+                data_atendimento,
+                criado_em
+            `)
+            .order("data_atendimento", { ascending: false })
+            .limit(1);
+
+    if (cpf && cns) {
+        query =
+            query.or(
+                `paciente_cpf.eq.${cpf},cpf.eq.${cpf},cns.eq.${cns}`
+            );
+    } else if (cpf) {
+        query =
+            query.or(
+                `paciente_cpf.eq.${cpf},cpf.eq.${cpf}`
+            );
+    } else if (cns) {
+        query =
+            query.eq("cns", cns);
+    }
+
+    const { data, error } =
+        await query;
+
+    if (error) {
+        console.error("Erro ao carregar resumo clínico da reunião:", error);
+
+        container.innerHTML =
+            `<p style="color:var(--danger);">Erro ao carregar resumo clínico.</p>`;
+
+        return;
+    }
+
+    const ultimo =
+        data?.[0] || {};
+
+    const ubs =
+        paciente.ubs_vinculacao ||
+        paciente.ubs ||
+        "UBS pendente";
+
+    const equipe =
+        paciente.equipe_esf ||
+        paciente.equipe ||
+        "Equipe pendente";
+
+    const prazo =
+        ultimo.reavaliacaoDias ??
+        ultimo.retorno_dias ??
+        null;
+
+    container.innerHTML = `
+        <h4 style="margin-top:0;">🧾 Resumo clínico para discussão</h4>
+
+        <div class="dashboard-grid" style="margin-bottom:15px;">
+            <div class="dash-card">
+                <div class="dash-icon icon-blue">👤</div>
+                <div>
+                    <h3 style="font-size:18px;">${escaparHTMLReuniao(paciente.nome || "Sem nome")}</h3>
+                    <p>CPF: ${escaparHTMLReuniao(paciente.cpf || "-")} | CNS: ${escaparHTMLReuniao(paciente.cns || "-")}</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-cyan">🏥</div>
+                <div>
+                    <h3 style="font-size:18px;">${escaparHTMLReuniao(equipe)}</h3>
+                    <p>${escaparHTMLReuniao(ubs)}</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-red">🚨</div>
+                <div>
+                    <h3 style="font-size:18px;">${escaparHTMLReuniao(ultimo.risco_global || "Não informado")}</h3>
+                    <p>Risco global</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-yellow">⏱️</div>
+                <div>
+                    <h3 style="font-size:18px;">${formatarPrazoReuniao(prazo)}</h3>
+                    <p>Prazo de monitoramento</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            ${badgeLinhaReuniao("HAS", ultimo.has)}
+            ${badgeLinhaReuniao("DM", ultimo.dm)}
+            ${badgeLinhaReuniao("Gestante", ultimo.gestante)}
+            ${badgeLinhaReuniao("TB", ultimo.tb)}
+            ${badgeLinhaReuniao("Hanseníase", ultimo.hansen)}
+        </div>
+
+        <div class="form-grid">
+            <div>
+                <label>Último CIAP / Avaliação</label>
+                <input
+                    type="text"
+                    readonly
+                    value="${escaparReuniao(ultimo.ciapSelecionado || ultimo.inputBuscaCIAPS || "Não informado")}">
+            </div>
+
+            <div>
+                <label>Último atendimento</label>
+                <input
+                    type="text"
+                    readonly
+                    value="${escaparReuniao(formatarDataHoraReuniao(ultimo.data_atendimento || ultimo.criado_em))}">
+            </div>
+        </div>
+
+        <div style="margin-top:12px;">
+            <label>Resumo da última evolução</label>
+            <textarea readonly rows="3">${escaparHTMLReuniao(
+                ultimo.soapSubjetivo ||
+                ultimo.subjetivo ||
+                ultimo.soapPlanoConduta ||
+                ultimo.plano ||
+                "Sem evolução clínica anterior localizada."
+            )}</textarea>
+        </div>
+    `;
+}
+
+function badgeLinhaReuniao(rotulo, valor) {
+    return valorSimReuniao(valor)
+        ? `<span class="status-badge status-success">${rotulo}</span>`
+        : `<span class="status-badge status-info">${rotulo}: Não</span>`;
+}
+
+function valorSimReuniao(valor) {
+    const v = String(valor || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+function formatarPrazoReuniao(prazo) {
+    if (prazo === null || prazo === undefined || Number.isNaN(Number(prazo))) {
+        return "Sem prazo";
+    }
+
+    const dias =
+        Number(prazo);
+
+    if (dias === 0) {
+        return "Crítico";
+    }
+
+    return `${dias} dias`;
+}
+
+function formatarDataHoraReuniao(valor) {
+    if (!valor) return "-";
+
+    try {
+        return new Date(valor).toLocaleString("pt-BR");
+    } catch {
+        return "-";
+    }
 }
 
 /* ======================================================
@@ -816,3 +1043,7 @@ window.buscarPacientesReuniaoSupabase =
 
 window.selecionarPacienteReuniaoSupabase =
     selecionarPacienteReuniaoSupabase;
+
+
+window.carregarResumoPacienteReuniao =
+    carregarResumoPacienteReuniao;
