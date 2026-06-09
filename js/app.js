@@ -125,6 +125,13 @@ function navigate(view) {
         carregarMapaTerritorialAPS();
     }
 
+    if (
+        view === "central-aps" &&
+        typeof carregarCentralAPS === "function"
+    ) {
+        carregarCentralAPS();
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
