@@ -1375,6 +1375,137 @@
     <div class="form-section">
         <h3 style="margin-top:0;">🗓️ Reunião de Equipe</h3>
 
+        <!-- ======================================================
+             REUNIÃO DE EQUIPE 2.0 — PAINEL INTELIGENTE
+             ====================================================== -->
+
+        <div class="form-section" style="background:#111c2e; margin-top:15px;">
+
+            <div class="section-header">
+
+                <div>
+                    <h3 style="margin:0;">👥 Painel da Equipe</h3>
+
+                    <p style="color:var(--text-muted); margin-top:5px;">
+                        Indicadores territoriais, casos críticos e monitoramento da busca ativa.
+                    </p>
+                </div>
+
+                <button
+                    class="btn-primary"
+                    onclick="carregarIndicadoresReuniaoEquipe()">
+                    🔄 Atualizar Indicadores
+                </button>
+
+            </div>
+
+            <div class="form-grid">
+
+                <div>
+                    <label>Equipe</label>
+
+                    <select
+                        id="filtroEquipeReuniao"
+                        onchange="carregarIndicadoresReuniaoEquipe()">
+
+                        <option value="TODAS">
+                            Todas as equipes
+                        </option>
+
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="dashboard-grid" style="margin-top:20px;">
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-blue">👥</div>
+                    <div>
+                        <h3 id="reuniaoTotalPessoas">0</h3>
+                        <p>Pessoas cadastradas</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-red">❤️</div>
+                    <div>
+                        <h3 id="reuniaoTotalHAS">0</h3>
+                        <p>HAS</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-green">🍬</div>
+                    <div>
+                        <h3 id="reuniaoTotalDM">0</h3>
+                        <p>DM</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-yellow">🤰</div>
+                    <div>
+                        <h3 id="reuniaoTotalGestantes">0</h3>
+                        <p>Gestantes</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-purple">🫁</div>
+                    <div>
+                        <h3 id="reuniaoTotalTB">0</h3>
+                        <p>Tuberculose</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-cyan">🖐️</div>
+                    <div>
+                        <h3 id="reuniaoTotalHansen">0</h3>
+                        <p>Hanseníase</p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="dash-icon icon-red">🚨</div>
+                    <div>
+                        <h3 id="reuniaoTotalCriticos">0</h3>
+                        <p>Casos críticos</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <h4 style="margin-top:25px;">
+                🚨 Casos Críticos Sugeridos
+            </h4>
+
+            <div
+                id="listaCasosCriticosReuniao"
+                style="overflow-x:auto;">
+
+                <p style="color:var(--text-muted);">
+                    Clique em atualizar indicadores.
+                </p>
+
+            </div>
+
+            <h4 style="margin-top:25px;">
+                📞 Busca Ativa do Mês
+            </h4>
+
+            <div id="resumoBuscaAtivaReuniao">
+
+                <p style="color:var(--text-muted);">
+                    Indicadores de contato serão exibidos aqui.
+                </p>
+
+            </div>
+
+        </div>
+
+
         <div class="form-grid">
             <div>
                 <label>Data</label>
