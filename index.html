@@ -71,7 +71,7 @@
         height: 58px;
         min-height: 58px;
         right: 16px;
-        bottom: 88px;
+        bottom: 156px;
     }
 }
 </style>
@@ -149,8 +149,27 @@
 }
 </style>
 
+
+<style id="cssLoginOcultaFlutuantes">
+/* ==========================================================
+   LOGIN — OCULTAR BOTÕES FLUTUANTES
+   O Copiloto/Discador só aparecem quando o app está visível.
+   ========================================================== */
+
+body.login-ativo .btn-copiloto-aps,
+body.login-ativo .btn-flutuante-discador,
+body.login-ativo .btn-discador-flutuante,
+body.login-ativo .floating-dialer,
+body.login-ativo .discador-flutuante,
+body.login-ativo #btnDiscadorFlutuante,
+body.login-ativo #botaoDiscadorFlutuante,
+body.login-ativo #painelDiscagemContainer {
+    display: none !important;
+}
+</style>
+
 </head>
-<body>
+<body class="login-ativo">
 
     <div id="loginScreen">
         <div class="login-card">
@@ -2811,19 +2830,30 @@
     <div class="page-header">
         <div>
             <h2>🧬 Linha do Tempo Territorial</h2>
-            <p>Histórico integrado do cidadão: SOAP, busca ativa, reuniões e materiais.</p>
+            <p>
+                Histórico longitudinal integrado do cidadão:
+                cadastro, SOAP, busca ativa, reuniões, materiais e IA territorial.
+            </p>
         </div>
 
-        <button
-            class="btn-secondary"
-            onclick="exportarLinhaTempoTerritorialCSV()">
-            📤 Exportar CSV
-        </button>
+        <div class="button-row">
+            <button
+                class="btn-primary"
+                onclick="carregarLinhaTempoTerritorialAPS()">
+                🔄 Carregar Linha do Tempo
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="exportarLinhaTempoTerritorialCSV()">
+                📤 Exportar CSV
+            </button>
+        </div>
     </div>
 
     <div class="form-section">
 
-        <h3 style="margin-top:0;">🔎 Localizar cidadão</h3>
+        <h3 style="margin-top:0;">🔎 Buscar cidadão</h3>
 
         <div class="form-grid">
 
@@ -2832,7 +2862,8 @@
                 <input
                     type="text"
                     id="linhaTempoCPF"
-                    placeholder="CPF">
+                    placeholder="000.000.000-00"
+                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
             </div>
 
             <div>
@@ -2840,26 +2871,48 @@
                 <input
                     type="text"
                     id="linhaTempoCNS"
-                    placeholder="CNS">
+                    placeholder="Cartão Nacional de Saúde"
+                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
+            </div>
+
+            <div>
+                <label>Busca livre por nome, CPF ou CNS</label>
+                <input
+                    type="text"
+                    id="buscaLinhaTempoTerritorial"
+                    placeholder="Digite nome, CPF ou CNS..."
+                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
+            </div>
+
+            <div>
+                <label>Tipo de evento</label>
+                <select
+                    id="filtroTipoEventoLinhaTempo"
+                    onchange="renderizarLinhaTempoTerritorial(null, linhaTempoTerritorialAtual)">
+                    <option value="TODOS">Todos os eventos</option>
+                    <option value="CADASTRO">Cadastro</option>
+                    <option value="ATENDIMENTO">Atendimentos SOAP</option>
+                    <option value="BUSCA_ATIVA">Busca ativa</option>
+                    <option value="REUNIAO">Reunião de equipe</option>
+                    <option value="MATERIAL">Materiais</option>
+                    <option value="IA">Território Inteligente</option>
+                </select>
             </div>
 
         </div>
 
-        <button
-            class="btn-primary"
-            style="margin-top:14px;"
-            onclick="carregarLinhaTempoTerritorialAPS()">
-            🔄 Carregar linha do tempo
-        </button>
-
     </div>
 
-    <div
-        id="conteudoLinhaTempoTerritorial"
-        style="margin-top:20px;">
-        <p style="color:var(--text-muted);">
-            Informe CPF ou CNS para carregar a linha do tempo.
-        </p>
+    <div id="cabecalhoLinhaTempoTerritorial"></div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">📍 Eventos territoriais</h3>
+
+        <div id="conteudoLinhaTempoTerritorial">
+            <p style="color:var(--text-muted);">
+                Informe um cidadão para carregar a linha do tempo.
+            </p>
+        </div>
     </div>
 
 </div>
@@ -3937,6 +3990,50 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
 </div>
+
+
+<script id="scriptLoginOcultaFlutuantes">
+(function () {
+    function sincronizarEstadoLoginSintaxeHub() {
+        var app = document.getElementById("app");
+        var login = document.getElementById("loginScreen");
+
+        var appVisivel =
+            app &&
+            app.style.display !== "none" &&
+            getComputedStyle(app).display !== "none";
+
+        if (appVisivel) {
+            document.body.classList.remove("login-ativo");
+            document.body.classList.add("app-ativo");
+        } else {
+            document.body.classList.add("login-ativo");
+            document.body.classList.remove("app-ativo");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        sincronizarEstadoLoginSintaxeHub();
+
+        var app = document.getElementById("app");
+        var login = document.getElementById("loginScreen");
+
+        if (app) {
+            new MutationObserver(sincronizarEstadoLoginSintaxeHub)
+                .observe(app, { attributes: true, attributeFilter: ["style", "class"] });
+        }
+
+        if (login) {
+            new MutationObserver(sincronizarEstadoLoginSintaxeHub)
+                .observe(login, { attributes: true, attributeFilter: ["style", "class"] });
+        }
+
+        setInterval(sincronizarEstadoLoginSintaxeHub, 500);
+    });
+
+    window.sincronizarEstadoLoginSintaxeHub = sincronizarEstadoLoginSintaxeHub;
+})();
+</script>
 
 </body>
 </html>
