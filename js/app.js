@@ -146,6 +146,28 @@ function navigate(view) {
         carregarGeorreferenciamentoAPS();
     }
 
+    if (
+        view === "gestor-executivo" &&
+        typeof carregarPainelGestorExecutivo === "function"
+    ) {
+        carregarPainelGestorExecutivo();
+    }
+
+    if (
+        view === "pendencias-clinicas" &&
+        typeof carregarPendenciasClinicasAPS === "function"
+    ) {
+        carregarPendenciasClinicasAPS();
+    }
+
+    if (
+        view === "linha-tempo-territorial" &&
+        typeof carregarLinhaTempoTerritorialAPS === "function"
+    ) {
+        carregarLinhaTempoTerritorialAPS();
+    }
+
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
