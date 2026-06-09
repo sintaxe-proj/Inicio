@@ -167,6 +167,13 @@ function navigate(view) {
         carregarLinhaTempoTerritorialAPS();
     }
 
+    if (
+        view === "torre-controle-aps" &&
+        typeof carregarTorreControleAPS === "function"
+    ) {
+        carregarTorreControleAPS();
+    }
+
 
     if (view === "config") {
 
