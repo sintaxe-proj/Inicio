@@ -1,0 +1,1564 @@
+/* ==========================================================
+   🧠 TORRE DE CONTROLE APS — SINTAXEHUB
+   Orquestrador executivo
+   Supabase-first: sem localStorage, sem IndexedDB e sem cache persistente.
+
+   Integra:
+   - pacientes
+   - atendimentos
+   - interacoes_busca_ativa
+   - reunioes
+   - reuniao_casos
+   - estoque_itens
+   - solicitacoes_materiais
+
+   Reaproveita, quando disponíveis:
+   - valorSimRelatorioAPS
+   - normalizarRelatorioAPS
+   - identificarPendenciasRelatorioAPS
+   - calcularPredicaoAPS
+   - agruparGeoAPS
+   ========================================================== */
+
+let torreControleAPSAtual = {
+    pacientes: [],
+    atendimentos: [],
+    interacoes: [],
+    reunioes: [],
+    reuniaoCasos: [],
+    estoque: [],
+    solicitacoes: [],
+    base: []
+};
+
+/* ==========================================================
+   CARREGAMENTO PRINCIPAL
+   ========================================================== */
+
+async function carregarTorreControleAPS() {
+    const container =
+        document.getElementById("conteudoTorreControleAPS");
+
+    if (!container) return;
+
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        return;
+    }
+
+    container.innerHTML =
+        `<p style="color:var(--text-muted);">Carregando Torre de Controle APS...</p>`;
+
+    try {
+        const filtros =
+            obterFiltrosTorreControleAPS();
+
+        const [
+            pacientes,
+            atendimentos,
+            interacoes,
+            reunioes,
+            reuniaoCasos,
+            estoque,
+            solicitacoes
+        ] = await Promise.all([
+            buscarTabelaTorreAPS("pacientes", "*", null, 10000),
+            buscarTabelaTorreAPS("atendimentos", "*", filtros, 30000, "data_atendimento"),
+            buscarTabelaTorreAPS("interacoes_busca_ativa", "*", filtros, 20000, "criado_em"),
+            buscarTabelaTorreAPS("reunioes", "*", filtros, 2000, "criado_em"),
+            buscarTabelaTorreAPS("reuniao_casos", "*", filtros, 10000, "created_at"),
+            buscarTabelaTorreAPS("estoque_itens", "*", null, 10000),
+            buscarTabelaTorreAPS("solicitacoes_materiais", "*", filtros, 10000, "criado_em")
+        ]);
+
+        const base =
+            consolidarBaseTorreAPS(
+                pacientes,
+                atendimentos
+            );
+
+        torreControleAPSAtual = {
+            pacientes,
+            atendimentos,
+            interacoes,
+            reunioes,
+            reuniaoCasos,
+            estoque,
+            solicitacoes,
+            base
+        };
+
+        carregarFiltrosTorreControleAPS(base);
+        renderizarTorreControleAPS();
+
+    } catch (erro) {
+        console.error("Erro na Torre de Controle APS:", erro);
+
+        container.innerHTML =
+            `<p style="color:var(--danger);">Erro ao carregar Torre de Controle APS.</p>`;
+    }
+}
+
+/* ==========================================================
+   BUSCAS SUPABASE
+   ========================================================== */
+
+async function buscarTabelaTorreAPS(
+    tabela,
+    select = "*",
+    filtros = null,
+    limit = 10000,
+    colunaData = "criado_em"
+) {
+    try {
+        let query =
+            supabaseClient
+                .from(tabela)
+                .select(select)
+                .limit(limit);
+
+        if (filtros?.inicio) {
+            query =
+                query.gte(
+                    colunaData,
+                    filtros.inicio + "T00:00:00"
+                );
+        }
+
+        if (filtros?.fim) {
+            query =
+                query.lte(
+                    colunaData,
+                    filtros.fim + "T23:59:59"
+                );
+        }
+
+        const { data, error } =
+            await query;
+
+        if (error) {
+            console.warn(`Torre APS: tabela indisponível ou divergente: ${tabela}`, error);
+            return [];
+        }
+
+        return data || [];
+
+    } catch (erro) {
+        console.warn(`Torre APS: falha ao buscar ${tabela}`, erro);
+        return [];
+    }
+}
+
+/* ==========================================================
+   FILTROS
+   ========================================================== */
+
+function obterFiltrosTorreControleAPS() {
+    return {
+        inicio:
+            document.getElementById("torreDataInicio")?.value || "",
+
+        fim:
+            document.getElementById("torreDataFim")?.value || "",
+
+        equipe:
+            document.getElementById("torreFiltroEquipe")?.value || "TODAS",
+
+        ubs:
+            document.getElementById("torreFiltroUBS")?.value || "TODAS",
+
+        linha:
+            document.getElementById("torreFiltroLinha")?.value || "TODAS",
+
+        risco:
+            document.getElementById("torreFiltroRisco")?.value || "TODOS"
+    };
+}
+
+function carregarFiltrosTorreControleAPS(base) {
+    preencherSelectTorreAPS(
+        "torreFiltroEquipe",
+        base.map(p => p.equipe || "Não informado"),
+        "Todas as equipes"
+    );
+
+    preencherSelectTorreAPS(
+        "torreFiltroUBS",
+        base.map(p => p.ubs || "Não informado"),
+        "Todas as UBS"
+    );
+}
+
+function preencherSelectTorreAPS(id, valores, rotulo) {
+    const select =
+        document.getElementById(id);
+
+    if (!select) return;
+
+    const atual =
+        select.value || "TODAS";
+
+    const unicos =
+        [...new Set((valores || []).filter(Boolean))]
+            .sort();
+
+    select.innerHTML =
+        `<option value="TODAS">${rotulo}</option>`;
+
+    unicos.forEach(valor => {
+        const option =
+            document.createElement("option");
+
+        option.value =
+            valor;
+
+        option.textContent =
+            valor;
+
+        select.appendChild(option);
+    });
+
+    if (atual === "TODAS" || unicos.includes(atual)) {
+        select.value =
+            atual;
+    }
+}
+
+function aplicarFiltrosTorreControleAPS(base) {
+    const filtros =
+        obterFiltrosTorreControleAPS();
+
+    let filtrada =
+        [...base];
+
+    if (filtros.equipe !== "TODAS") {
+        filtrada =
+            filtrada.filter(p =>
+                String(p.equipe || "Não informado") === filtros.equipe
+            );
+    }
+
+    if (filtros.ubs !== "TODAS") {
+        filtrada =
+            filtrada.filter(p =>
+                String(p.ubs || "Não informado") === filtros.ubs
+            );
+    }
+
+    if (filtros.linha !== "TODAS") {
+        filtrada =
+            filtrada.filter(p => {
+                if (filtros.linha === "HAS") return valorSimTorreAPS(p.has);
+                if (filtros.linha === "DM") return valorSimTorreAPS(p.dm);
+                if (filtros.linha === "GESTANTE") return valorSimTorreAPS(p.gestante);
+                if (filtros.linha === "TB") return valorSimTorreAPS(p.tb);
+                if (filtros.linha === "HANSEN") return valorSimTorreAPS(p.hansen);
+                return true;
+            });
+    }
+
+    if (filtros.risco !== "TODOS") {
+        filtrada =
+            filtrada.filter(p => {
+                const score =
+                    calcularScorePredicaoTorreAPS(p).score;
+
+                if (filtros.risco === "CRITICO") {
+                    return (
+                        Number(p.prazo) === 0 ||
+                        normalizarTorreAPS(p.risco_global).includes("alto") ||
+                        Number(p.risco_pontos || 0) >= 6 ||
+                        score >= 10
+                    );
+                }
+
+                if (filtros.risco === "MODERADO") {
+                    return score >= 6 && score < 10;
+                }
+
+                if (filtros.risco === "BAIXO") {
+                    return score < 6;
+                }
+
+                return true;
+            });
+    }
+
+    return filtrada;
+}
+
+/* ==========================================================
+   CONSOLIDAÇÃO
+   ========================================================== */
+
+function consolidarBaseTorreAPS(pacientes, atendimentos) {
+    const mapa =
+        new Map();
+
+    (pacientes || []).forEach(p => {
+        const chave =
+            p.cpf ||
+            p.cns ||
+            p.id;
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            id: p.id || "",
+            nome: p.nome || "",
+            cpf: limparDocumentoTorreAPS(p.cpf || ""),
+            cns: p.cns || "",
+            telefone: p.telefone || "",
+            cep: limparCEPTorreAPS(p.cep || ""),
+            bairro: p.bairro || "Bairro não informado",
+            cidade: p.cidade || "",
+
+            ubs:
+                p.ubs_vinculacao ||
+                p.ubs ||
+                p.unidade ||
+                "Não informado",
+
+            equipe:
+                p.equipe_esf ||
+                p.equipe ||
+                "Não informado",
+
+            has: "Não",
+            dm: "Não",
+            gestante: "Não",
+            tb: "Não",
+            hansen: "Não",
+
+            hasPAS: null,
+            hasPAD: null,
+            dmHbA1c: null,
+
+            risco_global: "Não informado",
+            risco_pontos: 0,
+            prazo: null,
+            ultimo_atendimento: null,
+            ciap: ""
+        });
+    });
+
+    (atendimentos || []).forEach(a => {
+        const chave =
+            a.paciente_cpf ||
+            a.cpf ||
+            a.cns;
+
+        if (!chave) return;
+
+        const atual =
+            mapa.get(chave) || {
+                id: "",
+                nome:
+                    a.nome_paciente ||
+                    a.nomePaciente ||
+                    a.nome ||
+                    "",
+                cpf:
+                    limparDocumentoTorreAPS(
+                        a.paciente_cpf ||
+                        a.cpf ||
+                        ""
+                    ),
+                cns: a.cns || "",
+                telefone: a.telefone || "",
+                cep: limparCEPTorreAPS(a.cep || ""),
+                bairro: a.bairro || "Bairro não informado",
+                cidade: a.cidade || "",
+
+                ubs:
+                    a.ubs_vinculacao ||
+                    a.ubs ||
+                    "Não informado",
+
+                equipe:
+                    a.equipe_esf ||
+                    a.equipe ||
+                    "Não informado",
+
+                has: "Não",
+                dm: "Não",
+                gestante: "Não",
+                tb: "Não",
+                hansen: "Não",
+
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+
+                risco_global: "Não informado",
+                risco_pontos: 0,
+                prazo: null,
+                ultimo_atendimento: null,
+                ciap: ""
+            };
+
+        if (!atual.nome) {
+            atual.nome =
+                a.nome_paciente ||
+                a.nome ||
+                "";
+        }
+
+        if (valorSimTorreAPS(a.has)) atual.has = "Sim";
+        if (valorSimTorreAPS(a.dm)) atual.dm = "Sim";
+        if (valorSimTorreAPS(a.gestante)) atual.gestante = "Sim";
+        if (valorSimTorreAPS(a.tb)) atual.tb = "Sim";
+        if (valorSimTorreAPS(a.hansen)) atual.hansen = "Sim";
+
+        atual.hasPAS =
+            obterPrimeiroValorTorreAPS(
+                a.hasPAS,
+                a.has_pas,
+                a.objPAS,
+                a.obj_pas,
+                atual.hasPAS
+            );
+
+        atual.hasPAD =
+            obterPrimeiroValorTorreAPS(
+                a.hasPAD,
+                a.has_pad,
+                a.objPAD,
+                a.obj_pad,
+                atual.hasPAD
+            );
+
+        atual.dmHbA1c =
+            obterPrimeiroValorTorreAPS(
+                a.dmHbA1c,
+                a.dm_hba1c,
+                a.hba1c,
+                atual.dmHbA1c
+            );
+
+        atual.risco_global =
+            a.risco_global ||
+            atual.risco_global;
+
+        if (a.risco_pontos !== null && a.risco_pontos !== undefined) {
+            atual.risco_pontos =
+                Number(a.risco_pontos || 0);
+        }
+
+        atual.prazo =
+            a.reavaliacaoDias ??
+            a.retorno_dias ??
+            atual.prazo;
+
+        atual.ultimo_atendimento =
+            a.data_atendimento ||
+            a.criado_em ||
+            a.created_at ||
+            atual.ultimo_atendimento;
+
+        atual.ciap =
+            a.ciapSelecionado ||
+            a.inputBuscaCIAPS ||
+            a.ciap ||
+            atual.ciap ||
+            "";
+
+        if (a.ubs_vinculacao || a.ubs) {
+            atual.ubs =
+                a.ubs_vinculacao ||
+                a.ubs;
+        }
+
+        if (a.equipe_esf || a.equipe) {
+            atual.equipe =
+                a.equipe_esf ||
+                a.equipe;
+        }
+
+        mapa.set(chave, atual);
+    });
+
+    return Array
+        .from(mapa.values())
+        .map(p => ({
+            ...p,
+            pendencias:
+                identificarPendenciasTorreAPS(p),
+
+            predicao:
+                calcularScorePredicaoTorreAPS(p)
+        }));
+}
+
+/* ==========================================================
+   RENDERIZAÇÃO PRINCIPAL
+   ========================================================== */
+
+function renderizarTorreControleAPS() {
+    const container =
+        document.getElementById("conteudoTorreControleAPS");
+
+    if (!container) return;
+
+    const filtros =
+        obterFiltrosTorreControleAPS();
+
+    const base =
+        aplicarFiltrosTorreControleAPS(
+            torreControleAPSAtual.base || []
+        );
+
+    const dados =
+        calcularDadosTorreControleAPS(
+            base,
+            filtros
+        );
+
+    atualizarCardsTorreControleAPS(dados);
+
+    container.innerHTML = `
+        ${renderizarSituacaoTerritorialTorreAPS(dados)}
+
+        ${renderizarPainelPredicaoTorreAPS(dados)}
+
+        ${renderizarHotspotsTorreAPS(dados)}
+
+        ${renderizarBuscaAtivaTorreAPS(dados)}
+
+        ${renderizarLinhaTempoColetivaTorreAPS(dados)}
+
+        ${renderizarEstoqueAlertasTorreAPS(dados)}
+
+        ${renderizarTabelaPacientesPrioritariosTorreAPS(dados.pacientesPrioritarios)}
+    `;
+}
+
+/* ==========================================================
+   CÁLCULO GERAL
+   ========================================================== */
+
+function calcularDadosTorreControleAPS(base, filtros) {
+    const atendimentos =
+        filtrarListaPorEquipeUBSTorreAPS(
+            torreControleAPSAtual.atendimentos || [],
+            filtros
+        );
+
+    const interacoes =
+        filtrarListaPorEquipeUBSTorreAPS(
+            torreControleAPSAtual.interacoes || [],
+            filtros
+        );
+
+    const reunioes =
+        torreControleAPSAtual.reunioes || [];
+
+    const reuniaoCasos =
+        filtrarListaPorEquipeUBSTorreAPS(
+            torreControleAPSAtual.reuniaoCasos || [],
+            filtros
+        );
+
+    const estoque =
+        torreControleAPSAtual.estoque || [];
+
+    const solicitacoes =
+        torreControleAPSAtual.solicitacoes || [];
+
+    const criticos =
+        base.filter(p =>
+            Number(p.prazo) === 0 ||
+            normalizarTorreAPS(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6 ||
+            p.predicao.score >= 10
+        );
+
+    const pendencias =
+        base.reduce(
+            (total, p) => total + (p.pendencias?.length || 0),
+            0
+        );
+
+    const pacientesPrioritarios =
+        base
+            .filter(p =>
+                p.predicao.score >= 6 ||
+                Number(p.prazo) === 0 ||
+                (p.pendencias?.length || 0) > 0
+            )
+            .sort((a, b) =>
+                b.predicao.score - a.predicao.score ||
+                (b.pendencias?.length || 0) - (a.pendencias?.length || 0)
+            )
+            .slice(0, 50);
+
+    const hotspots =
+        calcularHotspotsTorreAPS(base);
+
+    const busca =
+        calcularBuscaAtivaTorreAPS(
+            interacoes,
+            base
+        );
+
+    const eventosColetivos =
+        calcularEventosColetivosTorreAPS(
+            atendimentos,
+            interacoes,
+            reunioes,
+            reuniaoCasos,
+            solicitacoes
+        );
+
+    const estoqueAlertas =
+        calcularAlertasEstoqueTorreAPS(
+            estoque,
+            solicitacoes
+        );
+
+    return {
+        filtros,
+        base,
+        atendimentos,
+        interacoes,
+        reunioes,
+        reuniaoCasos,
+        estoque,
+        solicitacoes,
+
+        populacao: base.length,
+        has: base.filter(p => valorSimTorreAPS(p.has)).length,
+        dm: base.filter(p => valorSimTorreAPS(p.dm)).length,
+        gestantes: base.filter(p => valorSimTorreAPS(p.gestante)).length,
+        tb: base.filter(p => valorSimTorreAPS(p.tb)).length,
+        hansen: base.filter(p => valorSimTorreAPS(p.hansen)).length,
+        criticos: criticos.length,
+        pendencias,
+
+        pacientesPrioritarios,
+        hotspots,
+        busca,
+        eventosColetivos,
+        estoqueAlertas
+    };
+}
+
+function filtrarListaPorEquipeUBSTorreAPS(lista, filtros) {
+    return (lista || []).filter(item => {
+        const equipe =
+            item.equipe ||
+            item.equipe_esf ||
+            "Não informado";
+
+        const ubs =
+            item.ubs ||
+            item.ubs_vinculacao ||
+            "Não informado";
+
+        if (
+            filtros.equipe !== "TODAS" &&
+            equipe !== filtros.equipe
+        ) {
+            return false;
+        }
+
+        if (
+            filtros.ubs !== "TODAS" &&
+            ubs !== filtros.ubs
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+/* ==========================================================
+   SITUAÇÃO TERRITORIAL
+   ========================================================== */
+
+function renderizarSituacaoTerritorialTorreAPS(dados) {
+    const perc =
+        (valor) =>
+            dados.populacao > 0
+                ? Number(((valor / dados.populacao) * 100).toFixed(1))
+                : 0;
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📊 Situação Territorial Integrada</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("👥", dados.populacao, "População", "icon-blue")}
+                ${cardTorreAPS("❤️", `${dados.has} (${perc(dados.has)}%)`, "HAS", "icon-red")}
+                ${cardTorreAPS("🍬", `${dados.dm} (${perc(dados.dm)}%)`, "DM", "icon-green")}
+                ${cardTorreAPS("🤰", `${dados.gestantes} (${perc(dados.gestantes)}%)`, "Gestantes", "icon-yellow")}
+                ${cardTorreAPS("🫁", dados.tb, "Tuberculose", "icon-purple")}
+                ${cardTorreAPS("🖐️", dados.hansen, "Hanseníase", "icon-cyan")}
+                ${cardTorreAPS("🚨", dados.criticos, "Críticos", "icon-red")}
+                ${cardTorreAPS("🧭", dados.pendencias, "Pendências clínicas", "icon-yellow")}
+                ${cardTorreAPS("🩺", dados.atendimentos.length, "Atendimentos", "icon-blue")}
+            </div>
+        </div>
+    `;
+}
+
+function atualizarCardsTorreControleAPS(dados) {
+    setTextoTorreAPS("torreTotalPopulacao", dados.populacao);
+    setTextoTorreAPS("torreTotalCriticos", dados.criticos);
+    setTextoTorreAPS("torreTotalPendencias", dados.pendencias);
+    setTextoTorreAPS("torreTotalHotspots", dados.hotspots.length);
+    setTextoTorreAPS("torreTotalBuscaAtiva", dados.busca.total);
+    setTextoTorreAPS("torreTotalEventos", dados.eventosColetivos.total30);
+}
+
+/* ==========================================================
+   PREDIÇÃO
+   ========================================================== */
+
+function renderizarPainelPredicaoTorreAPS(dados) {
+    const muitoAlto =
+        dados.base.filter(p => p.predicao.score >= 10).length;
+
+    const moderado =
+        dados.base.filter(p =>
+            p.predicao.score >= 6 &&
+            p.predicao.score < 10
+        ).length;
+
+    const baixo =
+        dados.base.filter(p => p.predicao.score < 6).length;
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🔮 Predição APS Clínico-Territorial</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("🔴", muitoAlto, "Risco de descompensação/internação", "icon-red")}
+                ${cardTorreAPS("🟡", moderado, "Risco de abandono/agravamento", "icon-yellow")}
+                ${cardTorreAPS("🟢", baixo, "Baixo risco preditivo", "icon-green")}
+            </div>
+        </div>
+    `;
+}
+
+function calcularScorePredicaoTorreAPS(p) {
+    let score = 0;
+    const fatores = [];
+
+    if (Number(p.prazo) === 0) {
+        score += 4;
+        fatores.push("retorno vencido");
+    }
+
+    if (
+        normalizarTorreAPS(p.risco_global).includes("alto") ||
+        Number(p.risco_pontos || 0) >= 6
+    ) {
+        score += 4;
+        fatores.push("alto risco");
+    }
+
+    if (valorSimTorreAPS(p.has)) {
+        score += 1;
+        fatores.push("HAS");
+    }
+
+    if (valorSimTorreAPS(p.dm)) {
+        score += 1;
+        fatores.push("DM");
+    }
+
+    if (valorSimTorreAPS(p.tb)) {
+        score += 3;
+        fatores.push("TB");
+    }
+
+    if (valorSimTorreAPS(p.hansen)) {
+        score += 3;
+        fatores.push("Hanseníase");
+    }
+
+    const pendencias =
+        identificarPendenciasTorreAPS(p);
+
+    if (pendencias.length) {
+        score += pendencias.length * 2;
+        fatores.push(`${pendencias.length} pendência(s)`);
+    }
+
+    if (diasDesdeTorreAPS(p.ultimo_atendimento) > 180) {
+        score += 3;
+        fatores.push("sem atendimento recente");
+    }
+
+    return {
+        score,
+        fatores,
+        classe:
+            score >= 10
+                ? "Risco de descompensação/internação"
+                : score >= 6
+                    ? "Risco de abandono/agravamento"
+                    : "Baixo risco preditivo"
+    };
+}
+
+/* ==========================================================
+   HOTSPOTS
+   ========================================================== */
+
+function calcularHotspotsTorreAPS(base) {
+    const grupos = {};
+
+    base.forEach(p => {
+        const chave =
+            p.cep ||
+            p.bairro ||
+            p.ubs ||
+            "Território não informado";
+
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                territorio: chave,
+                total: 0,
+                criticos: 0,
+                pendencias: 0,
+                score: 0,
+                status: "🟢 Estável"
+            };
+        }
+
+        const g =
+            grupos[chave];
+
+        g.total++;
+
+        const critico =
+            Number(p.prazo) === 0 ||
+            normalizarTorreAPS(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6 ||
+            p.predicao.score >= 10;
+
+        if (critico) {
+            g.criticos++;
+            g.score += 5;
+        }
+
+        const qtdPendencias =
+            p.pendencias?.length || 0;
+
+        g.pendencias +=
+            qtdPendencias;
+
+        g.score +=
+            qtdPendencias * 2;
+
+        if (valorSimTorreAPS(p.tb)) g.score += 3;
+        if (valorSimTorreAPS(p.hansen)) g.score += 3;
+        if (valorSimTorreAPS(p.gestante)) g.score += 2;
+    });
+
+    Object.values(grupos).forEach(g => {
+        if (g.criticos > 0 || g.score >= 50) {
+            g.status = "🔴 Prioritário";
+        } else if (g.score >= 20) {
+            g.status = "🟡 Atenção";
+        } else {
+            g.status = "🟢 Estável";
+        }
+    });
+
+    return Object
+        .values(grupos)
+        .sort((a, b) =>
+            b.score - a.score ||
+            b.criticos - a.criticos ||
+            b.pendencias - a.pendencias ||
+            b.total - a.total
+        )
+        .slice(0, 10);
+}
+
+function renderizarHotspotsTorreAPS(dados) {
+    if (!dados.hotspots.length) {
+        return `
+            <div class="form-section">
+                <h3 style="margin-top:0;">🔥 Hotspots Territoriais</h3>
+                <p style="color:var(--text-muted);">Nenhum hotspot identificado.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🔥 Top 10 Hotspots Territoriais APS</h3>
+
+            <table class="table-sintaxe">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Território</th>
+                        <th>Status</th>
+                        <th>População</th>
+                        <th>Críticos</th>
+                        <th>Pendências</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${dados.hotspots.map((h, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><strong>${escaparTorreAPS(h.territorio)}</strong></td>
+                            <td>${escaparTorreAPS(h.status)}</td>
+                            <td>${h.total}</td>
+                            <td>${h.criticos}</td>
+                            <td>${h.pendencias}</td>
+                            <td><strong>${h.score}</strong></td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   BUSCA ATIVA
+   ========================================================== */
+
+function calcularBuscaAtivaTorreAPS(interacoes, base) {
+    const total =
+        interacoes.length;
+
+    const resolvidos =
+        interacoes.filter(i =>
+            i.resultado === "Resolvido" ||
+            i.resultado === "Agendado" ||
+            i.resultado === "Atendido"
+        ).length;
+
+    const agendados =
+        interacoes.filter(i =>
+            i.resultado === "Agendado"
+        ).length;
+
+    const naoLocalizados =
+        interacoes.filter(i =>
+            i.resultado === "Não atendeu" ||
+            i.resultado === "Número inválido" ||
+            i.resultado === "Necessita nova tentativa"
+        ).length;
+
+    const pessoasComContato =
+        new Set(
+            interacoes
+                .map(i =>
+                    i.paciente_cpf ||
+                    i.cpf ||
+                    i.paciente_cns ||
+                    i.cns
+                )
+                .filter(Boolean)
+        );
+
+    const semContato =
+        base.filter(p =>
+            !pessoasComContato.has(p.cpf) &&
+            !pessoasComContato.has(p.cns)
+        ).length;
+
+    return {
+        total,
+        resolvidos,
+        agendados,
+        naoLocalizados,
+        semContato,
+        efetividade:
+            total > 0
+                ? Number(((resolvidos / total) * 100).toFixed(1))
+                : 0
+    };
+}
+
+function renderizarBuscaAtivaTorreAPS(dados) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📞 Camada de Busca Ativa</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("📞", dados.busca.total, "Contatos registrados", "icon-blue")}
+                ${cardTorreAPS("✅", dados.busca.resolvidos, "Resolvidos / atendidos", "icon-green")}
+                ${cardTorreAPS("📅", dados.busca.agendados, "Agendados", "icon-yellow")}
+                ${cardTorreAPS("⚠️", dados.busca.naoLocalizados, "Não localizados", "icon-red")}
+                ${cardTorreAPS("📭", dados.busca.semContato, "Sem contato registrado", "icon-purple")}
+                ${cardTorreAPS("📊", `${dados.busca.efetividade}%`, "Efetividade", "icon-cyan")}
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   LINHA DO TEMPO COLETIVA
+   ========================================================== */
+
+function calcularEventosColetivosTorreAPS(
+    atendimentos,
+    interacoes,
+    reunioes,
+    reuniaoCasos,
+    solicitacoes
+) {
+    const eventos = [];
+
+    (atendimentos || []).forEach(a => {
+        eventos.push({
+            data:
+                a.data_atendimento ||
+                a.criado_em ||
+                a.created_at,
+            tipo: "Atendimento"
+        });
+    });
+
+    (interacoes || []).forEach(i => {
+        eventos.push({
+            data:
+                i.criado_em ||
+                i.created_at,
+            tipo: "Busca ativa"
+        });
+    });
+
+    (reunioes || []).forEach(r => {
+        eventos.push({
+            data:
+                r.criado_em ||
+                r.created_at ||
+                r.data,
+            tipo: "Reunião"
+        });
+    });
+
+    (reuniaoCasos || []).forEach(c => {
+        eventos.push({
+            data:
+                c.created_at ||
+                c.criado_em ||
+                c.data_reuniao,
+            tipo: "Caso em reunião"
+        });
+    });
+
+    (solicitacoes || []).forEach(s => {
+        eventos.push({
+            data:
+                s.criado_em ||
+                s.created_at ||
+                s.data_solicitacao,
+            tipo: "Material"
+        });
+    });
+
+    const hoje =
+        new Date();
+
+    hoje.setHours(0, 0, 0, 0);
+
+    const emDias =
+        (data) => {
+            if (!data) return 9999;
+            const d = new Date(data);
+            if (Number.isNaN(d.getTime())) return 9999;
+            return Math.floor((hoje.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        };
+
+    const totalHoje =
+        eventos.filter(e => emDias(e.data) === 0).length;
+
+    const total7 =
+        eventos.filter(e => emDias(e.data) <= 7).length;
+
+    const total30 =
+        eventos.filter(e => emDias(e.data) <= 30).length;
+
+    const porTipo = {};
+
+    eventos.forEach(e => {
+        porTipo[e.tipo] =
+            (porTipo[e.tipo] || 0) + 1;
+    });
+
+    return {
+        eventos,
+        totalHoje,
+        total7,
+        total30,
+        porTipo
+    };
+}
+
+function renderizarLinhaTempoColetivaTorreAPS(dados) {
+    const tipos =
+        Object.entries(dados.eventosColetivos.porTipo || {})
+            .sort((a, b) => b[1] - a[1]);
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🧬 Linha do Tempo Territorial Coletiva</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("📅", dados.eventosColetivos.totalHoje, "Eventos hoje", "icon-yellow")}
+                ${cardTorreAPS("🗓️", dados.eventosColetivos.total7, "Eventos em 7 dias", "icon-purple")}
+                ${cardTorreAPS("📆", dados.eventosColetivos.total30, "Eventos em 30 dias", "icon-blue")}
+            </div>
+
+            ${tipos.length ? `
+                <table class="table-sintaxe">
+                    <thead>
+                        <tr>
+                            <th>Tipo de evento</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${tipos.map(([tipo, total]) => `
+                            <tr>
+                                <td>${escaparTorreAPS(tipo)}</td>
+                                <td><strong>${total}</strong></td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            ` : `<p style="color:var(--text-muted);">Sem eventos no período.</p>`}
+        </div>
+    `;
+}
+
+/* ==========================================================
+   ESTOQUE
+   ========================================================== */
+
+function calcularAlertasEstoqueTorreAPS(estoque, solicitacoes) {
+    const baixo =
+        estoque.filter(e =>
+            Number(e.quantidade_atual || 0) <=
+            Number(e.quantidade_minima || 0)
+        ).length;
+
+    const vencidos =
+        estoque.filter(e =>
+            calcularStatusValidadeTorreAPS(e.data_validade) === "VENCIDO"
+        ).length;
+
+    const vencem30 =
+        estoque.filter(e =>
+            calcularStatusValidadeTorreAPS(e.data_validade) === "VENCE_30"
+        ).length;
+
+    const pendentes =
+        solicitacoes.filter(s =>
+            s.status === "PENDENTE"
+        ).length;
+
+    return {
+        itens: estoque.length,
+        baixo,
+        vencidos,
+        vencem30,
+        pendentes
+    };
+}
+
+function renderizarEstoqueAlertasTorreAPS(dados) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📦 Alertas Operacionais de Estoque</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("📦", dados.estoqueAlertas.itens, "Itens cadastrados", "icon-blue")}
+                ${cardTorreAPS("⚠️", dados.estoqueAlertas.baixo, "Estoque baixo", "icon-yellow")}
+                ${cardTorreAPS("⛔", dados.estoqueAlertas.vencidos, "Vencidos", "icon-red")}
+                ${cardTorreAPS("📅", dados.estoqueAlertas.vencem30, "Vencem em 30 dias", "icon-purple")}
+                ${cardTorreAPS("⏳", dados.estoqueAlertas.pendentes, "Solicitações pendentes", "icon-cyan")}
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   PACIENTES PRIORITÁRIOS
+   ========================================================== */
+
+function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🚨 Pacientes Prioritários</h3>
+
+            ${
+                !lista.length
+                    ? `<p style="color:var(--text-muted);">Nenhum paciente prioritário identificado.</p>`
+                    : `
+                        <table class="table-sintaxe">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Equipe</th>
+                                    <th>Predição</th>
+                                    <th>Pendências</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                ${lista.map(p => `
+                                    <tr>
+                                        <td>
+                                            <strong>${escaparTorreAPS(p.nome || "Sem nome")}</strong>
+                                            <small>CPF: ${escaparTorreAPS(p.cpf || "-")} | CNS: ${escaparTorreAPS(p.cns || "-")}</small>
+                                        </td>
+
+                                        <td>
+                                            ${escaparTorreAPS(p.equipe || "-")}
+                                            <small>${escaparTorreAPS(p.ubs || "-")}</small>
+                                        </td>
+
+                                        <td>
+                                            <strong>${p.predicao.score}</strong>
+                                            <small>${escaparTorreAPS(p.predicao.classe)}</small>
+                                            <small>${escaparTorreAPS((p.predicao.fatores || []).join(", "))}</small>
+                                        </td>
+
+                                        <td>
+                                            ${
+                                                p.pendencias?.length
+                                                    ? p.pendencias.map(x =>
+                                                        `<span class="status-badge status-warning">${escaparTorreAPS(x)}</span>`
+                                                    ).join(" ")
+                                                    : `<span style="color:var(--text-muted);">-</span>`
+                                            }
+                                        </td>
+
+                                        <td>
+                                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                                <button
+                                                    class="btn-table-action btn-edit"
+                                                    onclick="abrirAtendimentoExistente('${escaparTorreAPS(p.cpf || "")}', '${escaparTorreAPS(p.cns || "")}')">
+                                                    📋 Prontuário
+                                                </button>
+
+                                                <button
+                                                    class="btn-table-action btn-ok"
+                                                    onclick="abrirLinhaTempoTerritorial('${escaparTorreAPS(p.cpf || "")}', '${escaparTorreAPS(p.cns || "")}')">
+                                                    🧬 Linha
+                                                </button>
+
+                                                <button
+                                                    class="btn-table-action btn-warn"
+                                                    onclick="navigate('central-aps'); setTimeout(() => { const campo = document.getElementById('buscaCentralAPS'); if (campo) campo.value='${escaparTorreAPS(p.cpf || p.cns || "")}'; if (typeof aplicarFilaCentralAPS === 'function') aplicarFilaCentralAPS('PENDENCIAS'); }, 400);">
+                                                    🧭 Pendências
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join("")}
+                            </tbody>
+                        </table>
+                    `
+            }
+        </div>
+    `;
+}
+
+/* ==========================================================
+   PENDÊNCIAS
+   ========================================================== */
+
+function identificarPendenciasTorreAPS(p) {
+    const pendencias = [];
+
+    if (
+        valorSimTorreAPS(p.has) &&
+        (!temValorTorreAPS(p.hasPAS) || !temValorTorreAPS(p.hasPAD))
+    ) {
+        pendencias.push("HAS sem PA");
+    }
+
+    if (
+        valorSimTorreAPS(p.dm) &&
+        !temValorTorreAPS(p.dmHbA1c)
+    ) {
+        pendencias.push("DM sem HbA1c");
+    }
+
+    if (
+        valorSimTorreAPS(p.gestante) &&
+        diasDesdeTorreAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("Gestante sem consulta recente");
+    }
+
+    if (
+        valorSimTorreAPS(p.tb) &&
+        diasDesdeTorreAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("TB sem acompanhamento");
+    }
+
+    if (
+        valorSimTorreAPS(p.hansen) &&
+        diasDesdeTorreAPS(p.ultimo_atendimento) > 60
+    ) {
+        pendencias.push("Hanseníase sem avaliação");
+    }
+
+    if (Number(p.prazo) === 0) {
+        pendencias.push("Retorno vencido");
+    }
+
+    return pendencias;
+}
+
+/* ==========================================================
+   COMPONENTES
+   ========================================================== */
+
+function cardTorreAPS(icone, valor, rotulo, classeIcone = "") {
+    return `
+        <div class="dash-card">
+            <div class="dash-icon ${classeIcone}">${icone}</div>
+            <div>
+                <h3>${valor ?? 0}</h3>
+                <p>${rotulo}</p>
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   EXPORTAÇÃO
+   ========================================================== */
+
+function exportarTorreControleAPSCSV() {
+    const base =
+        aplicarFiltrosTorreControleAPS(
+            torreControleAPSAtual.base || []
+        );
+
+    if (!base.length) {
+        mostrarToast?.("⚠️ Nenhum dado para exportar.");
+        return;
+    }
+
+    const linhas = [
+        [
+            "nome",
+            "cpf",
+            "cns",
+            "ubs",
+            "equipe",
+            "has",
+            "dm",
+            "gestante",
+            "tb",
+            "hansen",
+            "risco_global",
+            "risco_pontos",
+            "prazo",
+            "score_predicao",
+            "classe_predicao",
+            "pendencias"
+        ]
+    ];
+
+    base.forEach(p => {
+        linhas.push([
+            p.nome,
+            p.cpf,
+            p.cns,
+            p.ubs,
+            p.equipe,
+            p.has,
+            p.dm,
+            p.gestante,
+            p.tb,
+            p.hansen,
+            p.risco_global,
+            p.risco_pontos,
+            p.prazo,
+            p.predicao.score,
+            p.predicao.classe,
+            (p.pendencias || []).join(" | ")
+        ]);
+    });
+
+    const csv =
+        linhas
+            .map(linha =>
+                linha
+                    .map(campo =>
+                        `"${String(campo ?? "").replace(/"/g, '""')}"`
+                    )
+                    .join(";")
+            )
+            .join("\n");
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href =
+        url;
+
+    a.download =
+        `torre_controle_aps_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+/* ==========================================================
+   HELPERS
+   ========================================================== */
+
+function valorSimTorreAPS(valor) {
+    const v =
+        String(valor || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+function normalizarTorreAPS(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function temValorTorreAPS(valor) {
+    return (
+        valor !== null &&
+        valor !== undefined &&
+        String(valor).trim() !== ""
+    );
+}
+
+function obterPrimeiroValorTorreAPS(...valores) {
+    for (const valor of valores) {
+        if (temValorTorreAPS(valor)) {
+            return valor;
+        }
+    }
+
+    return null;
+}
+
+function diasDesdeTorreAPS(data) {
+    if (!data) return 9999;
+
+    const d =
+        new Date(data);
+
+    if (Number.isNaN(d.getTime())) {
+        return 9999;
+    }
+
+    return Math.floor(
+        (Date.now() - d.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
+function calcularStatusValidadeTorreAPS(dataValidade) {
+    if (!dataValidade) return "SEM_VALIDADE";
+
+    const hoje =
+        new Date();
+
+    hoje.setHours(0, 0, 0, 0);
+
+    const validade =
+        new Date(dataValidade);
+
+    validade.setHours(0, 0, 0, 0);
+
+    const diffDias =
+        Math.ceil(
+            (validade.getTime() - hoje.getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+    if (diffDias < 0) return "VENCIDO";
+    if (diffDias <= 30) return "VENCE_30";
+
+    return "VALIDO";
+}
+
+function limparDocumentoTorreAPS(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
+}
+
+function limparCEPTorreAPS(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "")
+        .replace(/^(\d{5})(\d{3})$/, "$1-$2");
+}
+
+function setTextoTorreAPS(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor;
+    }
+}
+
+function escaparTorreAPS(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+/* ==========================================================
+   GLOBAL
+   ========================================================== */
+
+window.carregarTorreControleAPS = carregarTorreControleAPS;
+window.renderizarTorreControleAPS = renderizarTorreControleAPS;
+window.exportarTorreControleAPSCSV = exportarTorreControleAPSCSV;
+window.torreControleAPSAtual = torreControleAPSAtual;
