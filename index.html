@@ -22,7 +22,7 @@
 .btn-copiloto-aps {
     position: fixed;
     right: 24px;
-    bottom: 104px;
+    bottom: 172px;
     width: 66px;
     height: 66px;
     min-height: 66px;
@@ -85,6 +85,67 @@
 
 #view-motor-predicao-aps .form-section {
     overflow-x: auto;
+}
+</style>
+
+
+<style id="cssBotoesFlutuantesSafeArea">
+/* ==========================================================
+   SAFE AREA — BOTÕES FLUTUANTES
+   Evita sobreposição com barra do Windows / navegador
+   ========================================================== */
+
+:root {
+    --safe-bottom-actions: 36px;
+}
+
+.btn-copiloto-aps {
+    bottom: 172px !important;
+}
+
+.btn-flutuante-discador,
+.btn-discador-flutuante,
+.floating-dialer,
+.discador-flutuante,
+#btnDiscadorFlutuante,
+#botaoDiscadorFlutuante {
+    bottom: 92px !important;
+}
+
+.quick-actions-footer,
+.bottom-actions,
+.acoes-inferiores,
+.barra-acoes-inferior,
+.footer-actions {
+    margin-bottom: 52px !important;
+}
+
+.container {
+    padding-bottom: 96px !important;
+}
+
+.painel-discagem,
+#painelDiscagemContainer {
+    bottom: 92px !important;
+}
+
+@media (max-width: 700px) {
+    .btn-copiloto-aps {
+        bottom: 156px !important;
+    }
+
+    .btn-flutuante-discador,
+    .btn-discador-flutuante,
+    .floating-dialer,
+    .discador-flutuante,
+    #btnDiscadorFlutuante,
+    #botaoDiscadorFlutuante {
+        bottom: 82px !important;
+    }
+
+    .container {
+        padding-bottom: 120px !important;
+    }
 }
 </style>
 
@@ -3619,6 +3680,7 @@
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
 <script src="./js/dashboardInicial.js"></script>
+<script src="./js/territorioInteligente.js"></script>
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/app.js"></script>
