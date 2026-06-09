@@ -1508,6 +1508,22 @@
             </div>
         </div>
 
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('PENDENCIAS')">
+            <div class="dash-icon icon-red">🧭</div>
+            <div>
+                <h3 id="centralTotalPendencias">0</h3>
+                <p>Pendências Clínicas</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('RETORNO_VENCIDO')">
+            <div class="dash-icon icon-purple">⏰</div>
+            <div>
+                <h3 id="centralTotalRetornoVencido">0</h3>
+                <p>Retorno vencido</p>
+            </div>
+        </div>
+
     </div>
 
     <div class="form-section">
@@ -1522,11 +1538,18 @@
                     id="filtroFilaCentralAPS"
                     onchange="aplicarFilaCentralAPS()">
                     <option value="CRITICOS">Críticos / Alto risco</option>
+                    <option value="PENDENCIAS">Todas as pendências clínicas</option>
                     <option value="HAS">HAS</option>
+                    <option value="HAS_SEM_PA">HAS sem PA</option>
                     <option value="DM">DM</option>
+                    <option value="DM_SEM_HBA1C">DM sem HbA1c</option>
                     <option value="GESTANTES">Gestantes</option>
+                    <option value="GESTANTE_ATRASADA">Gestantes atrasadas</option>
                     <option value="TB">Tuberculose</option>
+                    <option value="TB_SEM_ACOMPANHAMENTO">TB sem acompanhamento</option>
                     <option value="HANSEN">Hanseníase</option>
+                    <option value="HANSEN_SEM_AVALIACAO">Hanseníase sem avaliação</option>
+                    <option value="RETORNO_VENCIDO">Retorno vencido</option>
                     <option value="TODOS">Todos</option>
                 </select>
             </div>
