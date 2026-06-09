@@ -12,6 +12,7 @@
 
     <link rel="icon" href="./favicon.ico">
     <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
 
@@ -61,6 +62,10 @@
 
                 <a class="nav-link" onclick="navigate('mapa-territorial')">
                     🗺️ Mapa Territorial APS
+                </a>
+
+                <a class="nav-link" onclick="navigate('georreferenciamento')">
+                    🌎 Georreferenciamento APS
                 </a>
 
                 <a class="nav-link" onclick="navigate('central-aps')">
@@ -1227,6 +1232,192 @@
             </p>
         </div>
 
+    </div>
+
+</div>
+
+
+
+<div id="view-georreferenciamento" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>🌎 Georreferenciamento APS</h2>
+            <p>Mapa territorial por CEP, bairro, equipe e UBS, com priorização por risco.</p>
+        </div>
+
+        <div class="button-row">
+            <button
+                class="btn-primary"
+                onclick="carregarGeorreferenciamentoAPS()">
+                🔄 Atualizar mapa
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="exportarGeorreferenciamentoCSV()">
+                📤 Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="dash-card">
+            <div class="dash-icon icon-blue">👥</div>
+            <div>
+                <h3 id="geoTotalPopulacao">0</h3>
+                <p>População</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">❤️</div>
+            <div>
+                <h3 id="geoTotalHAS">0</h3>
+                <p>HAS</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">🍬</div>
+            <div>
+                <h3 id="geoTotalDM">0</h3>
+                <p>DM</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🤰</div>
+            <div>
+                <h3 id="geoTotalGestantes">0</h3>
+                <p>Gestantes</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">🚨</div>
+            <div>
+                <h3 id="geoTotalCriticos">0</h3>
+                <p>Críticos</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-cyan">🧭</div>
+            <div>
+                <h3 id="geoTotalTerritorios">0</h3>
+                <p>Territórios</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">🔎 Filtros territoriais</h3>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Agrupar por</label>
+                <select
+                    id="geoAgrupamento"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="CEP">CEP</option>
+                    <option value="BAIRRO">Bairro</option>
+                    <option value="EQUIPE">Equipe</option>
+                    <option value="UBS">UBS</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Equipe</label>
+                <select
+                    id="geoFiltroEquipe"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="TODOS">Todas as equipes</option>
+                </select>
+            </div>
+
+            <div>
+                <label>UBS</label>
+                <select
+                    id="geoFiltroUBS"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="TODOS">Todas as UBS</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Bairro</label>
+                <select
+                    id="geoFiltroBairro"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="TODOS">Todos os bairros</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Linha de cuidado</label>
+                <select
+                    id="geoFiltroLinha"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="TODAS">Todas</option>
+                    <option value="HAS">HAS</option>
+                    <option value="DM">DM</option>
+                    <option value="GESTANTE">Gestante</option>
+                    <option value="TB">Tuberculose</option>
+                    <option value="HANSEN">Hanseníase</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Risco</label>
+                <select
+                    id="geoFiltroRisco"
+                    onchange="aplicarFiltrosGeorreferenciamentoAPS()">
+                    <option value="TODOS">Todos</option>
+                    <option value="CRITICO">Críticos / alto risco</option>
+                    <option value="ALTO">Alto risco</option>
+                    <option value="MODERADO">Moderado</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Buscar</label>
+                <input
+                    type="text"
+                    id="geoFiltroBusca"
+                    oninput="aplicarFiltrosGeorreferenciamentoAPS()"
+                    placeholder="Nome, CPF, CEP, bairro, equipe...">
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🗺️ Mapa territorial</h3>
+
+        <div
+            id="mapaGeorreferenciamentoAPS"
+            style="height:520px; width:100%; border-radius:14px; overflow:hidden; border:1px solid var(--border);">
+        </div>
+    </div>
+
+    <div id="rankingGeorreferenciamentoAPS"></div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">📋 Tabela territorial</h3>
+
+        <div
+            id="tabelaGeorreferenciamentoAPS"
+            style="overflow-x:auto;">
+            <p style="color:var(--text-muted);">
+                Clique em atualizar mapa para carregar os dados.
+            </p>
+        </div>
     </div>
 
 </div>
@@ -2560,6 +2751,8 @@
 <script src="./js/mapaTerritorial.js"></script>
 <script src="./js/centralAPS.js"></script>
 <script src="./js/relatorios.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="./js/georreferenciamento.js"></script>
 <script src="./js/app.js"></script>
 
 
@@ -2642,6 +2835,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeof carregarRelatorioAPS === "function"
             ) {
                 carregarRelatorioAPS();
+            }
+        };
+    }
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const originalNavigateGeo =
+        window.navigate;
+
+    if (
+        typeof originalNavigateGeo === "function" &&
+        !window.__georreferenciamentoNavigatePatch
+    ) {
+        window.__georreferenciamentoNavigatePatch = true;
+
+        window.navigate = function(view) {
+            originalNavigateGeo(view);
+
+            if (
+                view === "georreferenciamento" &&
+                typeof carregarGeorreferenciamentoAPS === "function"
+            ) {
+                carregarGeorreferenciamentoAPS();
             }
         };
     }
