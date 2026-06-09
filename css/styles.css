@@ -1852,3 +1852,41 @@ td small {
         width: 100%;
     }
 }
+
+/* ==========================================================
+   FIX LAYOUT SIDEBAR + TOPBAR
+   ========================================================== */
+
+.app-shell {
+    display: grid !important;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
+    min-height: 100vh !important;
+}
+
+.sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: var(--sidebar-width) !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+}
+
+.app-main {
+    margin-left: var(--sidebar-width) !important;
+    width: calc(100vw - var(--sidebar-width)) !important;
+    min-height: 100vh !important;
+}
+
+.topbar {
+    width: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+}
+
+.container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 24px !important;
+}
