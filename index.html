@@ -1139,8 +1139,22 @@
         <div class="form-section" style="background:#111c2e;">
             <div class="form-grid">
                 <div style="grid-column: span 2;">
-                    <label>Selecionar paciente do banco</label>
-                    <select id="reuniaoPacienteCaso"></select>
+            <label>Buscar paciente na Base Territorial</label>
+
+                <input
+                    type="text"
+                    id="buscaPacienteReuniao"
+                    placeholder="Digite nome, CPF ou CNS..."
+                    oninput="filtrarPacientesReuniao()">
+    
+                <div
+                    id="resultadoBuscaPacienteReuniao"
+                    class="resultado-busca-paciente">
+        </div>
+
+<input
+    type="hidden"
+    id="reuniaoPacienteCaso">
                 </div>
 
                 <div style="grid-column: span 2;">
