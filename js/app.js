@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0
 // ======================================================
 
 
@@ -197,7 +197,33 @@ function navigate(view) {
         view === "linha-tempo-territorial" &&
         typeof carregarLinhaTempoTerritorialAPS === "function"
     ) {
-        carregarLinhaTempoTerritorialAPS();
+        const cpfLinhaTempo =
+            document.getElementById("linhaTempoCPF")?.value ||
+            document.getElementById("cpfPaciente")?.value ||
+            window.pacienteAtual?.cpf ||
+            window.pacienteSelecionado?.cpf ||
+            "";
+
+        const cnsLinhaTempo =
+            document.getElementById("linhaTempoCNS")?.value ||
+            document.getElementById("cnsPaciente")?.value ||
+            window.pacienteAtual?.cns ||
+            window.pacienteSelecionado?.cns ||
+            "";
+
+        const buscaLivreLinhaTempo =
+            document.getElementById("buscaLinhaTempoTerritorial")?.value || "";
+
+        if (
+            cpfLinhaTempo ||
+            cnsLinhaTempo ||
+            buscaLivreLinhaTempo
+        ) {
+            carregarLinhaTempoTerritorialAPS(
+                cpfLinhaTempo,
+                cnsLinhaTempo
+            );
+        }
     }
 
     if (
@@ -243,6 +269,38 @@ function navigate(view) {
 
 
 
+
+
+// ======================================================
+// LINHA DO TEMPO TERRITORIAL 4.0 — ATALHO DO PACIENTE ATUAL
+// ======================================================
+
+function abrirLinhaTempoPacienteAtualApp() {
+    const cpf =
+        document.getElementById("cpfPaciente")?.value ||
+        window.pacienteAtual?.cpf ||
+        window.pacienteSelecionado?.cpf ||
+        "";
+
+    const cns =
+        document.getElementById("cnsPaciente")?.value ||
+        window.pacienteAtual?.cns ||
+        window.pacienteSelecionado?.cns ||
+        "";
+
+    if (
+        typeof abrirLinhaTempoTerritorial === "function"
+    ) {
+        abrirLinhaTempoTerritorial(cpf, cns);
+        return;
+    }
+
+    if (
+        typeof navigate === "function"
+    ) {
+        navigate("linha-tempo-territorial");
+    }
+}
 
 // ======================================================
 // IA APS — RESUMO NO DASHBOARD INICIAL
@@ -713,3 +771,4 @@ window.atualizarVisibilidadeDiscadorApp = atualizarVisibilidadeDiscadorApp;
 window.setTextoApp = setTextoApp;
 window.calcularStatusValidadeApp = calcularStatusValidadeApp;
 window.atualizarResumoIADashboardInicial = atualizarResumoIADashboardInicial;
+window.abrirLinhaTempoPacienteAtualApp = abrirLinhaTempoPacienteAtualApp;
