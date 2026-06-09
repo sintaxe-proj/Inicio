@@ -53,89 +53,89 @@
             <nav class="main-tabs">
 
                 <a class="nav-link active" onclick="navigate('inicio')">
-                    🏠 Painel Inicial
+                    <span class="nav-emoji">🏠</span><span class="nav-text">Painel Inicial</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('banco')">
-                    🗄️ Base Territorial
+                    <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('mapa-territorial')">
-                    🗺️ Mapa Territorial APS
+                    <span class="nav-emoji">🗺️</span><span class="nav-text">Mapa Territorial APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('georreferenciamento')">
-                    🌎 Georreferenciamento APS
+                    <span class="nav-emoji">🌎</span><span class="nav-text">Georreferenciamento APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('central-aps')">
-                    🎯 Central Operacional APS
+                    <span class="nav-emoji">🎯</span><span class="nav-text">Central Operacional APS</span>
                 </a>
 
                 <a class="nav-link" onclick="abrirPainelEpidemiologico('criticos')">
-                    📞 Monitoramento
+                    <span class="nav-emoji">📞</span><span class="nav-text">Monitoramento</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('reuniao')">
-                    🗓️ Reunião de Equipe
+                    <span class="nav-emoji">🗓️</span><span class="nav-text">Reunião de Equipe</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('estoque')">
-                    📦 Estoque / Materiais
+                    <span class="nav-emoji">📦</span><span class="nav-text">Estoque / Materiais</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('auditoria-estoque')">
-                    🧾 Auditoria de Estoque
+                    <span class="nav-emoji">🧾</span><span class="nav-text">Auditoria de Estoque</span>
                 </a>
 
                 <div class="sidebar-section-title">Atendimento Clínico</div>
 
                 <a class="nav-link" onclick="navigate('prontuario')">
-                    🩺 Prontuário SOAP
+                    <span class="nav-emoji">🩺</span><span class="nav-text">Prontuário SOAP</span>
                 </a>
 
                 <a class="nav-link" onclick="abrirModuloSolicitacoesMateriais()">
-                    📋 Solicitar Material
+                    <span class="nav-emoji">📋</span><span class="nav-text">Solicitar Material</span>
                 </a>
 
                 <div class="sidebar-section-title">Dashboards</div>
 
                 <a class="nav-link" onclick="abrirDashboardEpidemiologicoTerritorial()">
-                    📊 Epidemiológico
+                    <span class="nav-emoji">📊</span><span class="nav-text">Epidemiológico</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('inicio')">
-                    📈 Indicadores
+                    <span class="nav-emoji">📈</span><span class="nav-text">Indicadores</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('relatorios')">
-                    📄 Relatórios APS
+                    <span class="nav-emoji">📄</span><span class="nav-text">Relatórios APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('gestor-executivo')">
-                    📊 Painel Executivo
+                    <span class="nav-emoji">📊</span><span class="nav-text">Painel Executivo</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('pendencias-clinicas')">
-                    🧭 Pendências Clínicas
+                    <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('linha-tempo-territorial')">
-                    🧬 Linha do Tempo
+                    <span class="nav-emoji">🧬</span><span class="nav-text">Linha do Tempo</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('torre-controle-aps')">
-                    🧠 Torre APS
+                    <span class="nav-emoji">🧠</span><span class="nav-text">Torre APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('sala-situacao-aps')">
-                    🏢 Sala de Situação APS
+                    <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação APS</span>
                 </a>
 
                 <div class="sidebar-section-title">Sistema</div>
 
                 <a class="nav-link somente-admin" id="btnConfiguracoes" onclick="navigate('config')">
-                    ⚙️ Configurações
+                    <span class="nav-emoji">⚙️</span><span class="nav-text">Configurações</span>
                 </a>
 
             </nav>
@@ -155,30 +155,51 @@
             <header class="topbar">
 
                 <div class="brand-area">
-                    <div class="brand-icon">☰</div>
+                    <button
+                        id="btnSidebarToggle"
+                        class="btn-sidebar-toggle"
+                        onclick="alternarSidebarSintaxeHub()"
+                        title="Recolher/expandir menu">
+                        ☰
+                    </button>
 
                     <div class="brand-text">
-                        <h1>SintaxeHub</h1>
-                        <p>Central Operacional de Busca Ativa Territorial</p>
+                        <h1 id="tituloViewAtual">Dashboard</h1>
+                        <p id="subtituloViewAtual">Visão geral da operação</p>
+                    </div>
+                </div>
+
+                <div class="topbar-center">
+                    <div class="global-search-wrapper">
+                        <span class="global-search-icon">🔎</span>
+                        <input
+                            type="text"
+                            id="buscaGlobalPaciente"
+                            placeholder="Buscar paciente, CPF, CNS..."
+                            autocomplete="off"
+                            oninput="buscarPacienteGlobalSintaxeHub(this.value)"
+                            onkeydown="atalhoBuscaGlobalSintaxeHub(event)">
+                        <span class="global-search-shortcut">Ctrl + K</span>
+
+                        <div
+                            id="resultadoBuscaGlobalPaciente"
+                            class="global-search-results">
+                        </div>
                     </div>
                 </div>
 
                 <div class="topbar-actions">
 
-                    <select
-                        id="seletorNivelAcesso"
-                        onchange="alternarVisaoGestor(this.value)"
-                        style="max-width:210px;">
-                        <option value="user">Visão Assistencial</option>
-                        <option value="admin" selected>Visão Coordenador/Gestor</option>
-                    </select>
-
                     <div
                         id="centralAvisosContainer"
-                        class="alert-badge"
+                        class="alert-badge topbar-alert"
                         onclick="abrirPainelEpidemiologico('criticos')"
-                        title="">
+                        title="Avisos e pendências">
                         🔔 <span id="contadorAvisosSininho">0</span>
+                    </div>
+
+                    <div class="usuario-avatar">
+                        👤
                     </div>
 
                     <div class="usuario-info">
@@ -215,128 +236,175 @@
 
             <div id="view-inicio" class="view" style="display:block;">
 
-                <div class="page-header">
-                    <div>
-                        <h2>Painel Executivo Territorial</h2>
-                        <p>Visão geral da operação APS, linhas de cuidado e alertas de monitoramento.</p>
+                <div class="dashboard-grid dashboard-hero-grid">
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('banco')">
+                        <div class="dash-icon icon-blue">👥</div>
+                        <div>
+                            <span class="card-label">Pessoas monitoradas</span>
+                            <h3 id="dashInicialPessoas">0</h3>
+                            <p>Base territorial ativa</p>
+                            <span class="card-trend" id="dashInicialPessoasTrend">Atualizado agora</span>
+                        </div>
                     </div>
 
-                    <div class="button-row">
-                        <button class="btn-info" onclick="abrirDashboardEpidemiologicoTerritorial()">
-                            📊 Dashboard Epidemiológico
-                        </button>
-
-                        <button class="btn-primary" onclick="navigate('prontuario')">
-                            🩺 Novo Atendimento
-                        </button>
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('relatorios')">
+                        <div class="dash-icon icon-green">✅</div>
+                        <div>
+                            <span class="card-label">Atendimentos realizados</span>
+                            <h3 id="dashInicialAtendimentos">0</h3>
+                            <p>Este mês</p>
+                            <span class="card-trend trend-positive" id="dashInicialAtendimentosTrend">Produção APS</span>
+                        </div>
                     </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('central-aps')">
+                        <div class="dash-icon icon-yellow">⏰</div>
+                        <div>
+                            <span class="card-label">Pendentes</span>
+                            <h3 id="dashInicialPendentes">0</h3>
+                            <p>Retornos / pendências</p>
+                            <span class="card-trend trend-warning">Acompanhar</span>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="abrirPainelEpidemiologico('criticos')">
+                        <div class="dash-icon icon-red">🚨</div>
+                        <div>
+                            <span class="card-label">Em situação crítica</span>
+                            <h3 id="dashInicialCriticos">0</h3>
+                            <p>Acompanhamento</p>
+                            <span class="card-trend trend-danger">Priorizar hoje</span>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('estoque')">
+                        <div class="dash-icon icon-cyan">📦</div>
+                        <div>
+                            <span class="card-label">Estoque baixo</span>
+                            <h3 id="dashInicialEstoqueBaixo">0</h3>
+                            <p>Itens críticos</p>
+                            <span class="card-trend">Ver estoque →</span>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="quick-actions" style="margin-bottom:22px;">
-                    <div class="quick-action-card quick-action-blue" onclick="navigate('banco')">
-                        <div style="font-size:24px;">🗄️</div>
+                <div class="dashboard-home-layout">
+
+                    <div class="panel-card dashboard-panel-large">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>Atendimentos recentes</h3>
+                                <p>Últimos registros assistenciais da base territorial.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('banco')">Ver todos</button>
+                        </div>
+
+                        <div id="dashInicialAtendimentosRecentes" class="table-responsive">
+                            <p style="color:var(--text-muted);">Carregando atendimentos recentes...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>Solicitações de materiais</h3>
+                                <p>Status operacional de materiais.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('estoque')">Ver todas</button>
+                        </div>
+
+                        <div id="dashInicialSolicitacoesMateriais">
+                            <p style="color:var(--text-muted);">Carregando solicitações...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card dashboard-panel-large">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>Evolução mensal de atendimentos</h3>
+                                <p>Produção assistencial dos últimos 6 meses.</p>
+                            </div>
+                            <select id="dashInicialPeriodoGrafico" onchange="carregarDashboardInicialSintaxeHub()" style="max-width:170px;">
+                                <option value="6">Últimos 6 meses</option>
+                                <option value="12">Últimos 12 meses</option>
+                            </select>
+                        </div>
+
+                        <div id="dashInicialGraficoAtendimentos" class="mini-chart-container">
+                            <p style="color:var(--text-muted);">Carregando gráfico...</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>Estoque crítico</h3>
+                                <p>Itens abaixo do mínimo ou vencidos.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('estoque')">Ver estoque</button>
+                        </div>
+
+                        <div id="dashInicialEstoqueCritico">
+                            <p style="color:var(--text-muted);">Carregando estoque crítico...</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="quick-actions quick-actions-footer">
+
+                    <div class="quick-action-card quick-action-blue" onclick="focarBuscaGlobalSintaxeHub()">
+                        <div style="font-size:24px;">🔎</div>
                         <div>
-                            <strong>Base Territorial</strong>
-                            <small>Pesquisar cidadão e equipe</small>
+                            <strong>Buscar cidadão</strong>
+                            <small>Localizar por CPF ou CNS</small>
                         </div>
                     </div>
 
                     <div class="quick-action-card quick-action-green" onclick="navigate('prontuario')">
                         <div style="font-size:24px;">🩺</div>
                         <div>
-                            <strong>Novo Atendimento</strong>
-                            <small>Registrar SOAP</small>
+                            <strong>Novo atendimento</strong>
+                            <small>Abrir prontuário SOAP</small>
                         </div>
                     </div>
 
                     <div class="quick-action-card quick-action-purple" onclick="navigate('reuniao')">
-                        <div style="font-size:24px;">🗓️</div>
+                        <div style="font-size:24px;">👥</div>
                         <div>
-                            <strong>Reunião de Equipe</strong>
-                            <small>Casos, pautas e ata</small>
+                            <strong>Reunião de equipe</strong>
+                            <small>Registrar ata da reunião</small>
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-orange" onclick="navigate('estoque')">
-                        <div style="font-size:24px;">📦</div>
+                    <div class="quick-action-card quick-action-orange" onclick="abrirModuloSolicitacoesMateriais()">
+                        <div style="font-size:24px;">📋</div>
                         <div>
-                            <strong>Estoque</strong>
-                            <small>Materiais e solicitações</small>
+                            <strong>Solicitar material</strong>
+                            <small>Nova solicitação</small>
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-red" onclick="navigate('sala-situacao-aps')">
+                    <div class="quick-action-card quick-action-cyan" onclick="navigate('relatorios')">
+                        <div style="font-size:24px;">📄</div>
+                        <div>
+                            <strong>Relatórios</strong>
+                            <small>Gerar relatórios</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('sala-situacao-aps')">
                         <div style="font-size:24px;">🏢</div>
                         <div>
                             <strong>Sala APS</strong>
-                            <small>Centro de situação territorial</small>
+                            <small>Centro de situação</small>
                         </div>
                     </div>
+
                 </div>
 
-                <div class="dashboard-grid">
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('has')">
-                        <div class="dash-icon icon-red">❤️</div>
-                        <div>
-                            <h3 id="dashHAS">0</h3>
-                            <p>Hipertensos (HAS)</p>
-                        </div>
-                    </div>
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('dm')">
-                        <div class="dash-icon icon-green">🍬</div>
-                        <div>
-                            <h3 id="dashDM">0</h3>
-                            <p>Diabéticos (DM)</p>
-                        </div>
-                    </div>
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('gestante')">
-                        <div class="dash-icon icon-yellow">🤰</div>
-                        <div>
-                            <h3 id="dashGest">0</h3>
-                            <p>Pré-Natal Ativo</p>
-                        </div>
-                    </div>
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('tuberculose')">
-                        <div class="dash-icon icon-purple">🫁</div>
-                        <div>
-                            <h3 id="dashTB">0</h3>
-                            <p>Tuberculose</p>
-                        </div>
-                    </div>
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('hanseniase')">
-                        <div class="dash-icon icon-cyan">🖐️</div>
-                        <div>
-                            <h3 id="dashHansen">0</h3>
-                            <p>Hanseníase</p>
-                        </div>
-                    </div>
-
-                    <div class="dash-card" onclick="navigate('banco')">
-                        <div class="dash-icon icon-blue">👥</div>
-                        <div>
-                            <h3 id="dashTotalPacientes">0</h3>
-                            <p>Pessoas cadastradas</p>
-                        </div>
-                    </div>
-
-                    <div class="dash-card" onclick="abrirPainelEpidemiologico('criticos')">
-                        <div class="dash-icon icon-red">🚨</div>
-                        <div>
-                            <h3 id="dashCriticos">0</h3>
-                            <p>Casos críticos</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3 style="margin-top:0; color:var(--text-main);">📞 Central Operational de Busca Ativa Territorial</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin:-10px 0 15px 0;">Filtre em tempo real por Nome, CPF, CNS, Condição de Saúde (has, dm, pn, tb, hansen) ou criticidade ("crítico").</p>
-                    <input type="text" id="buscaNomeInicio" onkeyup="buscarInicio()" placeholder="Busque por nome, CPF, CNS, HAS, DM, PN, TB, Hansen ou crítico...">
-                    
-                    <div id="resultadoInicio" style="margin-top:20px;">
-                        <em style="color: var(--text-muted);">Introduza um critério acima para pesquisar (Nome, CPF, Linha de Cuidado ou "Crítico").</em>
-                    </div>
-                </div>
             </div>
 
             <div id="view-prontuario" class="view">
@@ -3353,6 +3421,7 @@
 <script src="./js/georreferenciamento2.js"></script>
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
+<script src="./js/dashboardInicial.js"></script>
 <script src="./js/app.js"></script>
 
 
