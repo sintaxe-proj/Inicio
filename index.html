@@ -1249,6 +1249,22 @@
             ➕ Nova Solicitação
         </button>
 
+        <div class="button-row" style="margin-bottom:15px;">
+            <button
+                class="btn-info"
+                onclick="abrirModalCadastroEstoque()">
+                📦 Cadastrar item em estoque
+            </button>
+
+            <button
+                class="btn-primary"
+                onclick="carregarEstoqueItens()">
+                🔄 Atualizar estoque
+            </button>
+    </div>
+
+<div id="tabelaEstoqueItens"></div>
+
         <div class="dashboard-grid" style="margin-top:20px;">
             <div class="dash-card" style="border-top:4px solid #f59e0b;">
                 <h3 id="dashSolicitacoesPendentes">0</h3>
