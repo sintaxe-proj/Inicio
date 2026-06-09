@@ -12,327 +12,12 @@
 
     <link rel="icon" href="./favicon.ico">
     <link rel="stylesheet" href="./css/styles.css">
-
-    <style>
-        /* ==========================================================================
-           🎨 DIRETRICES DE DESIGN: DARK MODE OPERACIONAL (SINTAXEHUB LABS)
-           ========================================================================== */
-        :root {
-            --bg-main: #0f172a;          /* Fundo Escuro Principal (Slate 900) */
-            --bg-card: #1e293b;          /* Fundo de Blocos e Prontuários (Slate 800) */
-            --bg-input: #334155;         /* Inputs e Campos de Texto (Slate 700) */
-            --text-main: #f8fafc;        /* Texto Puro (Slate 50) */
-            --text-muted: #94a3b8;       /* Legendas e Metadados (Slate 400) */
-            --border: #334155;           /* Linhas de Divisão e Contornos */
-            
-            /* Identidade de Cores Clínicas */
-            --primary-neon: #3b82f6;     /* Azul de Navegação Ativa */
-            --success: #25d366;          /* Verde Clássico do WhatsApp */
-            --success-dark: #16a34a;     /* Controle Verde Clínico */
-            --warning: #f59e0b;          /* Alerta Laranja/Amarelo */
-            --danger: #ef4444;           /* Risco Crítico / Notificações */
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-        }
-
-        /* ==========================================================================
-           🔐 TELA DE LOGIN MUNICIPAL (DARK STYLING)
-           ========================================================================== */
-        #loginScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #090d16 0%, var(--bg-main) 100%);
-        }
-
-        .login-card {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            width: 100%;
-            max-width: 360px;
-            text-align: center;
-        }
-
-        .login-card input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        .btn-login {
-            width: 100%;
-            background: var(--primary-neon);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* ==========================================================================
-           🧱 ESTRUTURA E LAYOUT DO PAINEL
-           ========================================================================== */
-        header {
-            background-color: #020617; /* Slate 950 ultra escuro */
-            color: var(--text-main);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }
-
-        nav {
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 0 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .nav-link {
-            padding: 15px 5px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-        }
-
-        .nav-link.active {
-            color: var(--primary-neon);
-            border-bottom-color: var(--primary-neon);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .view { display: none; }
-
-        /* ==========================================================================
-           📋 COMPONENTES: CARDS DO DASHBOARD, GRIDS E FORMULÁRIOS
-           ========================================================================== */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .dash-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-
-        .dash-card:hover { 
-            transform: translateY(-2px);
-            background-color: #24334d;
-        }
-        .dash-card h3 { margin: 0; font-size: 2.5rem; color: var(--text-main); }
-        .dash-card p { margin: 5px 0 0 0; color: var(--text-muted); font-weight: 500; }
-
-        .form-section {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-sizing: border-box;
-            background: var(--bg-input);
-            color: var(--text-main);
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-neon);
-        }
-
-        /* Sub-cards Clínicos Customizados dentro do Tema Escuro */
-        .clinical-card {
-            background: #2d1f1f;
-            border-left: 4px solid var(--danger);
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 0 6px 6px 0;
-            border-top: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-card);
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        th { background-color: #111c2e; color: var(--text-muted); font-weight: 600; }
-        tr:hover { background-color: rgba(255, 255, 255, 0.02); }
-
-        .btn-table-action {
-            padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; color: white; margin-right: 4px;
-        }
-        .btn-edit { background: var(--primary-neon); }
-        .btn-del { background: var(--danger); }
-
-        /* ==========================================================================
-           📞 CENTRAL TELEFÔNICA FLUTUANTE (WIDGET DISCADOR)
-           ========================================================================== */
-        #painelDiscagemContainer {
-            position: fixed;
-            bottom: 85px;
-            right: 25px;
-            width: 320px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            z-index: 9999;
-            display: none;
-            overflow: hidden;
-        }
-
-        .discador-header {
-            background: #020617;
-            color: var(--text-main);
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 14px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .btn-flutuante-discador {
-            position: fixed;
-            bottom: 20px;
-            right: 25px;
-            width: 55px;
-            height: 55px;
-            background-color: var(--success);
-            color: white;
-            border-radius: 50%;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            z-index: 9998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ==========================================================================
-           🖼️ MODAIS EM CAMADA GRÁFICA (ANALYTICS)
-           ========================================================================== */
-        .modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(2, 6, 23, 0.8);
-            display: none;
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 85vh;
-            overflow-y: auto;
-            position: relative;
-            border: 1px solid var(--border);
-        }
-
-        /* Configuração Gráficos SVG/Donut */
-        .donut-wrapper { position: relative; width: 120px; height: 120px; margin: auto; }
-        .donut-svg { transform: rotate(-90deg); }
-        .donut-bg { fill: none; stroke: var(--bg-input); stroke-width: 4; }
-        .donut-segment { fill: none; stroke-width: 4; stroke-linecap: round; }
-        .donut-center-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); text-align: center;
-        }
-        .donut-number { font-size: 18px; font-weight: bold; display: block; color: var(--text-main); }
-        .donut-label { font-size: 10px; color: var(--text-muted); }
-
-        .bar-track { background: var(--bg-input); height: 12px; border-radius: 6px; overflow: hidden; }
-        .bar-fill { height: 100%; transition: width 0.5s; }
-        .bar-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 2px; color: var(--text-main); }
-
-        /* ==========================================================================
-           🍞 NOTIFICAÇÕES TOAST, CRONOLOGIA E EMBLEMAS (BADGES)
-           ========================================================================== */
-        #toastNotification {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #020617; color: var(--text-main); padding: 12px 24px;
-            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 10001; font-weight: 500; display: none; border: 1px solid var(--primary-neon);
-        }
-
-        .timeline { border-left: 2px solid var(--border); padding-left: 15px; margin-top: 10px; }
-        .timeline-item { margin-bottom: 15px; position: relative; }
-        .timeline-body { background: #111c2e; padding: 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--text-main); white-space: pre-wrap; }
-
-        .tag-clinica { font-size: 11px; font-weight: bold; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-    </style>
 </head>
 <body>
 
     <div id="loginScreen">
         <div class="login-card">
+            <div class="login-logo">S</div>
             <h2 style="color:var(--text-main); margin:0 0 5px 0; font-weight: 800; letter-spacing: 0.5px;">SintaxeHub</h2>
             <p style="color:var(--text-muted); margin:0 0 20px 0; font-size:14px;">Prontuário de Busca Ativa Territorial</p>
             <input type="text" id="loginUser" placeholder="E-mail Supabase">
@@ -345,100 +30,175 @@
 </div>
 
 <div id="app" style="display:none;">
-        
-        <header>
-            <div style="display:flex; align-items:center; gap:15px;">
-                <h2 style="margin:0; font-size:20px; letter-spacing:0.5px; font-weight: 700;">SUS Digital • Territorial</h2>
-                <select id="seletorNivelAcesso" onchange="alternarVisaoGestor(this.value)" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:4px 8px; font-size:12px; border-radius:4px; font-weight:bold; cursor:pointer;">
-                    <option value="user">Visão Assistencial</option>
-                    <option value="admin" selected>Visão Coordenador/Gestor</option>
-                </select>
-            </div>
-            
-            <div style="display:flex; align-items:center; gap:20px;">
-                <span id="nomeUsuarioLogado" style="font-weight:500; font-size:14px; color: var(--text-main);"></span>
-                
-                <div id="centralAvisosContainer" onclick="abrirPainelEpidemiologico('criticos')" style="background:#334155; padding:6px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; position:relative;" title="">
-                    <span>🔔</span>
-                    <span id="contadorAvisosSininho" style="font-weight:bold; font-size:12px;">0</span>
+
+    <div class="app-shell">
+
+        <!-- ======================================================
+             SIDEBAR PROFISSIONAL
+             ====================================================== -->
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">S</div>
+
+                <div>
+                    <h1>SintaxeHub</h1>
+                    <p>APS Intelligence Platform</p>
                 </div>
-
-                <button onclick="efetuarLogout()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Sair</button>
             </div>
-        </header>
 
-        <nav>
-            <a class="nav-link active" onclick="navigate('inicio')">Painel Inicial</a>
-            <a class="nav-link" onclick="navigate('prontuario')">Novo Atendimento (SOAP)</a>
-            <a class="nav-link" onclick="navigate('banco')">Base Territorial</a>
-            <a class="nav-link" onclick="navigate('reuniao')">Reunião de Equipe</a>
-            <a class="nav-link" onclick="navigate('estoque')">Estoque</a>
-            <a class="nav-link" id="btnConfiguracoes" onclick="navigate('config')">Configurações & Carga</a>
-        </nav>
+            <div class="sidebar-section-title">Operação Territorial</div>
 
-<div id="cabecalhoProntuario"
-     style="
-        background:#1e3a8a;
-        border-bottom:1px solid var(--primary-neon);
-        padding:10px 20px;
-        display:none;
-        align-items:center;
-        justify-content:space-between;
-     ">
+            <nav class="main-tabs">
 
-    <span id="cabecalhoNome"
-          style="
-            color:var(--text-main);
-            font-weight:700;
-            font-size:14px;
-          ">
-    </span>
+                <a class="nav-link active" onclick="navigate('inicio')">
+                    🏠 Painel Inicial
+                </a>
 
-    <button
-        onclick="fecharProntuarioAtivo()"
-        title="Fechar prontuário"
-        style="
-            background:#dc2626;
-            color:white;
-            border:none;
-            width:28px;
-            height:28px;
-            border-radius:50%;
-            cursor:pointer;
-            font-weight:bold;
-            font-size:14px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-        ">
-        ✕
-    </button>
+                <a class="nav-link" onclick="navigate('banco')">
+                    🗄️ Base Territorial
+                </a>
 
-</div>
+                <a class="nav-link" onclick="abrirPainelEpidemiologico('criticos')">
+                    📞 Monitoramento
+                </a>
 
-        <div class="container">
+                <a class="nav-link" onclick="navigate('reuniao')">
+                    🗓️ Reunião de Equipe
+                </a>
+
+                <a class="nav-link" onclick="navigate('estoque')">
+                    📦 Estoque / Materiais
+                </a>
+
+                <div class="sidebar-section-title">Atendimento Clínico</div>
+
+                <a class="nav-link" onclick="navigate('prontuario')">
+                    🩺 Prontuário SOAP
+                </a>
+
+                <a class="nav-link" onclick="abrirModuloSolicitacoesMateriais()">
+                    📋 Solicitar Material
+                </a>
+
+                <div class="sidebar-section-title">Dashboards</div>
+
+                <a class="nav-link" onclick="abrirDashboardEpidemiologicoTerritorial()">
+                    📊 Epidemiológico
+                </a>
+
+                <a class="nav-link" onclick="navigate('inicio')">
+                    📈 Indicadores
+                </a>
+
+                <div class="sidebar-section-title">Sistema</div>
+
+                <a class="nav-link somente-admin" id="btnConfiguracoes" onclick="navigate('config')">
+                   <div id="cabecalhoProntuario"
+                 class="form-section"
+                 style="display:none; margin:16px 24px 0 24px; padding:12px 16px;">
+
+                <span id="cabecalhoNome"></span>
+
+                <button
+                    class="btn-fechar-prontuario"
+                    onclick="fecharProntuarioAtivo()"
+                    title="Fechar prontuário">
+                    ✕
+                </button>
+
+            </div>
+
+            <div class="container">
 
             <div id="view-inicio" class="view" style="display:block;">
+
+                <div class="page-header">
+                    <div>
+                        <h2>Painel Executivo Territorial</h2>
+                        <p>Visão geral da operação APS, linhas de cuidado e alertas de monitoramento.</p>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn-info" onclick="abrirDashboardEpidemiologicoTerritorial()">
+                            📊 Dashboard Epidemiológico
+                        </button>
+
+                        <button class="btn-primary" onclick="navigate('prontuario')">
+                            🩺 Novo Atendimento
+                        </button>
+                    </div>
+                </div>
+
+                <div class="quick-actions" style="margin-bottom:22px;">
+                    <div class="quick-action-card quick-action-blue" onclick="navigate('banco')">
+                        <div style="font-size:24px;">🗄️</div>
+                        <div>
+                            <strong>Base Territorial</strong>
+                            <small>Pesquisar cidadão e equipe</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-green" onclick="navigate('prontuario')">
+                        <div style="font-size:24px;">🩺</div>
+                        <div>
+                            <strong>Novo Atendimento</strong>
+                            <small>Registrar SOAP</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-purple" onclick="navigate('reuniao')">
+                        <div style="font-size:24px;">🗓️</div>
+                        <div>
+                            <strong>Reunião de Equipe</strong>
+                            <small>Casos, pautas e ata</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-orange" onclick="navigate('estoque')">
+                        <div style="font-size:24px;">📦</div>
+                        <div>
+                            <strong>Estoque</strong>
+                            <small>Materiais e solicitações</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid">
-                    <div class="dash-card" style="border-top:4px solid var(--danger);" onclick="abrirPainelEpidemiologico('has')">
-                        <h3 id="dashHAS">0</h3>
-                        <p>Hipertensos (HAS)</p>
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('has')">
+                        <div class="dash-icon icon-red">❤️</div>
+                        <div>
+                            <h3 id="dashHAS">0</h3>
+                            <p>Hipertensos (HAS)</p>
+                        </div>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--success);" onclick="abrirPainelEpidemiologico('dm')">
-                        <h3 id="dashDM">0</h3>
-                        <p>Diabéticos (DM)</p>
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('dm')">
+                        <div class="dash-icon icon-green">🍬</div>
+                        <div>
+                            <h3 id="dashDM">0</h3>
+                            <p>Diabéticos (DM)</p>
+                        </div>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--warning);" onclick="abrirPainelEpidemiologico('gestante')">
-                        <h3 id="dashGest">0</h3>
-                        <p>Pré-Natal Ativo</p>
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('gestante')">
+                        <div class="dash-icon icon-yellow">🤰</div>
+                        <div>
+                            <h3 id="dashGest">0</h3>
+                            <p>Pré-Natal Ativo</p>
+                        </div>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid #a21caf;" onclick="abrirPainelEpidemiologico('tuberculose')">
-                        <h3 id="dashTB">0</h3>
-                        <p>Tuberculose</p>
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('tuberculose')">
+                        <div class="dash-icon icon-purple">🫁</div>
+                        <div>
+                            <h3 id="dashTB">0</h3>
+                            <p>Tuberculose</p>
+                        </div>
                     </div>
-                    <div class="dash-card" style="border-top:4px solid var(--primary-neon);" onclick="abrirPainelEpidemiologico('hanseniase')">
-                        <h3 id="dashHansen">0</h3>
-                        <p>Hanseníase</p>
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('hanseniase')">
+                        <div class="dash-icon icon-cyan">🖐️</div>
+                        <div>
+                            <h3 id="dashHansen">0</h3>
+                            <p>Hanseníase</p>
+                        </div>
                     </div>
                 </div>
 
@@ -1243,9 +1003,8 @@
         </p>
 
         <button
-            onclick="abrirModuloSolicitacoesMateriais()"
-            style="background:var(--primary-neon); color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold;"
-        >
+            class="btn-primary"
+            onclick="abrirModuloSolicitacoesMateriais()">
             ➕ Nova Solicitação
         </button>
 
@@ -1401,43 +1160,27 @@
                     </div>
                 </div>
             </div>
+            </div>
 
-        </div>
+        </main>
+
     </div>
 
-    
+</div>
+
 <!-- ==========================================================
      📦 MODAL DE SOLICITAÇÃO DE MATERIAIS / FARMÁCIA
      ========================================================== -->
-<div id="modalSolicitacoesMateriais"
-     style="
-        display:none;
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.75);
-        z-index:10002;
-        padding:24px;
-        overflow:auto;
-     ">
+<div id="modalSolicitacoesMateriais" class="modal">
 
-    <div style="
-        max-width:1100px;
-        margin:auto;
-        background:#0f172a;
-        color:white;
-        border:1px solid #334155;
-        border-radius:16px;
-        padding:20px;
-        box-shadow:0 20px 60px rgba(0,0,0,.5);
-    ">
+    <div class="modal-content" style="max-width:1100px;">
 
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
             <h2 style="margin:0; color:#38bdf8;">📦 Nova Solicitação de Materiais / Farmácia</h2>
 
             <button
-                onclick="fecharModuloSolicitacoesMateriais()"
-                style="background:#ef4444; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
-            >
+                class="btn-danger"
+                onclick="fecharModuloSolicitacoesMateriais()">
                 Fechar
             </button>
         </div>
@@ -1515,9 +1258,9 @@
         </div>
 
         <button
+            class="btn-success"
             onclick="adicionarItemSolicitacao()"
-            style="margin-top:10px; background:#22c55e; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
-        >
+            style="margin-top:10px;">
             Adicionar item
         </button>
 
@@ -1543,16 +1286,14 @@
 
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; flex-wrap:wrap;">
             <button
-                onclick="limparSolicitacaoMaterial()"
-                style="background:#64748b; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
-            >
+                class="btn-secondary"
+                onclick="limparSolicitacaoMaterial()">
                 Limpar
             </button>
 
             <button
-                onclick="salvarSolicitacaoMaterial()"
-                style="background:#2563eb; color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;"
-            >
+                class="btn-primary"
+                onclick="salvarSolicitacaoMaterial()">
                 Enviar Solicitação
             </button>
         </div>
