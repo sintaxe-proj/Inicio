@@ -1073,6 +1073,199 @@ function escaparCopilotoAPS(valor) {
 }
 
 /* ==========================================================
+   COPILOTO APS V2 — INTEGRAÇÃO COM MOTOR PREDITIVO
+   Coloque este bloco ao final do copilotoAPS.js
+   ========================================================== */
+
+async function comandoPreditivoCopilotoAPS(pergunta) {
+    if (typeof carregarMotorPredicaoAPS === "function") {
+        await carregarMotorPredicaoAPS();
+    }
+
+    const dados =
+        window.motorPredicaoAPSAtual || {};
+
+    const predicoes =
+        dados.predicoes || [];
+
+    const t =
+        normalizarCopilotoAPS(pergunta);
+
+    let lista = predicoes;
+
+    if (t.includes("abandono")) {
+        lista =
+            predicoes.filter(p => p.abandono.probabilidade >= 60)
+                .sort((a, b) => b.abandono.probabilidade - a.abandono.probabilidade);
+    } else if (t.includes("internacao") || t.includes("internação")) {
+        lista =
+            predicoes.filter(p => p.internacao.probabilidade >= 60)
+                .sort((a, b) => b.internacao.probabilidade - a.internacao.probabilidade);
+    } else if (t.includes("descompens")) {
+        lista =
+            predicoes.filter(p => p.descompensacao.probabilidade >= 60)
+                .sort((a, b) => b.descompensacao.probabilidade - a.descompensacao.probabilidade);
+    } else if (t.includes("territorio") || t.includes("território")) {
+        renderizarRespostaTerritorialCopilotoV2(dados.territorios || []);
+        return;
+    } else {
+        lista =
+            predicoes
+                .filter(p => p.scoreGeral >= 60)
+                .sort((a, b) => b.scoreGeral - a.scoreGeral);
+    }
+
+    renderizarRespostaPreditivaCopilotoV2(lista.slice(0, 50), pergunta);
+}
+
+function renderizarRespostaPreditivaCopilotoV2(lista, pergunta) {
+    const container =
+        document.getElementById("respostaCopilotoAPS");
+
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="form-section" style="border-left:5px solid var(--purple);">
+            <h3 style="margin-top:0;">🔮 Copiloto APS Preditivo</h3>
+            <p>
+                Encontrei ${lista.length} paciente(s) relacionados à pergunta:
+                <strong>${escaparCopilotoAPS(pergunta)}</strong>
+            </p>
+            <p style="color:var(--text-muted);">
+                Modelo atual: predição explicável por score ponderado.
+            </p>
+        </div>
+
+        <div class="form-section">
+            <h3 style="margin-top:0;">📋 Lista preditiva</h3>
+
+            <div style="overflow-x:auto;">
+                <table class="table-sintaxe">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Equipe / UBS</th>
+                            <th>Score</th>
+                            <th>Abandono</th>
+                            <th>Internação</th>
+                            <th>Descompensação</th>
+                            <th>Fatores</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${lista.map(p => `
+                            <tr>
+                                <td>
+                                    <strong>${escaparCopilotoAPS(p.nome || "Sem nome")}</strong>
+                                    <small>CPF: ${escaparCopilotoAPS(p.cpf || "-")}</small>
+                                </td>
+                                <td>
+                                    ${escaparCopilotoAPS(p.equipe || "-")}
+                                    <small>${escaparCopilotoAPS(p.ubs || "-")}</small>
+                                </td>
+                                <td><strong>${p.scoreGeral}%</strong><small>${escaparCopilotoAPS(p.prioridade)}</small></td>
+                                <td>${p.abandono.probabilidade}%</td>
+                                <td>${p.internacao.probabilidade}%</td>
+                                <td>${p.descompensacao.probabilidade}%</td>
+                                <td><small>${escaparCopilotoAPS([...new Set(p.fatores)].slice(0, 5).join(", "))}</small></td>
+                                <td>
+                                    <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente?.('${escaparCopilotoAPS(p.cpf || "")}', '${escaparCopilotoAPS(p.cns || "")}')">
+                                        📋 Prontuário
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderizarRespostaTerritorialCopilotoV2(territorios) {
+    const container =
+        document.getElementById("respostaCopilotoAPS");
+
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="form-section" style="border-left:5px solid var(--info);">
+            <h3 style="margin-top:0;">🌎 Gêmeo Digital Territorial</h3>
+            <p style="color:var(--text-muted);">
+                Simulação de pressão assistencial por território.
+            </p>
+        </div>
+
+        <div class="form-section">
+            <div style="overflow-x:auto;">
+                <table class="table-sintaxe">
+                    <thead>
+                        <tr>
+                            <th>Território</th>
+                            <th>Status</th>
+                            <th>População</th>
+                            <th>Alto risco</th>
+                            <th>Score médio</th>
+                            <th>Pressão</th>
+                            <th>Recomendação</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${territorios.slice(0, 20).map(t => `
+                            <tr>
+                                <td><strong>${escaparCopilotoAPS(t.territorio)}</strong></td>
+                                <td>${escaparCopilotoAPS(t.status)}</td>
+                                <td>${t.populacao}</td>
+                                <td>${t.altoRisco}</td>
+                                <td>${t.scoreMedio}%</td>
+                                <td><strong>${t.pressaoAssistencial}</strong></td>
+                                <td>${escaparCopilotoAPS(t.recomendacao)}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+const executarCopilotoAPSOriginal =
+    window.executarCopilotoAPS || executarCopilotoAPS;
+
+window.executarCopilotoAPS = async function() {
+    const input =
+        document.getElementById("inputCopilotoAPS");
+
+    const pergunta =
+        String(input?.value || "").trim();
+
+    const t =
+        normalizarCopilotoAPS(pergunta);
+
+    if (
+        t.includes("prever") ||
+        t.includes("predizer") ||
+        t.includes("risco de abandono") ||
+        t.includes("risco de internacao") ||
+        t.includes("risco de internação") ||
+        t.includes("descompens") ||
+        t.includes("gemeo digital") ||
+        t.includes("gêmeo digital") ||
+        t.includes("pressao assistencial") ||
+        t.includes("pressão assistencial")
+    ) {
+        await comandoPreditivoCopilotoAPS(pergunta);
+        return;
+    }
+
+    await executarCopilotoAPSOriginal();
+};
+
+
+/* ==========================================================
    GLOBAL
    ========================================================== */
 
