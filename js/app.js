@@ -10,6 +10,10 @@
 
 function navigate(view) {
 
+    if (typeof atualizarTituloViewSintaxeHub === "function") {
+        atualizarTituloViewSintaxeHub(view);
+    }
+
     if (
         typeof podeAcessar === "function" &&
         !podeAcessar(view)
@@ -50,6 +54,13 @@ function navigate(view) {
     // ==================================================
     // MÓDULOS POR VIEW
     // ==================================================
+
+    if (
+        view === "inicio" &&
+        typeof carregarDashboardInicialSintaxeHub === "function"
+    ) {
+        carregarDashboardInicialSintaxeHub();
+    }
 
     if (
         view === "banco" &&
