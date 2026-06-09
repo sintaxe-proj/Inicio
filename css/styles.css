@@ -1684,3 +1684,34 @@ button.btn-info,
     max-height: 280px !important;
     display: block;
 }
+
+.resultado-busca-paciente {
+
+    max-height: 250px;
+
+    overflow-y: auto;
+
+    margin-top: 8px;
+
+    border-radius: 10px;
+
+    background: #0f172a;
+
+    border: 1px solid var(--border);
+}
+
+.item-paciente-reuniao {
+
+    padding: 10px;
+
+    cursor: pointer;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.05);
+}
+
+.item-paciente-reuniao:hover {
+
+    background:
+        rgba(37,99,235,.15);
+}
