@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + inicialização
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades
 // ======================================================
 
 
@@ -156,6 +156,13 @@ function navigate(view) {
         typeof carregarCentralAPS === "function"
     ) {
         carregarCentralAPS();
+    }
+
+    if (
+        view === "central-prioridades-aps" &&
+        typeof carregarCentralPrioridadesAPS === "function"
+    ) {
+        carregarCentralPrioridadesAPS();
     }
 
     if (
