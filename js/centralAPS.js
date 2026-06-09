@@ -1,10 +1,11 @@
 /* ==========================================================
-   🎯 CENTRAL OPERACIONAL APS 2.0 — SINTAXEHUB
-   Supabase: pacientes + atendimentos + interacoes_busca_ativa
+   🎯 CENTRAL OPERACIONAL APS 3.0 — SINTAXEHUB
+   Supabase-first: sem localStorage, sem IndexedDB e sem cache persistente.
+   Fonte única: pacientes + atendimentos + interacoes_busca_ativa
+   Pendências clínicas: calculadas em tempo real a partir do Supabase.
    ========================================================== */
 
-let centralAPSCache = [];
-let centralAPSListaAtual = [];
+let centralAPSListaRenderizada = [];
 let pacienteInteracaoCentralAPS = null;
 
 /* ==========================================================
@@ -24,91 +25,65 @@ async function carregarCentralAPS() {
     }
 
     container.innerHTML =
-        `<p style="color:var(--text-muted);">Carregando filas operacionais...</p>`;
+        `<p style="color:var(--text-muted);">Consultando dados atualizados no Supabase...</p>`;
 
     try {
-        const { data: pacientes, error: erroPacientes } =
-            await supabaseClient
-                .from("pacientes")
-                .select(`
-                    id,
-                    nome,
-                    cpf,
-                    cns,
-                    telefone,
-                    cep,
-                    endereco,
-                    bairro,
-                    cidade,
-                    ubs,
-                    equipe,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
-                .limit(5000);
+        const base =
+            await buscarBaseCentralAPSSupabase();
 
-        if (erroPacientes) {
-            console.error("Erro ao carregar pacientes:", erroPacientes);
-            container.innerHTML =
-                `<p style="color:var(--danger);">Erro ao carregar pacientes.</p>`;
-            return;
-        }
-
-        const { data: atendimentos, error: erroAtendimentos } =
-            await supabaseClient
-                .from("atendimentos")
-                .select(`
-                    id,
-                    paciente_cpf,
-                    cpf,
-                    cns,
-                    nome_paciente,
-                    has,
-                    dm,
-                    gestante,
-                    tb,
-                    hansen,
-                    risco_global,
-                    risco_pontos,
-                    reavaliacaoDias,
-                    retorno_dias,
-                    data_atendimento,
-                    criado_em,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
-                .order("data_atendimento", { ascending: false })
-                .limit(10000);
-
-        if (erroAtendimentos) {
-            console.error("Erro ao carregar atendimentos:", erroAtendimentos);
-            container.innerHTML =
-                `<p style="color:var(--danger);">Erro ao carregar atendimentos.</p>`;
-            return;
-        }
-
-        centralAPSCache =
-            consolidarBaseCentralAPS(
-                pacientes || [],
-                atendimentos || []
-            );
-
-        carregarFiltrosCentralAPS(centralAPSCache);
-        aplicarFilaCentralAPS("CRITICOS");
+        carregarFiltrosCentralAPS(base);
+        await aplicarFilaCentralAPS("CRITICOS");
 
     } catch (erro) {
         console.error("Erro geral Central APS:", erro);
+
         container.innerHTML =
             `<p style="color:var(--danger);">Falha ao carregar Central APS.</p>`;
     }
 }
 
 /* ==========================================================
-   CONSOLIDAÇÃO
+   BUSCA SUPABASE — SEM CACHE PERSISTENTE
+   ========================================================== */
+
+async function buscarBaseCentralAPSSupabase() {
+    const { data: pacientes, error: erroPacientes } =
+        await supabaseClient
+            .from("pacientes")
+            .select("*")
+            .limit(10000);
+
+    if (erroPacientes) {
+        console.error("Erro ao carregar pacientes:", erroPacientes);
+        throw erroPacientes;
+    }
+
+    const { data: atendimentos, error: erroAtendimentos } =
+        await supabaseClient
+            .from("atendimentos")
+            .select("*")
+            .order("data_atendimento", { ascending: false })
+            .limit(30000);
+
+    if (erroAtendimentos) {
+        console.error("Erro ao carregar atendimentos:", erroAtendimentos);
+        throw erroAtendimentos;
+    }
+
+    return consolidarBaseCentralAPS(
+        pacientes || [],
+        atendimentos || []
+    );
+}
+
+/* ==========================================================
+   CONSOLIDAÇÃO EM MEMÓRIA TEMPORÁRIA
+   Observação: não salva em cache/localStorage/IndexedDB.
    ========================================================== */
 
 function consolidarBaseCentralAPS(pacientes, atendimentos) {
-    const mapa = new Map();
+    const mapa =
+        new Map();
 
     pacientes.forEach(p => {
         const chave =
@@ -128,8 +103,19 @@ function consolidarBaseCentralAPS(pacientes, atendimentos) {
             endereco: p.endereco || "",
             bairro: p.bairro || "",
             cidade: p.cidade || "",
-            ubs: p.ubs_vinculacao || p.ubs || "Não informado",
-            equipe: p.equipe_esf || p.equipe || "Não informado",
+
+            ubs:
+                p.ubs_vinculacao ||
+                p.ubs ||
+                p.unidade ||
+                p.unidadePaciente ||
+                "Não informado",
+
+            equipe:
+                p.equipe_esf ||
+                p.equipe ||
+                p.equipePaciente ||
+                "Não informado",
 
             has: "Não",
             dm: "Não",
@@ -137,10 +123,28 @@ function consolidarBaseCentralAPS(pacientes, atendimentos) {
             tb: "Não",
             hansen: "Não",
 
+            hasPAS: null,
+            hasPAD: null,
+            dmHbA1c: null,
+            gestDUM: null,
+            gestIG: null,
+            gestDPP: null,
+
+            tbDataDiagnostico: null,
+            tbDataBaciloscopia: null,
+            tbResultadoBaciloscopia: "",
+            tbFaseTratamento: "",
+
+            hansenDataDiagnostico: null,
+            hansenClassificacao: "",
+            hansenGrauIncapacidade: "",
+            hansenSituacaoTratamento: "",
+
             risco_global: "Não informado",
             risco_pontos: 0,
             prazo: null,
-            ultimo_atendimento: null
+            ultimo_atendimento: null,
+            ciap: ""
         });
     });
 
@@ -155,16 +159,40 @@ function consolidarBaseCentralAPS(pacientes, atendimentos) {
         const atual =
             mapa.get(chave) || {
                 id: "",
-                nome: a.nome_paciente || "",
-                cpf: a.paciente_cpf || a.cpf || "",
-                cns: a.cns || "",
-                telefone: "",
-                cep: "",
-                endereco: "",
-                bairro: "",
-                cidade: "",
-                ubs: a.ubs_vinculacao || "Não informado",
-                equipe: a.equipe_esf || "Não informado",
+                nome:
+                    a.nome_paciente ||
+                    a.nomePaciente ||
+                    a.nome ||
+                    "",
+                cpf:
+                    a.paciente_cpf ||
+                    a.cpf ||
+                    "",
+                cns:
+                    a.cns ||
+                    "",
+                telefone:
+                    a.telefone ||
+                    "",
+                cep:
+                    a.cep ||
+                    "",
+                endereco:
+                    "",
+                bairro:
+                    "",
+                cidade:
+                    "",
+
+                ubs:
+                    a.ubs_vinculacao ||
+                    a.ubs ||
+                    "Não informado",
+
+                equipe:
+                    a.equipe_esf ||
+                    a.equipe ||
+                    "Não informado",
 
                 has: "Não",
                 dm: "Não",
@@ -172,33 +200,180 @@ function consolidarBaseCentralAPS(pacientes, atendimentos) {
                 tb: "Não",
                 hansen: "Não",
 
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+                gestDUM: null,
+                gestIG: null,
+                gestDPP: null,
+
+                tbDataDiagnostico: null,
+                tbDataBaciloscopia: null,
+                tbResultadoBaciloscopia: "",
+                tbFaseTratamento: "",
+
+                hansenDataDiagnostico: null,
+                hansenClassificacao: "",
+                hansenGrauIncapacidade: "",
+                hansenSituacaoTratamento: "",
+
                 risco_global: "Não informado",
                 risco_pontos: 0,
                 prazo: null,
-                ultimo_atendimento: null
+                ultimo_atendimento: null,
+                ciap: ""
             };
 
-        if (!atual.nome && a.nome_paciente) {
-            atual.nome = a.nome_paciente;
+        if (!atual.nome) {
+            atual.nome =
+                a.nome_paciente ||
+                a.nomePaciente ||
+                a.nome ||
+                "";
         }
 
-        if (valorSimCentralAPS(a.has)) atual.has = "Sim";
-        if (valorSimCentralAPS(a.dm)) atual.dm = "Sim";
-        if (valorSimCentralAPS(a.gestante)) atual.gestante = "Sim";
-        if (valorSimCentralAPS(a.tb)) atual.tb = "Sim";
-        if (valorSimCentralAPS(a.hansen)) atual.hansen = "Sim";
+        if (!atual.telefone && a.telefone) {
+            atual.telefone =
+                a.telefone;
+        }
+
+        if (valorSimCentralAPS(a.has) || valorSimCentralAPS(a.hasSN)) {
+            atual.has = "Sim";
+        }
+
+        if (valorSimCentralAPS(a.dm) || valorSimCentralAPS(a.dmSN)) {
+            atual.dm = "Sim";
+        }
+
+        if (valorSimCentralAPS(a.gestante) || valorSimCentralAPS(a.gestanteSN)) {
+            atual.gestante = "Sim";
+        }
+
+        if (valorSimCentralAPS(a.tb) || valorSimCentralAPS(a.tbSN)) {
+            atual.tb = "Sim";
+        }
+
+        if (valorSimCentralAPS(a.hansen) || valorSimCentralAPS(a.hansenSN)) {
+            atual.hansen = "Sim";
+        }
+
+        atual.hasPAS =
+            obterPrimeiroValorCentralAPS(
+                a.hasPAS,
+                a.has_pas,
+                a.objPAS,
+                a.obj_pas,
+                atual.hasPAS
+            );
+
+        atual.hasPAD =
+            obterPrimeiroValorCentralAPS(
+                a.hasPAD,
+                a.has_pad,
+                a.objPAD,
+                a.obj_pad,
+                atual.hasPAD
+            );
+
+        atual.dmHbA1c =
+            obterPrimeiroValorCentralAPS(
+                a.dmHbA1c,
+                a.dm_hba1c,
+                a.hba1c,
+                atual.dmHbA1c
+            );
+
+        atual.gestDUM =
+            obterPrimeiroValorCentralAPS(
+                a.gestDUM,
+                a.gest_dum,
+                atual.gestDUM
+            );
+
+        atual.gestIG =
+            obterPrimeiroValorCentralAPS(
+                a.gestIG,
+                a.gest_ig,
+                atual.gestIG
+            );
+
+        atual.gestDPP =
+            obterPrimeiroValorCentralAPS(
+                a.gestDPP,
+                a.gest_dpp,
+                atual.gestDPP
+            );
+
+        atual.tbDataDiagnostico =
+            obterPrimeiroValorCentralAPS(
+                a.tbDataDiagnostico,
+                a.tb_data_diagnostico,
+                atual.tbDataDiagnostico
+            );
+
+        atual.tbDataBaciloscopia =
+            obterPrimeiroValorCentralAPS(
+                a.tbDataBaciloscopia,
+                a.tb_data_baciloscopia,
+                atual.tbDataBaciloscopia
+            );
+
+        atual.tbResultadoBaciloscopia =
+            obterPrimeiroValorCentralAPS(
+                a.tbResultadoBaciloscopia,
+                a.tb_resultado_baciloscopia,
+                atual.tbResultadoBaciloscopia
+            );
+
+        atual.tbFaseTratamento =
+            obterPrimeiroValorCentralAPS(
+                a.tbFaseTratamento,
+                a.tb_fase_tratamento,
+                atual.tbFaseTratamento
+            );
+
+        atual.hansenDataDiagnostico =
+            obterPrimeiroValorCentralAPS(
+                a.hansenDataDiagnostico,
+                a.hansen_data_diagnostico,
+                atual.hansenDataDiagnostico
+            );
+
+        atual.hansenClassificacao =
+            obterPrimeiroValorCentralAPS(
+                a.hansenClassificacao,
+                a.hansen_classificacao,
+                atual.hansenClassificacao
+            );
+
+        atual.hansenGrauIncapacidade =
+            obterPrimeiroValorCentralAPS(
+                a.hansenGrauIncapacidade,
+                a.hansen_grau_incapacidade,
+                atual.hansenGrauIncapacidade
+            );
+
+        atual.hansenSituacaoTratamento =
+            obterPrimeiroValorCentralAPS(
+                a.hansenSituacaoTratamento,
+                a.hansen_situacao_tratamento,
+                atual.hansenSituacaoTratamento
+            );
 
         if (a.risco_global) {
-            atual.risco_global = a.risco_global;
+            atual.risco_global =
+                a.risco_global;
         }
 
         if (a.risco_pontos !== null && a.risco_pontos !== undefined) {
-            atual.risco_pontos = Number(a.risco_pontos || 0);
+            atual.risco_pontos =
+                Number(a.risco_pontos || 0);
         }
 
         const prazo =
             a.reavaliacaoDias ??
             a.retorno_dias ??
+            a.soapReavaliacaoDias ??
             atual.prazo;
 
         atual.prazo =
@@ -209,15 +384,35 @@ function consolidarBaseCentralAPS(pacientes, atendimentos) {
         atual.ultimo_atendimento =
             a.data_atendimento ||
             a.criado_em ||
+            a.created_at ||
             atual.ultimo_atendimento;
 
-        if (a.ubs_vinculacao) atual.ubs = a.ubs_vinculacao;
-        if (a.equipe_esf) atual.equipe = a.equipe_esf;
+        atual.ciap =
+            a.ciapSelecionado ||
+            a.inputBuscaCIAPS ||
+            a.ciap ||
+            atual.ciap ||
+            "";
+
+        if (a.ubs_vinculacao || a.ubs) {
+            atual.ubs =
+                a.ubs_vinculacao ||
+                a.ubs;
+        }
+
+        if (a.equipe_esf || a.equipe) {
+            atual.equipe =
+                a.equipe_esf ||
+                a.equipe;
+        }
 
         mapa.set(chave, atual);
     });
 
-    return Array.from(mapa.values());
+    return Array.from(mapa.values()).map(p => ({
+        ...p,
+        pendencias: identificarPendenciasClinicasCentralAPS(p)
+    }));
 }
 
 /* ==========================================================
@@ -273,7 +468,18 @@ function carregarSelectCentralAPS(id, valores, rotulo) {
     }
 }
 
-function aplicarFilaCentralAPS(fila = null) {
+async function aplicarFilaCentralAPS(fila = null) {
+    const container =
+        document.getElementById("listaCentralAPS");
+
+    if (container) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Atualizando dados no Supabase...</p>`;
+    }
+
+    const baseSupabase =
+        await buscarBaseCentralAPSSupabase();
+
     const filaAtiva =
         fila ||
         document.getElementById("filtroFilaCentralAPS")?.value ||
@@ -297,7 +503,7 @@ function aplicarFilaCentralAPS(fila = null) {
         document.getElementById("buscaCentralAPS")?.value?.trim() || "";
 
     let base =
-        [...centralAPSCache];
+        [...baseSupabase];
 
     if (equipe !== "TODOS") {
         base =
@@ -326,6 +532,7 @@ function aplicarFilaCentralAPS(fila = null) {
                     ${p.telefone}
                     ${p.ubs}
                     ${p.equipe}
+                    ${p.pendencias?.join(" ")}
                 `).includes(t)
             );
     }
@@ -337,10 +544,10 @@ function aplicarFilaCentralAPS(fila = null) {
         Number(a.prazo ?? 9999) - Number(b.prazo ?? 9999)
     );
 
-    centralAPSListaAtual =
+    centralAPSListaRenderizada =
         base;
 
-    atualizarCardsCentralAPS();
+    atualizarCardsCentralAPS(baseSupabase);
     renderizarListaCentralAPS(base, filaAtiva);
 }
 
@@ -373,17 +580,120 @@ function filtrarPorFilaCentralAPS(base, fila) {
         return base.filter(p => valorSimCentralAPS(p.hansen));
     }
 
+    if (fila === "PENDENCIAS") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p).length > 0
+        );
+    }
+
+    if (fila === "HAS_SEM_PA") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("HAS sem PA registrada")
+        );
+    }
+
+    if (fila === "DM_SEM_HBA1C") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("DM sem HbA1c registrada")
+        );
+    }
+
+    if (fila === "GESTANTE_ATRASADA") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("Gestante sem consulta recente")
+        );
+    }
+
+    if (fila === "TB_SEM_ACOMPANHAMENTO") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("TB sem acompanhamento recente")
+        );
+    }
+
+    if (fila === "HANSEN_SEM_AVALIACAO") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("Hanseníase sem avaliação recente")
+        );
+    }
+
+    if (fila === "RETORNO_VENCIDO") {
+        return base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("Retorno vencido")
+        );
+    }
+
     return base;
+}
+
+/* ==========================================================
+   PENDÊNCIAS CLÍNICAS DINÂMICAS
+   ========================================================== */
+
+function identificarPendenciasClinicasCentralAPS(p) {
+    const pendencias = [];
+
+    if (
+        valorSimCentralAPS(p.has) &&
+        (!temValorCentralAPS(p.hasPAS) || !temValorCentralAPS(p.hasPAD))
+    ) {
+        pendencias.push("HAS sem PA registrada");
+    }
+
+    if (
+        valorSimCentralAPS(p.dm) &&
+        !temValorCentralAPS(p.dmHbA1c)
+    ) {
+        pendencias.push("DM sem HbA1c registrada");
+    }
+
+    if (
+        valorSimCentralAPS(p.gestante) &&
+        diasDesdeDataCentralAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("Gestante sem consulta recente");
+    }
+
+    if (
+        valorSimCentralAPS(p.tb) &&
+        diasDesdeDataCentralAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("TB sem acompanhamento recente");
+    }
+
+    if (
+        valorSimCentralAPS(p.hansen) &&
+        diasDesdeDataCentralAPS(p.ultimo_atendimento) > 60
+    ) {
+        pendencias.push("Hanseníase sem avaliação recente");
+    }
+
+    if (
+        Number(p.prazo) === 0
+    ) {
+        pendencias.push("Retorno vencido");
+    }
+
+    if (
+        normalizarCentralAPS(p.risco_global).includes("alto") ||
+        Number(p.risco_pontos || 0) >= 6
+    ) {
+        pendencias.push("Alto risco clínico/territorial");
+    }
+
+    return [...new Set(pendencias)];
 }
 
 /* ==========================================================
    CARDS
    ========================================================== */
 
-function atualizarCardsCentralAPS() {
-    const base =
-        centralAPSCache || [];
-
+function atualizarCardsCentralAPS(base = []) {
     setTextoCentralAPS(
         "centralTotalCriticos",
         base.filter(p =>
@@ -417,6 +727,21 @@ function atualizarCardsCentralAPS() {
         "centralTotalHansen",
         base.filter(p => valorSimCentralAPS(p.hansen)).length
     );
+
+    setTextoCentralAPS(
+        "centralTotalPendencias",
+        base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p).length > 0
+        ).length
+    );
+
+    setTextoCentralAPS(
+        "centralTotalRetornoVencido",
+        base.filter(p =>
+            identificarPendenciasClinicasCentralAPS(p)
+                .includes("Retorno vencido")
+        ).length
+    );
 }
 
 /* ==========================================================
@@ -442,6 +767,7 @@ function renderizarListaCentralAPS(base, fila) {
                     <th>Paciente</th>
                     <th>Equipe</th>
                     <th>Linhas</th>
+                    <th>Pendências</th>
                     <th>Risco</th>
                     <th>Prazo</th>
                     <th>Ações</th>
@@ -449,48 +775,61 @@ function renderizarListaCentralAPS(base, fila) {
             </thead>
 
             <tbody>
-                ${base.slice(0, 500).map(p => `
-                    <tr>
-                        <td>
-                            <strong>${escaparCentralAPS(p.nome || "Sem nome")}</strong>
-                            <small>CPF: ${escaparCentralAPS(p.cpf || "-")} | CNS: ${escaparCentralAPS(p.cns || "-")}</small>
-                            <small>📞 ${escaparCentralAPS(p.telefone || "-")}</small>
-                        </td>
+                ${base.slice(0, 500).map(p => {
+                    const pendencias =
+                        identificarPendenciasClinicasCentralAPS(p);
 
-                        <td>
-                            ${escaparCentralAPS(p.equipe || "-")}
-                            <small>${escaparCentralAPS(p.ubs || "-")}</small>
-                        </td>
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${escaparCentralAPS(p.nome || "Sem nome")}</strong>
+                                <small>CPF: ${escaparCentralAPS(p.cpf || "-")} | CNS: ${escaparCentralAPS(p.cns || "-")}</small>
+                                <small>📞 ${escaparCentralAPS(p.telefone || "-")}</small>
+                            </td>
 
-                        <td>${badgesLinhasCentralAPS(p)}</td>
+                            <td>
+                                ${escaparCentralAPS(p.equipe || "-")}
+                                <small>${escaparCentralAPS(p.ubs || "-")}</small>
+                            </td>
 
-                        <td>${badgeRiscoCentralAPS(p)}</td>
+                            <td>${badgesLinhasCentralAPS(p)}</td>
 
-                        <td>${badgePrazoCentralAPS(p.prazo)}</td>
+                            <td>${badgesPendenciasCentralAPS(pendencias)}</td>
 
-                        <td>
-                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                <button
-                                    class="btn-table-action btn-edit"
-                                    onclick="abrirAtendimentoExistente('${escaparCentralAPS(p.cpf || "")}', '${escaparCentralAPS(p.cns || "")}')">
-                                    Prontuário
-                                </button>
+                            <td>${badgeRiscoCentralAPS(p)}</td>
 
-                                <button
-                                    class="btn-table-action btn-ok"
-                                    onclick="abrirWhatsAppCentralAPS('${escaparCentralAPS(p.telefone || "")}', '${escaparCentralAPS(p.nome || "")}')">
-                                    WhatsApp
-                                </button>
+                            <td>${badgePrazoCentralAPS(p.prazo)}</td>
 
-                                <button
-                                    class="btn-table-action btn-warn"
-                                    onclick="abrirModalInteracaoCentralAPS('${escaparCentralAPS(p.cpf || "")}', '${escaparCentralAPS(p.cns || "")}')">
-                                    Interação
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join("")}
+                            <td>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button
+                                        class="btn-table-action btn-edit"
+                                        onclick="abrirAtendimentoExistente('${escaparCentralAPS(p.cpf || "")}', '${escaparCentralAPS(p.cns || "")}')">
+                                        Prontuário
+                                    </button>
+
+                                    <button
+                                        class="btn-table-action btn-ok"
+                                        onclick="abrirWhatsAppCentralAPS('${escaparCentralAPS(p.telefone || "")}', '${escaparCentralAPS(p.nome || "")}')">
+                                        WhatsApp
+                                    </button>
+
+                                    <button
+                                        class="btn-table-action btn-warn"
+                                        onclick="abrirModalInteracaoCentralAPS('${escaparCentralAPS(p.cpf || "")}', '${escaparCentralAPS(p.cns || "")}')">
+                                        Interação
+                                    </button>
+
+                                    <button
+                                        class="btn-table-action btn-danger"
+                                        onclick="abrirDetalhesPendenciasCentralAPS('${escaparCentralAPS(p.cpf || "")}', '${escaparCentralAPS(p.cns || "")}')">
+                                        Pendências
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join("")}
             </tbody>
         </table>
 
@@ -505,18 +844,54 @@ function renderizarListaCentralAPS(base, fila) {
 }
 
 /* ==========================================================
-   INTERAÇÃO / BUSCA ATIVA
+   DETALHES DE PENDÊNCIAS
    ========================================================== */
 
-function abrirModalInteracaoCentralAPS(cpf, cns) {
+async function abrirDetalhesPendenciasCentralAPS(cpf, cns) {
+    const base =
+        await buscarBaseCentralAPSSupabase();
+
+    const paciente =
+        base.find(p =>
+            String(p.cpf || "") === String(cpf || "") ||
+            String(p.cns || "") === String(cns || "")
+        );
+
+    if (!paciente) {
+        mostrarToast?.("⚠️ Paciente não localizado no Supabase.");
+        return;
+    }
+
+    const pendencias =
+        identificarPendenciasClinicasCentralAPS(paciente);
+
+    if (!pendencias.length) {
+        alert(`Paciente ${paciente.nome || ""} sem pendências clínicas identificadas.`);
+        return;
+    }
+
+    alert(
+        `Pendências clínicas — ${paciente.nome || "Paciente"}\n\n` +
+        pendencias.map((p, i) => `${i + 1}. ${p}`).join("\n")
+    );
+}
+
+/* ==========================================================
+   INTERAÇÃO / BUSCA ATIVA — GRAVA NO SUPABASE
+   ========================================================== */
+
+async function abrirModalInteracaoCentralAPS(cpf, cns) {
+    const base =
+        await buscarBaseCentralAPSSupabase();
+
     pacienteInteracaoCentralAPS =
-        centralAPSCache.find(p =>
+        base.find(p =>
             String(p.cpf || "") === String(cpf || "") ||
             String(p.cns || "") === String(cns || "")
         ) || null;
 
     if (!pacienteInteracaoCentralAPS) {
-        mostrarToast?.("⚠️ Paciente não localizado.");
+        mostrarToast?.("⚠️ Paciente não localizado no Supabase.");
         return;
     }
 
@@ -541,7 +916,15 @@ function abrirModalInteracaoCentralAPS(cpf, cns) {
     const obs =
         document.getElementById("interacaoObservacao");
 
-    if (obs) obs.value = "";
+    if (obs) {
+        const pendencias =
+            identificarPendenciasClinicasCentralAPS(pacienteInteracaoCentralAPS);
+
+        obs.value =
+            pendencias.length
+                ? `Pendências identificadas: ${pendencias.join("; ")}. `
+                : "";
+    }
 }
 
 function fecharModalInteracaoCentralAPS() {
@@ -571,6 +954,12 @@ async function salvarInteracaoCentralAPS() {
     const usuario =
         window.usuarioLogado || {};
 
+    const pendencias =
+        identificarPendenciasClinicasCentralAPS(pacienteInteracaoCentralAPS);
+
+    const observacaoDigitada =
+        document.getElementById("interacaoObservacao")?.value || null;
+
     const payload = {
         paciente_cpf: pacienteInteracaoCentralAPS.cpf || null,
         paciente_cns: pacienteInteracaoCentralAPS.cns || null,
@@ -578,7 +967,14 @@ async function salvarInteracaoCentralAPS() {
 
         tipo_contato: document.getElementById("interacaoTipoContato")?.value || "Ligação",
         resultado: document.getElementById("interacaoResultado")?.value || "Atendido",
-        observacao: document.getElementById("interacaoObservacao")?.value || null,
+
+        observacao:
+            observacaoDigitada ||
+            (
+                pendencias.length
+                    ? `Pendências: ${pendencias.join("; ")}`
+                    : null
+            ),
 
         equipe: pacienteInteracaoCentralAPS.equipe || null,
         ubs: pacienteInteracaoCentralAPS.ubs || null,
@@ -601,8 +997,10 @@ async function salvarInteracaoCentralAPS() {
         return;
     }
 
-    mostrarToast?.("✅ Interação registrada.");
+    mostrarToast?.("✅ Interação registrada no Supabase.");
     fecharModalInteracaoCentralAPS();
+
+    await aplicarFilaCentralAPS();
 }
 
 /* ==========================================================
@@ -629,9 +1027,11 @@ function abrirWhatsAppCentralAPS(telefone, nome) {
     );
 }
 
-function exportarCentralAPSCSV() {
+async function exportarCentralAPSCSV() {
     const base =
-        centralAPSListaAtual || [];
+        centralAPSListaRenderizada?.length
+            ? centralAPSListaRenderizada
+            : await buscarBaseCentralAPSSupabase();
 
     if (!base.length) {
         mostrarToast?.("⚠️ Nenhum dado para exportar.");
@@ -652,7 +1052,8 @@ function exportarCentralAPSCSV() {
             "tb",
             "hansen",
             "risco_global",
-            "prazo"
+            "prazo",
+            "pendencias"
         ]
     ];
 
@@ -670,7 +1071,8 @@ function exportarCentralAPSCSV() {
             p.tb,
             p.hansen,
             p.risco_global,
-            p.prazo
+            p.prazo,
+            identificarPendenciasClinicasCentralAPS(p).join(" | ")
         ]);
     });
 
@@ -735,6 +1137,43 @@ function valorSimCentralAPS(valor) {
     );
 }
 
+function temValorCentralAPS(valor) {
+    return (
+        valor !== null &&
+        valor !== undefined &&
+        String(valor).trim() !== ""
+    );
+}
+
+function obterPrimeiroValorCentralAPS(...valores) {
+    for (const valor of valores) {
+        if (temValorCentralAPS(valor)) {
+            return valor;
+        }
+    }
+
+    return null;
+}
+
+function diasDesdeDataCentralAPS(data) {
+    if (!data) return 9999;
+
+    const dataRef =
+        new Date(data);
+
+    if (Number.isNaN(dataRef.getTime())) {
+        return 9999;
+    }
+
+    const hoje =
+        new Date();
+
+    return Math.floor(
+        (hoje.getTime() - dataRef.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
 function normalizarCentralAPS(valor) {
     return String(valor || "")
         .toLowerCase()
@@ -765,6 +1204,20 @@ function badgesLinhasCentralAPS(p) {
     return badges.length
         ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>`
         : `<span style="color:var(--text-muted);">-</span>`;
+}
+
+function badgesPendenciasCentralAPS(pendencias) {
+    if (!pendencias || !pendencias.length) {
+        return `<span style="color:var(--text-muted);">-</span>`;
+    }
+
+    return `
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${pendencias.map(item =>
+                `<span class="status-badge status-warning">${escaparCentralAPS(item)}</span>`
+            ).join("")}
+        </div>
+    `;
 }
 
 function badgeRiscoCentralAPS(p) {
@@ -818,7 +1271,10 @@ function escaparCentralAPS(valor) {
    ========================================================== */
 
 window.carregarCentralAPS = carregarCentralAPS;
+window.buscarBaseCentralAPSSupabase = buscarBaseCentralAPSSupabase;
 window.aplicarFilaCentralAPS = aplicarFilaCentralAPS;
+window.identificarPendenciasClinicasCentralAPS = identificarPendenciasClinicasCentralAPS;
+window.abrirDetalhesPendenciasCentralAPS = abrirDetalhesPendenciasCentralAPS;
 window.abrirModalInteracaoCentralAPS = abrirModalInteracaoCentralAPS;
 window.fecharModalInteracaoCentralAPS = fecharModalInteracaoCentralAPS;
 window.salvarInteracaoCentralAPS = salvarInteracaoCentralAPS;
