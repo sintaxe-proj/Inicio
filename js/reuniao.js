@@ -127,7 +127,8 @@ async function registrarDiscussaoCasoNoProntuario() {
     const usuario = getUsuarioReuniao();
 
     const textoSubjetivo =
-        "Discussão realizada em reunião de equipe.";
+        "Discussão realizada em reunião de equipe.\n\n" +
+        discussao;
 
     const textoObjetivo =
         "Caso avaliado pela equipe multiprofissional.";
@@ -166,9 +167,6 @@ async function registrarDiscussaoCasoNoProntuario() {
 
         reavaliacaoDias: null,
         retorno_dias: null,
-
-        origem: "Reunião de Equipe",
-        discussao_caso: discussao,
 
         criado_em: new Date().toISOString(),
         data_atendimento: new Date().toISOString(),
