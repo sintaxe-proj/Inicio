@@ -71,6 +71,10 @@
                     📦 Estoque / Materiais
                 </a>
 
+                <a class="nav-link" onclick="navigate('auditoria-estoque')">
+                    🧾 Auditoria de Estoque
+                </a>
+
                 <div class="sidebar-section-title">Atendimento Clínico</div>
 
                 <a class="nav-link" onclick="navigate('prontuario')">
@@ -1229,25 +1233,71 @@
 <div id="tabelaEstoqueItens"></div>
 
         <div class="dashboard-grid" style="margin-top:20px;">
-            <div class="dash-card" style="border-top:4px solid #f59e0b;">
-                <h3 id="dashSolicitacoesPendentes">0</h3>
-                <p>Solicitações Pendentes</p>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-yellow">⏳</div>
+                <div>
+                    <h3 id="dashSolicitacoesPendentes">0</h3>
+                    <p>Solicitações Pendentes</p>
+                </div>
             </div>
 
-            <div class="dash-card" style="border-top:4px solid #22c55e;">
-                <h3 id="dashSolicitacoesAprovadas">0</h3>
-                <p>Solicitações Aprovadas</p>
+            <div class="dash-card">
+                <div class="dash-icon icon-green">✅</div>
+                <div>
+                    <h3 id="dashSolicitacoesAprovadas">0</h3>
+                    <p>Solicitações Aprovadas</p>
+                </div>
             </div>
 
-            <div class="dash-card" style="border-top:4px solid #3b82f6;">
-                <h3 id="dashSolicitacoesEntregues">0</h3>
-                <p>Entregues</p>
+            <div class="dash-card">
+                <div class="dash-icon icon-blue">📦</div>
+                <div>
+                    <h3 id="dashSolicitacoesEntregues">0</h3>
+                    <p>Entregues</p>
+                </div>
             </div>
 
-            <div class="dash-card" style="border-top:4px solid #ef4444;">
-                <h3 id="dashSolicitacoesNegadas">0</h3>
-                <p>Negadas</p>
+            <div class="dash-card">
+                <div class="dash-icon icon-red">🚫</div>
+                <div>
+                    <h3 id="dashSolicitacoesNegadas">0</h3>
+                    <p>Negadas</p>
+                </div>
             </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-cyan">📋</div>
+                <div>
+                    <h3 id="dashItensEstoque">0</h3>
+                    <p>Itens em estoque</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-yellow">⚠️</div>
+                <div>
+                    <h3 id="dashEstoqueBaixo">0</h3>
+                    <p>Estoque baixo</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-red">⛔</div>
+                <div>
+                    <h3 id="dashItensVencidos">0</h3>
+                    <p>Itens vencidos</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-purple">📅</div>
+                <div>
+                    <h3 id="dashItensVencem30">0</h3>
+                    <p>Vencem em 30 dias</p>
+                </div>
+            </div>
+
         </div>
 
         <div class="form-section" style="background:#111c2e;">
@@ -1255,6 +1305,147 @@
             <div id="historicoSolicitacoes"></div>
         </div>
     </div>
+</div>
+
+
+
+<div id="view-auditoria-estoque" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>📦 Auditoria de Estoque</h2>
+            <p>Rastreabilidade de entradas, saídas, ajustes manuais e baixas automáticas.</p>
+        </div>
+
+        <div class="button-row">
+            <button
+                class="btn-primary"
+                onclick="carregarAuditoriaEstoque()">
+                🔄 Atualizar
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="exportarAuditoriaEstoqueCSV()">
+                📤 Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="dash-card">
+            <div class="dash-icon icon-blue">📊</div>
+            <div>
+                <h3 id="auditoriaTotalMovimentacoes">0</h3>
+                <p>Movimentações</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">⬆️</div>
+            <div>
+                <h3 id="auditoriaEntradas">0</h3>
+                <p>Entradas</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">⬇️</div>
+            <div>
+                <h3 id="auditoriaSaidas">0</h3>
+                <p>Saídas</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🛠️</div>
+            <div>
+                <h3 id="auditoriaAjustes">0</h3>
+                <p>Ajustes</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">🔎 Filtros de auditoria</h3>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Item, lote ou observação</label>
+                <input
+                    type="text"
+                    id="filtroAuditoriaItem"
+                    oninput="aplicarFiltrosAuditoriaEstoque()"
+                    placeholder="Ex: seringa, lote A123, solicitação...">
+            </div>
+
+            <div>
+                <label>Tipo</label>
+                <select
+                    id="filtroAuditoriaTipo"
+                    onchange="aplicarFiltrosAuditoriaEstoque()">
+                    <option value="TODOS">Todos</option>
+                    <option value="ENTRADA">Entrada</option>
+                    <option value="SAIDA">Saída</option>
+                    <option value="AJUSTE">Ajuste</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Usuário</label>
+                <input
+                    type="text"
+                    id="filtroAuditoriaUsuario"
+                    oninput="aplicarFiltrosAuditoriaEstoque()"
+                    placeholder="Nome ou e-mail">
+            </div>
+
+            <div>
+                <label>Data inicial</label>
+                <input
+                    type="date"
+                    id="filtroAuditoriaInicio"
+                    onchange="aplicarFiltrosAuditoriaEstoque()">
+            </div>
+
+            <div>
+                <label>Data final</label>
+                <input
+                    type="date"
+                    id="filtroAuditoriaFim"
+                    onchange="aplicarFiltrosAuditoriaEstoque()">
+            </div>
+
+        </div>
+
+        <div class="button-row" style="margin-top:16px;">
+            <button
+                class="btn-secondary"
+                onclick="limparFiltrosAuditoriaEstoque()">
+                🧹 Limpar filtros
+            </button>
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">📋 Histórico de movimentações</h3>
+
+        <div
+            id="tabelaAuditoriaEstoque"
+            style="overflow-x:auto;">
+            <p style="color:var(--text-muted);">
+                Clique em atualizar para carregar as movimentações.
+            </p>
+        </div>
+
+    </div>
+
 </div>
 
 
@@ -1677,7 +1868,29 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
 <script src="./js/epidemiologico.js"></script>
+<script src="./js/auditoriaEstoque.js"></script>
 <script src="./js/app.js"></script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const originalNavigateAuditoria =
+        window.navigate;
+
+    if (typeof originalNavigateAuditoria === "function") {
+        window.navigate = function(view) {
+            originalNavigateAuditoria(view);
+
+            if (
+                view === "auditoria-estoque" &&
+                typeof carregarAuditoriaEstoque === "function"
+            ) {
+                carregarAuditoriaEstoque();
+            }
+        };
+    }
+});
+</script>
 
 </body>
 </html>
