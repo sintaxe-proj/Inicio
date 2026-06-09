@@ -1,6 +1,6 @@
 /* ==========================================================
-   🧠 TORRE DE CONTROLE APS — SINTAXEHUB
-   Orquestrador executivo
+   🏢 TORRE DE CONTROLE APS 2.0 — SINTAXEHUB
+   Centro de comando executivo orientado por IA territorial
    Supabase-first: sem localStorage, sem IndexedDB e sem cache persistente.
 
    Integra:
@@ -28,7 +28,10 @@ let torreControleAPSAtual = {
     reuniaoCasos: [],
     estoque: [],
     solicitacoes: [],
-    base: []
+    territorioInteligente: [],
+    base: [],
+    recomendacoesIA: [],
+    agendaSugerida: []
 };
 
 /* ==========================================================
@@ -61,7 +64,8 @@ async function carregarTorreControleAPS() {
             reunioes,
             reuniaoCasos,
             estoque,
-            solicitacoes
+            solicitacoes,
+            territorioInteligente
         ] = await Promise.all([
             buscarTabelaTorreAPS("pacientes", "*", null, 10000),
             buscarTabelaTorreAPS("atendimentos", "*", filtros, 30000, "data_atendimento"),
@@ -69,13 +73,33 @@ async function carregarTorreControleAPS() {
             buscarTabelaTorreAPS("reunioes", "*", filtros, 2000, "criado_em"),
             buscarTabelaTorreAPS("reuniao_casos", "*", filtros, 10000, "created_at"),
             buscarTabelaTorreAPS("estoque_itens", "*", null, 10000),
-            buscarTabelaTorreAPS("solicitacoes_materiais", "*", filtros, 10000, "criado_em")
+            buscarTabelaTorreAPS("solicitacoes_materiais", "*", filtros, 10000, "criado_em"),
+            buscarTabelaTorreAPS("territorio_inteligente", "*", null, 20000, "ultima_atualizacao")
         ]);
 
         const base =
             consolidarBaseTorreAPS(
                 pacientes,
                 atendimentos
+            );
+
+        enriquecerBaseComTerritorioInteligenteTorreAPS(
+            base,
+            territorioInteligente
+        );
+
+        const recomendacoesIA =
+            gerarRecomendacoesExecutivasTorreAPS(
+                base,
+                estoque,
+                solicitacoes,
+                territorioInteligente
+            );
+
+        const agendaSugerida =
+            gerarAgendaInteligenteTorreAPS(
+                base,
+                territorioInteligente
             );
 
         torreControleAPSAtual = {
@@ -86,7 +110,10 @@ async function carregarTorreControleAPS() {
             reuniaoCasos,
             estoque,
             solicitacoes,
-            base
+            territorioInteligente,
+            base,
+            recomendacoesIA,
+            agendaSugerida
         };
 
         carregarFiltrosTorreControleAPS(base);
@@ -518,6 +545,12 @@ function renderizarTorreControleAPS() {
     atualizarCardsTorreControleAPS(dados);
 
     container.innerHTML = `
+        ${renderizarCentroComandoTorreAPS(dados)}
+
+        ${renderizarRecomendacoesIATorreAPS(dados)}
+
+        ${renderizarAgendaInteligenteTorreAPS(dados)}
+
         ${renderizarSituacaoTerritorialTorreAPS(dados)}
 
         ${renderizarPainelPredicaoTorreAPS(dados)}
@@ -657,7 +690,10 @@ function calcularDadosTorreControleAPS(base, filtros) {
         eventosColetivos,
         estoqueAlertas,
         producaoAPS,
-        estratificacao
+        estratificacao,
+        recomendacoesIA: torreControleAPSAtual.recomendacoesIA || [],
+        agendaSugerida: torreControleAPSAtual.agendaSugerida || [],
+        territorioInteligente: torreControleAPSAtual.territorioInteligente || []
     };
 }
 
@@ -1829,6 +1865,495 @@ function identificarPendenciasTorreAPS(p) {
     return pendencias;
 }
 
+
+/* ==========================================================
+   TORRE APS 2.0 — TERRITÓRIO INTELIGENTE
+   ========================================================== */
+
+function enriquecerBaseComTerritorioInteligenteTorreAPS(base, territorioInteligente) {
+    const mapaTI = new Map();
+
+    (territorioInteligente || []).forEach(t => {
+        const chave =
+            limparDocumentoTorreAPS(t.cpf || "") ||
+            String(t.cns || "");
+
+        if (chave) {
+            mapaTI.set(chave, t);
+        }
+    });
+
+    (base || []).forEach(p => {
+        const chave =
+            limparDocumentoTorreAPS(p.cpf || "") ||
+            String(p.cns || "");
+
+        const ti =
+            mapaTI.get(chave);
+
+        if (!ti) return;
+
+        p.territorio_inteligente = ti;
+        p.score_ia = Number(ti.score_geral || 0);
+        p.prioridade_ia = ti.prioridade || "";
+        p.classe_ia = ti.classe_risco || "";
+        p.recomendacao_ia = ti.recomendacao_ia || "";
+        p.resumo_ia = ti.resumo_ia || "";
+
+        if (Array.isArray(ti.pendencias) && ti.pendencias.length) {
+            p.pendencias =
+                [...new Set([...(p.pendencias || []), ...ti.pendencias])];
+        }
+    });
+}
+
+/* ==========================================================
+   CENTRO DE COMANDO
+   ========================================================== */
+
+function renderizarCentroComandoTorreAPS(dados) {
+    const hasSemPA =
+        dados.base.filter(p =>
+            valorSimTorreAPS(p.has) &&
+            (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("has sem pa"))
+        ).length;
+
+    const dmSemHbA1c =
+        dados.base.filter(p =>
+            valorSimTorreAPS(p.dm) &&
+            (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("dm sem hba1c"))
+        ).length;
+
+    const gestantesPrioritarias =
+        dados.base.filter(p =>
+            valorSimTorreAPS(p.gestante) &&
+            (
+                (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("gestante")) ||
+                Number(p.score_ia || 0) >= 60
+            )
+        ).length;
+
+    const tbPrioritaria =
+        dados.base.filter(p =>
+            valorSimTorreAPS(p.tb) &&
+            (
+                (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("tb")) ||
+                Number(p.score_ia || 0) >= 60
+            )
+        ).length;
+
+    const hansenPrioritaria =
+        dados.base.filter(p =>
+            valorSimTorreAPS(p.hansen) &&
+            (
+                (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("hansen")) ||
+                Number(p.score_ia || 0) >= 60
+            )
+        ).length;
+
+    const materiaisPendentes =
+        dados.estoqueAlertas?.pendentes || 0;
+
+    const alertaGeral =
+        dados.criticos + hasSemPA + dmSemHbA1c + gestantesPrioritarias + tbPrioritaria + hansenPrioritaria + materiaisPendentes;
+
+    const status =
+        alertaGeral >= 80
+            ? "🔴 Operação crítica"
+            : alertaGeral >= 30
+                ? "🟡 Atenção operacional"
+                : "🟢 Operação estável";
+
+    return `
+        <div class="form-section" style="border-left:6px solid var(--primary);">
+            <div class="section-header">
+                <div>
+                    <h3 style="margin:0;">🏢 Centro de Comando APS 2.0</h3>
+                    <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                        Status atual: <strong>${status}</strong>
+                    </p>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-primary" onclick="carregarTorreControleAPS()">
+                        🔄 Atualizar Torre
+                    </button>
+
+                    <button class="btn-secondary" onclick="exportarTorreControleAPSCSV()">
+                        📤 Exportar CSV
+                    </button>
+
+                    <button class="btn-info" onclick="copiarResumoExecutivoTorreAPS()">
+                        🧠 Copiar Resumo IA
+                    </button>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("🚨", dados.criticos, "Pacientes críticos", "icon-red")}
+                ${cardTorreAPS("❤️", hasSemPA, "HAS sem PA", "icon-red")}
+                ${cardTorreAPS("🍬", dmSemHbA1c, "DM sem HbA1c", "icon-green")}
+                ${cardTorreAPS("🤰", gestantesPrioritarias, "Gestantes prioritárias", "icon-yellow")}
+                ${cardTorreAPS("🫁", tbPrioritaria, "TB prioritária", "icon-purple")}
+                ${cardTorreAPS("🖐️", hansenPrioritaria, "Hanseníase prioritária", "icon-cyan")}
+                ${cardTorreAPS("📞", dados.busca.semContato, "Sem busca ativa", "icon-yellow")}
+                ${cardTorreAPS("📦", materiaisPendentes, "Materiais pendentes", "icon-blue")}
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   RECOMENDAÇÕES IA EXECUTIVAS
+   ========================================================== */
+
+function gerarRecomendacoesExecutivasTorreAPS(base, estoque, solicitacoes, territorioInteligente) {
+    const recs = [];
+
+    const criticos =
+        base.filter(p =>
+            Number(p.score_ia || 0) >= 80 ||
+            p.prioridade_ia === "Crítica" ||
+            Number(p.predicao?.score || 0) >= 10
+        );
+
+    const hasSemPA =
+        base.filter(p =>
+            valorSimTorreAPS(p.has) &&
+            (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("has sem pa"))
+        );
+
+    const dmSemHbA1c =
+        base.filter(p =>
+            valorSimTorreAPS(p.dm) &&
+            (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("dm sem hba1c"))
+        );
+
+    const gestantes =
+        base.filter(p =>
+            valorSimTorreAPS(p.gestante) &&
+            (
+                (p.pendencias || []).some(x => normalizarTorreAPS(x).includes("gestante")) ||
+                Number(p.score_ia || 0) >= 60
+            )
+        );
+
+    const estoqueBaixo =
+        (estoque || []).filter(e =>
+            Number(e.quantidade_atual || 0) <= Number(e.quantidade_minima || 0)
+        );
+
+    const pendentesMaterial =
+        (solicitacoes || []).filter(s => s.status === "PENDENTE");
+
+    const equipes =
+        agruparEstratificacaoTorreAPS(base, p => p.equipe || "Equipe não informada", "Equipe");
+
+    const equipeCritica =
+        equipes.find(e =>
+            String(e.status || "").includes("Prioridade") ||
+            e.criticos >= 5 ||
+            e.pendencias >= 20
+        );
+
+    if (criticos.length) {
+        recs.push({
+            icone: "🚨",
+            titulo: "Criar agenda protegida para pacientes críticos",
+            impacto: "Alto",
+            justificativa: `${criticos.length} paciente(s) com risco crítico ou muito alto.`,
+            acao: "Discutir os primeiros casos em reunião rápida da equipe e priorizar contato ativo hoje.",
+            tipo: "CRITICOS"
+        });
+    }
+
+    if (hasSemPA.length) {
+        recs.push({
+            icone: "❤️",
+            titulo: "Mutirão de aferição de PA",
+            impacto: "Médio/Alto",
+            justificativa: `${hasSemPA.length} hipertenso(s) sem PA registrada.`,
+            acao: "Organizar lista por equipe/ACS e atualizar sinais vitais no prontuário.",
+            tipo: "HAS"
+        });
+    }
+
+    if (dmSemHbA1c.length) {
+        recs.push({
+            icone: "🍬",
+            titulo: "Atualizar monitoramento de diabéticos",
+            impacto: "Médio/Alto",
+            justificativa: `${dmSemHbA1c.length} diabético(s) sem HbA1c registrada.`,
+            acao: "Solicitar/registrar HbA1c e revisar adesão terapêutica.",
+            tipo: "DM"
+        });
+    }
+
+    if (gestantes.length) {
+        recs.push({
+            icone: "🤰",
+            titulo: "Busca ativa de gestantes prioritárias",
+            impacto: "Alto",
+            justificativa: `${gestantes.length} gestante(s) com atraso, pendência ou risco aumentado.`,
+            acao: "Validar consulta, exames, vacinação e data provável de parto.",
+            tipo: "GESTANTE"
+        });
+    }
+
+    if (equipeCritica) {
+        recs.push({
+            icone: "👥",
+            titulo: `Priorizar ${equipeCritica.nome}`,
+            impacto: "Alto",
+            justificativa: `${equipeCritica.criticos} crítico(s), ${equipeCritica.pendencias} pendência(s), score territorial ${equipeCritica.score}.`,
+            acao: "Reorganizar agenda da equipe e distribuir lista nominal por prioridade.",
+            tipo: "EQUIPE"
+        });
+    }
+
+    if (estoqueBaixo.length || pendentesMaterial.length) {
+        recs.push({
+            icone: "📦",
+            titulo: "Revisar logística de materiais",
+            impacto: "Operacional",
+            justificativa: `${estoqueBaixo.length} item(ns) com estoque baixo e ${pendentesMaterial.length} solicitação(ões) pendente(s).`,
+            acao: "Conferir itens críticos e autorizar solicitações prioritárias.",
+            tipo: "ESTOQUE"
+        });
+    }
+
+    return recs;
+}
+
+function renderizarRecomendacoesIATorreAPS(dados) {
+    const recs =
+        dados.recomendacoesIA || [];
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🧠 Recomendações IA Executivas</h3>
+
+            ${
+                recs.length
+                    ? `<div class="dashboard-grid">
+                        ${recs.slice(0, 6).map(r => `
+                            <div class="dash-card" style="align-items:flex-start;">
+                                <div class="dash-icon icon-purple">${r.icone || "🧠"}</div>
+                                <div>
+                                    <h3 style="font-size:16px;">${escaparTorreAPS(r.titulo)}</h3>
+                                    <p>${escaparTorreAPS(r.justificativa)}</p>
+                                    <small style="color:var(--text-muted);">${escaparTorreAPS(r.acao)}</small>
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>`
+                    : `<p style="color:var(--text-muted);">Nenhuma recomendação crítica no momento.</p>`
+            }
+        </div>
+    `;
+}
+
+/* ==========================================================
+   AGENDA INTELIGENTE
+   ========================================================== */
+
+function gerarAgendaInteligenteTorreAPS(base, territorioInteligente) {
+    return (base || [])
+        .filter(p =>
+            Number(p.score_ia || 0) >= 60 ||
+            p.prioridade_ia === "Crítica" ||
+            p.prioridade_ia === "Alta" ||
+            Number(p.predicao?.score || 0) >= 8 ||
+            Number(p.prazo) === 0 ||
+            (p.pendencias || []).length >= 2
+        )
+        .sort((a, b) =>
+            Number(b.score_ia || 0) - Number(a.score_ia || 0) ||
+            Number(b.predicao?.score || 0) - Number(a.predicao?.score || 0) ||
+            (b.pendencias || []).length - (a.pendencias || []).length
+        )
+        .slice(0, 16)
+        .map((p, index) => {
+            const hora =
+                8 + Math.floor(index / 2);
+
+            const minuto =
+                index % 2 === 0 ? "00" : "30";
+
+            return {
+                horario: `${String(hora).padStart(2, "0")}:${minuto}`,
+                paciente: p,
+                motivo:
+                    p.recomendacao_ia ||
+                    (p.pendencias || []).join(", ") ||
+                    p.predicao?.classe ||
+                    "Prioridade clínica/territorial"
+            };
+        });
+}
+
+function renderizarAgendaInteligenteTorreAPS(dados) {
+    const agenda =
+        dados.agendaSugerida || [];
+
+    return `
+        <div class="form-section">
+            <div class="section-header">
+                <div>
+                    <h3 style="margin:0;">📅 Agenda Inteligente APS do Dia</h3>
+                    <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                        Sugestão automática baseada em prioridade, score, pendências e risco territorial.
+                    </p>
+                </div>
+
+                <button class="btn-secondary" onclick="exportarAgendaInteligenteTorreAPSCSV()">
+                    📤 Exportar Agenda
+                </button>
+            </div>
+
+            ${
+                agenda.length
+                    ? `<table class="table-sintaxe">
+                        <thead>
+                            <tr>
+                                <th>Horário</th>
+                                <th>Paciente</th>
+                                <th>Equipe / UBS</th>
+                                <th>Prioridade</th>
+                                <th>Motivo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${agenda.map(item => {
+                                const p = item.paciente;
+                                return `
+                                    <tr>
+                                        <td><strong>${item.horario}</strong></td>
+                                        <td>
+                                            <strong>${escaparTorreAPS(p.nome || "Sem nome")}</strong>
+                                            <small>CPF: ${escaparTorreAPS(p.cpf || "-")} | CNS: ${escaparTorreAPS(p.cns || "-")}</small>
+                                        </td>
+                                        <td>
+                                            ${escaparTorreAPS(p.equipe || "-")}
+                                            <small>${escaparTorreAPS(p.ubs || "-")}</small>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-warning">
+                                                ${escaparTorreAPS(p.prioridade_ia || p.predicao?.classe || "Prioridade")}
+                                            </span>
+                                            <small>Score IA: ${Number(p.score_ia || 0)}</small>
+                                        </td>
+                                        <td><small>${escaparTorreAPS(item.motivo)}</small></td>
+                                        <td>
+                                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                                <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente('${escaparTorreAPS(p.cpf || "")}', '${escaparTorreAPS(p.cns || "")}')">
+                                                    📋 Prontuário
+                                                </button>
+                                                <button class="btn-table-action btn-ok" onclick="abrirLinhaTempoTerritorial('${escaparTorreAPS(p.cpf || "")}', '${escaparTorreAPS(p.cns || "")}')">
+                                                    🧬 Linha
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join("")}
+                        </tbody>
+                    </table>`
+                    : `<p style="color:var(--text-muted);">Nenhum paciente prioritário para agenda automática.</p>`
+            }
+        </div>
+    `;
+}
+
+function copiarResumoExecutivoTorreAPS() {
+    const dados =
+        calcularDadosTorreControleAPS(
+            aplicarFiltrosTorreControleAPS(torreControleAPSAtual.base || []),
+            obterFiltrosTorreControleAPS()
+        );
+
+    const texto =
+        [
+            "Torre de Controle APS — Resumo Executivo",
+            "",
+            `População: ${dados.populacao}`,
+            `Críticos: ${dados.criticos}`,
+            `Pendências clínicas: ${dados.pendencias}`,
+            `Busca ativa sem contato: ${dados.busca.semContato}`,
+            `Materiais pendentes: ${dados.estoqueAlertas.pendentes}`,
+            "",
+            "Recomendações:",
+            ...(dados.recomendacoesIA || []).map(r => `- ${r.titulo}: ${r.acao}`)
+        ].join("\n");
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(texto);
+        mostrarToast?.("🧠 Resumo executivo copiado.");
+    } else {
+        alert(texto);
+    }
+}
+
+function exportarAgendaInteligenteTorreAPSCSV() {
+    const agenda =
+        torreControleAPSAtual.agendaSugerida || [];
+
+    if (!agenda.length) {
+        mostrarToast?.("Nenhuma agenda para exportar.");
+        return;
+    }
+
+    const linhas = [
+        ["horario", "nome", "cpf", "cns", "equipe", "ubs", "prioridade", "score_ia", "motivo"]
+    ];
+
+    agenda.forEach(item => {
+        const p = item.paciente || {};
+
+        linhas.push([
+            item.horario,
+            p.nome,
+            p.cpf,
+            p.cns,
+            p.equipe,
+            p.ubs,
+            p.prioridade_ia || p.predicao?.classe || "",
+            p.score_ia || 0,
+            item.motivo
+        ]);
+    });
+
+    const csv =
+        linhas
+            .map(linha =>
+                linha
+                    .map(campo => `"${String(campo ?? "").replace(/"/g, '""')}"`)
+                    .join(";")
+            )
+            .join("\n");
+
+    const blob =
+        new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href =
+        url;
+
+    a.download =
+        `agenda_inteligente_aps_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+
 /* ==========================================================
    COMPONENTES
    ========================================================== */
@@ -2073,3 +2598,7 @@ window.calcularEstratificacaoTerritorialTorreAPS = calcularEstratificacaoTerrito
 window.calcularProducaoAPSTorreAPS = calcularProducaoAPSTorreAPS;
 window.calcularScoreTerritorialPacienteTorreAPS = calcularScoreTerritorialPacienteTorreAPS;
 window.torreControleAPSAtual = torreControleAPSAtual;
+window.copiarResumoExecutivoTorreAPS = copiarResumoExecutivoTorreAPS;
+window.exportarAgendaInteligenteTorreAPSCSV = exportarAgendaInteligenteTorreAPSCSV;
+window.gerarAgendaInteligenteTorreAPS = gerarAgendaInteligenteTorreAPS;
+window.gerarRecomendacoesExecutivasTorreAPS = gerarRecomendacoesExecutivasTorreAPS;
