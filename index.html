@@ -261,6 +261,22 @@
                             <p>Hanseníase</p>
                         </div>
                     </div>
+
+                    <div class="dash-card" onclick="navigate('banco')">
+                        <div class="dash-icon icon-blue">👥</div>
+                        <div>
+                            <h3 id="dashTotalPacientes">0</h3>
+                            <p>Pessoas cadastradas</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-card" onclick="abrirPainelEpidemiologico('criticos')">
+                        <div class="dash-icon icon-red">🚨</div>
+                        <div>
+                            <h3 id="dashCriticos">0</h3>
+                            <p>Casos críticos</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-section">
@@ -692,32 +708,25 @@
                     <div id="linhaTempoEvolucoes" style="margin-bottom:20px;"></div>
 
                     <div style="display:flex; gap:10px; border-top:1px solid var(--border); padding-top:15px;">
-                        <button onclick="salvarProntuario()" style="background:var(--primary-neon); color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">💾 Gravar Atendimento</button>
-                        <button onclick="limparFormularioProntuario(); navigate('inicio');" style="background:var(--bg-input); color:var(--text-muted); border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer;">Cancelar</button>
+                        <button class="btn-success" onclick="salvarProntuario()">💾 Gravar Atendimento</button>
+                        <button class="btn-secondary" onclick="limparFormularioProntuario(); navigate('inicio');">Cancelar</button>
                     </div>
                 </div>
             </div>
 
 <div id="view-banco" class="view">
 
-    <div class="form-section">
+    <div class="page-header">
+        <div>
+            <h2>🗄️ Base Territorial Inteligente</h2>
+            <p>Cadastro territorial, linhas de cuidado, risco e monitoramento em tempo real.</p>
+        </div>
 
-        <h3 style="margin-top:0; color:var(--text-main);">
-            🗄️ Base de Cidadãos Monitorados na Área Operacional
-        </h3>
-
-        <p style="color:var(--text-muted); margin-bottom:15px;">
-            Cadastro territorial consolidado a partir da Base Populacional e dos Atendimentos realizados.
-        </p>
-
-        <!-- AÇÕES -->
-
-        <div class="button-row" style="margin-bottom:15px;">
-
+        <div class="button-row">
             <button
                 class="btn-info"
                 onclick="abrirDashboardEpidemiologicoTerritorial()">
-                📊 Visualizar Dashboard Epidemiológico
+                📊 Visualizar Dashboard
             </button>
 
             <button
@@ -731,33 +740,161 @@
                 onclick="exportarBaseTerritorialCSV()">
                 📤 Exportar CSV
             </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="dash-card">
+            <div class="dash-icon icon-blue">👥</div>
+            <div>
+                <h3 id="baseTotalPacientes">0</h3>
+                <p>Pessoas cadastradas</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">❤️</div>
+            <div>
+                <h3 id="baseHAS">0</h3>
+                <p>Hipertensos</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">🍬</div>
+            <div>
+                <h3 id="baseDM">0</h3>
+                <p>Diabéticos</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🤰</div>
+            <div>
+                <h3 id="baseGestantes">0</h3>
+                <p>Gestantes</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-purple">🫁</div>
+            <div>
+                <h3 id="baseTB">0</h3>
+                <p>Tuberculose</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-cyan">🖐️</div>
+            <div>
+                <h3 id="baseHansen">0</h3>
+                <p>Hanseníase</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">🚨</div>
+            <div>
+                <h3 id="baseCriticos">0</h3>
+                <p>Críticos</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">
+            🔎 Filtros territoriais
+        </h3>
+
+        <p style="color:var(--text-muted); margin-top:-6px;">
+            Combine busca textual com equipe, UBS, linha de cuidado e criticidade.
+        </p>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Buscar</label>
+                <input
+                    type="text"
+                    id="buscaBaseTerritorial"
+                    oninput="aplicarFiltrosBaseTerritorial()"
+                    placeholder="Nome, CPF, CNS, telefone, UBS, equipe ou CIAP...">
+            </div>
+
+            <div>
+                <label>Equipe</label>
+                <select
+                    id="filtroEquipeBase"
+                    onchange="aplicarFiltrosBaseTerritorial()">
+                    <option value="TODOS">Todas as equipes</option>
+                </select>
+            </div>
+
+            <div>
+                <label>UBS</label>
+                <select
+                    id="filtroUBSBase"
+                    onchange="aplicarFiltrosBaseTerritorial()">
+                    <option value="TODOS">Todas as UBS</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Linha de cuidado</label>
+                <select
+                    id="filtroLinhaCuidadoBase"
+                    onchange="aplicarFiltrosBaseTerritorial()">
+                    <option value="TODAS">Todas</option>
+                    <option value="HAS">HAS</option>
+                    <option value="DM">DM</option>
+                    <option value="GESTANTE">Gestante</option>
+                    <option value="TB">Tuberculose</option>
+                    <option value="HANSEN">Hanseníase</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Risco / prazo</label>
+                <select
+                    id="filtroRiscoBase"
+                    onchange="aplicarFiltrosBaseTerritorial()">
+                    <option value="TODOS">Todos</option>
+                    <option value="CRITICO">Críticos</option>
+                    <option value="ALTO">Alto risco</option>
+                    <option value="SEM_PRAZO">Sem prazo</option>
+                </select>
+            </div>
 
         </div>
 
-        <!-- BUSCA -->
-
-        <div style="margin-bottom:15px;">
-            <label>
-                Buscar na Base Territorial
-            </label>
-
-            <input
-                type="text"
-                id="buscaBaseTerritorial"
-                oninput="carregarTabelaBanco()"
-                placeholder="Buscar por nome, CPF, CNS, telefone, UBS ou equipe..."
-            >
-
+        <div class="button-row" style="margin-top:16px;">
+            <button
+                class="btn-secondary"
+                onclick="limparBuscaBaseTerritorial()">
+                🧹 Limpar filtros
+            </button>
         </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">
+            📋 Cidadãos monitorados
+        </h3>
+
         <div
-        id="tabelaBancoContainer"
+            id="tabelaBancoContainer"
             style="overflow-x:auto;">
             <p style="color:var(--text-muted);">
                 Carregando dados do Supabase...
-        </p>
+            </p>
+        </div>
 
     </div>
- </div>
 
 </div>
 
@@ -972,6 +1109,12 @@
                     id="resultadoBuscaPacienteReuniao"
                     class="resultado-busca-paciente">
         </div>
+
+                <div
+                    id="resumoPacienteReuniao"
+                    class="form-section"
+                    style="display:none; margin-top:15px; background:#111c2e;">
+                </div>
 
 <input
     type="hidden"
