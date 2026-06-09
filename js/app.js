@@ -63,6 +63,21 @@ function navigate(view) {
     }
 
     if (
+        view === "inicio" &&
+        typeof carregarResumoTerritorioInteligente === "function"
+    ) {
+        carregarResumoTerritorioInteligente()
+            .then(resumo => {
+                console.log("🧠 Resumo Território Inteligente:", resumo);
+
+                if (typeof setTextoApp === "function") {
+                    setTextoApp("dashInicialCriticos", resumo?.criticos ?? 0);
+                }
+            })
+            .catch(console.warn);
+    }
+
+    if (
         view === "banco" &&
         typeof carregarTabelaBanco === "function"
     ) {
@@ -194,6 +209,21 @@ function navigate(view) {
     }
 
 
+    if (
+        view === "motor-predicao-aps" &&
+        typeof carregarMotorPredicaoAPS === "function"
+    ) {
+        Promise
+            .resolve(carregarMotorPredicaoAPS())
+            .then(() => {
+                if (typeof atualizarResumoIADashboardInicial === "function") {
+                    atualizarResumoIADashboardInicial();
+                }
+            })
+            .catch(console.warn);
+    }
+
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
@@ -204,6 +234,61 @@ function navigate(view) {
     }
 }
 
+
+
+
+// ======================================================
+// IA APS — RESUMO NO DASHBOARD INICIAL
+// ======================================================
+
+function atualizarResumoIADashboardInicial() {
+    const recomendacoesBox =
+        document.getElementById("dashInicialRecomendacoesIA");
+
+    const gemeoBox =
+        document.getElementById("dashInicialGemeoDigital");
+
+    const motor =
+        window.motorPredicaoAPSAtual || {};
+
+    if (
+        recomendacoesBox &&
+        Array.isArray(motor.recomendacoes) &&
+        motor.recomendacoes.length
+    ) {
+        recomendacoesBox.innerHTML =
+            `<div class="dashboard-list">
+                ${motor.recomendacoes.slice(0, 4).map(r => `
+                    <div class="dashboard-list-item">
+                        <div>
+                            <strong>${r.icone || "🧠"} ${r.titulo || "Recomendação APS"}</strong>
+                            <small>${r.acao || r.justificativa || ""}</small>
+                        </div>
+                        <span class="status-badge status-warning">${r.impacto || "IA"}</span>
+                    </div>
+                `).join("")}
+            </div>`;
+    }
+
+    if (
+        gemeoBox &&
+        Array.isArray(motor.territorios) &&
+        motor.territorios.length
+    ) {
+        gemeoBox.innerHTML =
+            `<div class="dashboard-list">
+                ${motor.territorios.slice(0, 4).map(t => `
+                    <div class="dashboard-list-item">
+                        <div>
+                            <strong>${t.status || "🌎"} ${t.territorio || "Território"}</strong>
+                            <small>Pressão assistencial: ${t.pressaoAssistencial || 0}</small>
+                        </div>
+                        <span class="status-badge status-info">${t.altoRisco || 0} alto risco</span>
+                    </div>
+                `).join("")}
+            </div>`;
+    }
+}
 
 // ======================================================
 // LOGIN AUTOMÁTICO / RESTAURAÇÃO DE SESSÃO
@@ -334,6 +419,22 @@ function atualizarDadosIniciais() {
         typeof atualizarDashboardEstoque === "function"
     ) {
         atualizarDashboardEstoque();
+    }
+
+    if (
+        typeof carregarDashboardInicialSintaxeHub === "function"
+    ) {
+        carregarDashboardInicialSintaxeHub();
+    }
+
+    if (
+        typeof carregarResumoTerritorioInteligente === "function"
+    ) {
+        carregarResumoTerritorioInteligente()
+            .then(resumo => {
+                console.log("🧠 Território Inteligente pronto:", resumo?.total || 0);
+            })
+            .catch(console.warn);
     }
 }
 
@@ -604,3 +705,4 @@ window.atualizarDadosIniciais = atualizarDadosIniciais;
 window.atualizarVisibilidadeDiscadorApp = atualizarVisibilidadeDiscadorApp;
 window.setTextoApp = setTextoApp;
 window.calcularStatusValidadeApp = calcularStatusValidadeApp;
+window.atualizarResumoIADashboardInicial = atualizarResumoIADashboardInicial;
