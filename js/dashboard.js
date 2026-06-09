@@ -1,5 +1,5 @@
 /* ==========================================================================
-   📊 DASHBOARD / CARDS / CENTRAL DE AVISOS
+   📊 DASHBOARD EXECUTIVO / CARDS / CENTRAL DE AVISOS
    Supabase puro
    Arquivo: js/dashboard.js
    ========================================================================== */
@@ -12,7 +12,16 @@ async function atualizarIndicatorsDashboard() {
 
     const { data, error } = await supabaseClient
         .from("atendimentos")
-        .select("has, dm, gestante, tb, hansen");
+        .select(`
+            has,
+            dm,
+            gestante,
+            tb,
+            hansen,
+            reavaliacaoDias,
+            retorno_dias
+        `)
+        .limit(10000);
 
     if (error) {
         console.error("Erro ao atualizar dashboard:", error);
@@ -21,45 +30,72 @@ async function atualizarIndicatorsDashboard() {
 
     const dados = data || [];
 
-    const dashHAS = document.getElementById("dashHAS");
-    const dashDM = document.getElementById("dashDM");
-    const dashGest = document.getElementById("dashGest");
-    const dashTB = document.getElementById("dashTB");
-    const dashHansen = document.getElementById("dashHansen");
+    const totalAtendimentos =
+        dados.length;
 
-    if (dashHAS) {
-        dashHAS.innerText =
-            dados.filter(p => p.has === "Sim").length;
-    }
+    const has =
+        dados.filter(p => valorSimDashboard(p.has)).length;
 
-    if (dashDM) {
-        dashDM.innerText =
-            dados.filter(p => p.dm === "Sim").length;
-    }
+    const dm =
+        dados.filter(p => valorSimDashboard(p.dm)).length;
 
-    if (dashGest) {
-        dashGest.innerText =
-            dados.filter(p => p.gestante === "Sim").length;
-    }
+    const gestante =
+        dados.filter(p => valorSimDashboard(p.gestante)).length;
 
-    if (dashTB) {
-        dashTB.innerText =
-            dados.filter(p => p.tb === "Sim").length;
-    }
+    const tb =
+        dados.filter(p => valorSimDashboard(p.tb)).length;
 
-    if (dashHansen) {
-        dashHansen.innerText =
-            dados.filter(p => p.hansen === "Sim").length;
-    }
+    const hansen =
+        dados.filter(p => valorSimDashboard(p.hansen)).length;
+
+    const criticos =
+        dados.filter(p =>
+            Number(p.reavaliacaoDias ?? p.retorno_dias) === 0
+        ).length;
+
+    setTextoDashboard("dashHAS", has);
+    setTextoDashboard("dashDM", dm);
+    setTextoDashboard("dashGest", gestante);
+    setTextoDashboard("dashTB", tb);
+    setTextoDashboard("dashHansen", hansen);
+
+    setTextoDashboard("dashTotalAtendimentos", totalAtendimentos);
+    setTextoDashboard("dashCriticos", criticos);
+
+    await atualizarTotalPacientesDashboard();
 
     console.log("Dashboard Supabase atualizado:", {
-        total: dados.length,
-        has: dashHAS?.innerText,
-        dm: dashDM?.innerText,
-        gestante: dashGest?.innerText,
-        tb: dashTB?.innerText,
-        hansen: dashHansen?.innerText
+        totalAtendimentos,
+        has,
+        dm,
+        gestante,
+        tb,
+        hansen,
+        criticos
     });
+}
+
+async function atualizarTotalPacientesDashboard() {
+    const el =
+        document.getElementById("dashTotalPacientes");
+
+    if (!el) return;
+
+    const { count, error } =
+        await supabaseClient
+            .from("pacientes")
+            .select("*", {
+                count: "exact",
+                head: true
+            });
+
+    if (error) {
+        console.warn("Erro ao contar pacientes:", error);
+        return;
+    }
+
+    el.innerText =
+        count || 0;
 }
 
 /* ==========================================================================
@@ -91,7 +127,8 @@ async function atualizarCentralAvisosSininho() {
         return;
     }
 
-    const alertas = data || [];
+    const alertas =
+        data || [];
 
     const contador =
         document.getElementById("contadorAvisosSininho");
@@ -103,8 +140,11 @@ async function atualizarCentralAvisosSininho() {
         document.getElementById("iconeNotaAviso");
 
     if (contador) {
-        contador.innerText = alertas.length;
+        contador.innerText =
+            alertas.length;
     }
+
+    setTextoDashboard("dashCriticos", alertas.length);
 
     const primeiraNota =
         alertas.find(a =>
@@ -137,7 +177,8 @@ async function atualizarCentralAvisosSininho() {
             iconeNota.style.display =
                 "none";
 
-            iconeNota.title = "";
+            iconeNota.title =
+                "";
         }
     }
 
@@ -148,18 +189,49 @@ async function atualizarCentralAvisosSininho() {
 }
 
 /* ==========================================================================
+   HELPERS
+   ========================================================================== */
+
+function valorSimDashboard(valor) {
+    const v = String(valor || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+function setTextoDashboard(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor;
+    }
+}
+
+/* ==========================================================================
    🚨 ABRIR CRÍTICOS
    ========================================================================== */
 
 function abrirPainelCriticosDireto() {
-
     if (
         typeof abrirPainelEpidemiologico ===
         "function"
     ) {
-        abrirPainelEpidemiologico(
-            "criticos"
-        );
+        abrirPainelEpidemiologico("criticos");
     }
 }
 
@@ -167,11 +239,7 @@ function abrirPainelCriticosDireto() {
    GLOBAL
    ========================================================================== */
 
-window.atualizarIndicatorsDashboard =
-    atualizarIndicatorsDashboard;
-
-window.atualizarCentralAvisosSininho =
-    atualizarCentralAvisosSininho;
-
-window.abrirPainelCriticosDireto =
-    abrirPainelCriticosDireto;
+window.atualizarIndicatorsDashboard = atualizarIndicatorsDashboard;
+window.atualizarCentralAvisosSininho = atualizarCentralAvisosSininho;
+window.abrirPainelCriticosDireto = abrirPainelCriticosDireto;
+window.valorSimDashboard = valorSimDashboard;
