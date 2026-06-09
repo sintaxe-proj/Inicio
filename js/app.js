@@ -56,6 +56,15 @@ function navigate(view) {
         typeof carregarTabelaBanco === "function"
     ) {
         carregarTabelaBanco();
+
+        if (
+            typeof aplicarFiltrosBaseTerritorial === "function"
+        ) {
+            setTimeout(
+                aplicarFiltrosBaseTerritorial,
+                500
+            );
+        }
     }
 
     if (
