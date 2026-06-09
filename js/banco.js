@@ -519,11 +519,31 @@ function renderizarTabelaBaseTerritorial(base) {
                         </td>
 
                         <td>
-                            <button
-                                class="btn-table-action btn-edit"
-                                onclick="abrirAtendimentoExistente('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}')">
-                                📋 Abrir
-                            </button>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button
+                                    class="btn-table-action btn-edit"
+                                    onclick="abrirAtendimentoExistente('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}')">
+                                    📋 Prontuário
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-ok"
+                                    onclick="abrirLinhaTempoTerritorial('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}')">
+                                    🧬 Linha
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-warn"
+                                    onclick="navigate('central-aps'); setTimeout(() => { const campo = document.getElementById('buscaCentralAPS'); if (campo) campo.value='${escaparBase(p.cpf || p.cns || "")}'; if (typeof aplicarFilaCentralAPS === 'function') aplicarFilaCentralAPS('PENDENCIAS'); }, 400);">
+                                    🧭 Pendências
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-info"
+                                    onclick="navigate('central-aps'); setTimeout(() => { if (typeof abrirModalInteracaoCentralAPS === 'function') abrirModalInteracaoCentralAPS('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}'); }, 400);">
+                                    📞 Busca
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join("")}
@@ -764,3 +784,5 @@ window.limparBuscaBaseTerritorial = limparBuscaBaseTerritorial;
 window.aplicarFiltrosBaseTerritorial = aplicarFiltrosBaseTerritorial;
 window.carregarFiltrosBaseTerritorial = carregarFiltrosBaseTerritorial;
 window.exportarBaseTerritorialCSV = exportarBaseTerritorialCSV;
+
+window.baseTerritorialCache = baseTerritorialCache;
