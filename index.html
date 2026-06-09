@@ -238,6 +238,11 @@
                     <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
                 </a>
 
+
+
+                <a class="nav-link" onclick="navigate('central-prioridades-aps')">
+                    <span class="nav-emoji">🚨</span><span class="nav-text">Central de Prioridades</span>
+                </a>
                 <a class="nav-link" onclick="navigate('torre-controle-aps')">
                     <span class="nav-emoji">🧠</span><span class="nav-text">Torre APS</span>
                 </a>
@@ -1897,6 +1902,32 @@
 
     </div>
 
+</div>
+
+
+<div id="view-central-prioridades-aps" class="view">
+    <div class="page-header">
+        <div>
+            <h2>🚨 Central de Prioridades APS</h2>
+            <p>Fila inteligente alimentada pelo Território Inteligente.</p>
+        </div>
+        <div class="button-row">
+            <button class="btn-primary" onclick="carregarCentralPrioridadesAPS()">🔄 Atualizar</button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dash-card"><div class="dash-icon icon-red">🚨</div><div><h3 id="prioridadeCriticos">0</h3><p>Críticos</p></div></div>
+        <div class="dash-card"><div class="dash-icon icon-red">❤️</div><div><h3 id="prioridadeHAS">0</h3><p>HAS sem PA</p></div></div>
+        <div class="dash-card"><div class="dash-icon icon-green">🍬</div><div><h3 id="prioridadeDM">0</h3><p>DM sem HbA1c</p></div></div>
+        <div class="dash-card"><div class="dash-icon icon-yellow">🤰</div><div><h3 id="prioridadeGestantes">0</h3><p>Gestantes</p></div></div>
+    </div>
+
+    <div class="form-section">
+        <div id="listaCentralPrioridadesAPS">
+            <p style="color:var(--text-muted);">Clique em atualizar prioridades.</p>
+        </div>
+    </div>
 </div>
 
 <div id="view-reuniao" class="view">
@@ -3683,6 +3714,7 @@
 <script src="./js/territorioInteligente.js"></script>
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
+<script src="./js/centralPrioridadesAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
