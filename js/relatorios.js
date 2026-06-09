@@ -924,90 +924,7 @@ function badgesLinhasRelatorioAPS(p) {
    ========================================================== */
 
 function imprimirRelatorioAPS() {
-    const area =
-        document.getElementById("areaImpressaoRelatorioAPS");
-
-    if (!area) {
-        mostrarToast?.("⚠️ Gere o relatório antes de imprimir.");
-        return;
-    }
-
-    const janela =
-        window.open("", "_blank");
-
-    if (!janela) {
-        alert("Não foi possível abrir a janela de impressão.");
-        return;
-    }
-
-    janela.document.write(`
-        <html>
-        <head>
-            <title>Relatório Gerencial APS</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    padding: 24px;
-                    color: #111;
-                }
-
-                h3 {
-                    margin-top: 24px;
-                }
-
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 10px;
-                }
-
-                th, td {
-                    border: 1px solid #ccc;
-                    padding: 8px;
-                    font-size: 12px;
-                    vertical-align: top;
-                }
-
-                .dashboard-grid {
-                    display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 10px;
-                }
-
-                .dash-card {
-                    border: 1px solid #ccc;
-                    padding: 10px;
-                    border-radius: 8px;
-                }
-
-                .dash-icon {
-                    font-size: 20px;
-                }
-
-                small {
-                    display: block;
-                    color: #555;
-                }
-
-                .status-badge {
-                    border: 1px solid #999;
-                    padding: 2px 6px;
-                    border-radius: 8px;
-                    font-size: 11px;
-                    display: inline-block;
-                    margin: 2px;
-                }
-            </style>
-        </head>
-        <body>
-            <h2>Relatório Gerencial APS — SintaxeHub</h2>
-            ${area.innerHTML}
-        </body>
-        </html>
-    `);
-
-    janela.document.close();
-    janela.print();
+    gerarRelatorioPDFProfissionalAPS();
 }
 
 function exportarRelatorioAPSCSV() {
@@ -1098,6 +1015,336 @@ function baixarCSVRelatorioAPS(linhas, nomeArquivo) {
     a.click();
 
     URL.revokeObjectURL(url);
+}
+
+
+/* ==========================================================
+   PDF PROFISSIONAL DO RELATÓRIO APS
+   ========================================================== */
+
+function gerarRelatorioPDFProfissionalAPS() {
+    const area =
+        document.getElementById("areaImpressaoRelatorioAPS") ||
+        document.getElementById("conteudoRelatorioAPS");
+
+    if (!area) {
+        mostrarToast?.("⚠️ Gere o relatório antes de exportar em PDF.");
+        return;
+    }
+
+    const filtros =
+        obterFiltrosRelatorioAPS();
+
+    const periodo =
+        `${filtros.inicio || "Início"} a ${filtros.fim || "Hoje"}`;
+
+    const equipe =
+        filtros.equipe || "TODAS";
+
+    const ubs =
+        filtros.ubs || "TODAS";
+
+    const linha =
+        filtros.linha || "TODAS";
+
+    const janela =
+        window.open("", "_blank");
+
+    if (!janela) {
+        alert("Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou pop-ups.");
+        return;
+    }
+
+    janela.document.write(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <title>Relatório Gerencial APS — SintaxeHub</title>
+
+            <style>
+                @page {
+                    size: A4;
+                    margin: 16mm;
+                }
+
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    color: #111827;
+                    background: #ffffff;
+                    line-height: 1.4;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                .capa-relatorio {
+                    height: 92vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    text-align: center;
+                    border: 4px solid #1d4ed8;
+                    padding: 48px;
+                    page-break-after: always;
+                }
+
+                .logo-relatorio {
+                    width: 82px;
+                    height: 82px;
+                    border-radius: 22px;
+                    background: #1d4ed8;
+                    color: white;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 44px;
+                    font-weight: 800;
+                    margin: 0 auto 24px auto;
+                }
+
+                .capa-relatorio h1 {
+                    font-size: 32px;
+                    margin: 0 0 10px 0;
+                    color: #0f172a;
+                }
+
+                .capa-relatorio h2 {
+                    font-size: 18px;
+                    margin: 0;
+                    color: #334155;
+                    border: 0;
+                    padding: 0;
+                }
+
+                .metadados-relatorio {
+                    margin-top: 34px;
+                    font-size: 14px;
+                    color: #475569;
+                    line-height: 1.8;
+                }
+
+                .selo-relatorio {
+                    margin-top: 36px;
+                    display: inline-block;
+                    border: 1px solid #1d4ed8;
+                    color: #1d4ed8;
+                    padding: 8px 14px;
+                    border-radius: 999px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
+                }
+
+                main {
+                    padding: 0;
+                }
+
+                h2 {
+                    font-size: 22px;
+                    color: #0f172a;
+                    border-bottom: 3px solid #1d4ed8;
+                    padding-bottom: 8px;
+                    margin-top: 0;
+                }
+
+                h3 {
+                    font-size: 17px;
+                    color: #1e3a8a;
+                    border-bottom: 1px solid #cbd5e1;
+                    padding-bottom: 6px;
+                    margin-top: 28px;
+                }
+
+                h4 {
+                    font-size: 14px;
+                    color: #334155;
+                    margin-top: 18px;
+                }
+
+                p {
+                    font-size: 12px;
+                }
+
+                .form-section {
+                    border: 1px solid #cbd5e1;
+                    border-radius: 12px;
+                    padding: 14px;
+                    margin-bottom: 16px;
+                    background: #ffffff;
+                    break-inside: avoid;
+                }
+
+                .dashboard-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                    margin: 12px 0;
+                }
+
+                .dash-card {
+                    border: 1px solid #cbd5e1;
+                    border-radius: 10px;
+                    padding: 12px;
+                    background: #f8fafc;
+                    break-inside: avoid;
+                }
+
+                .dash-icon {
+                    font-size: 20px;
+                    margin-bottom: 4px;
+                }
+
+                .dash-card h3 {
+                    margin: 0;
+                    padding: 0;
+                    border: 0;
+                    color: #0f172a;
+                    font-size: 24px;
+                }
+
+                .dash-card p {
+                    margin: 4px 0 0 0;
+                    color: #475569;
+                    font-size: 11px;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    font-size: 10.5px;
+                    page-break-inside: auto;
+                }
+
+                thead {
+                    display: table-header-group;
+                }
+
+                th {
+                    background: #1e3a8a;
+                    color: #ffffff;
+                    text-align: left;
+                    padding: 7px;
+                    border: 1px solid #1e3a8a;
+                }
+
+                td {
+                    border: 1px solid #cbd5e1;
+                    padding: 7px;
+                    vertical-align: top;
+                }
+
+                tr {
+                    page-break-inside: avoid;
+                }
+
+                small {
+                    display: block;
+                    color: #64748b;
+                    font-size: 10px;
+                    margin-top: 2px;
+                }
+
+                .status-badge {
+                    display: inline-block;
+                    border: 1px solid #94a3b8;
+                    border-radius: 999px;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    margin: 1px;
+                    color: #111827;
+                    background: #f8fafc;
+                }
+
+                .assinaturas-relatorio {
+                    margin-top: 60px;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 60px;
+                    page-break-inside: avoid;
+                }
+
+                .linha-assinatura {
+                    border-top: 1px solid #111827;
+                    padding-top: 8px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #334155;
+                }
+
+                .rodape-relatorio {
+                    margin-top: 30px;
+                    font-size: 10px;
+                    color: #64748b;
+                    text-align: center;
+                    border-top: 1px solid #cbd5e1;
+                    padding-top: 10px;
+                }
+
+                @media print {
+                    button {
+                        display: none !important;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+
+            <section class="capa-relatorio">
+                <div class="logo-relatorio">S</div>
+
+                <h1>Relatório Gerencial APS</h1>
+
+                <h2>SintaxeHub — Gestão Territorial, Busca Ativa e Cuidado Longitudinal</h2>
+
+                <div class="metadados-relatorio">
+                    <div><strong>Período:</strong> ${escaparRelatorioAPS(periodo)}</div>
+                    <div><strong>Equipe:</strong> ${escaparRelatorioAPS(equipe)}</div>
+                    <div><strong>UBS:</strong> ${escaparRelatorioAPS(ubs)}</div>
+                    <div><strong>Linha de cuidado:</strong> ${escaparRelatorioAPS(linha)}</div>
+                    <div><strong>Emitido em:</strong> ${new Date().toLocaleString("pt-BR")}</div>
+                </div>
+
+                <div class="selo-relatorio">
+                    RELATÓRIO GERENCIAL APS
+                </div>
+            </section>
+
+            <main>
+                <h2>Consolidação Gerencial</h2>
+
+                ${area.innerHTML}
+
+                <section class="assinaturas-relatorio">
+                    <div class="linha-assinatura">
+                        Coordenação da APS
+                    </div>
+
+                    <div class="linha-assinatura">
+                        Responsável Técnico
+                    </div>
+                </section>
+
+                <div class="rodape-relatorio">
+                    Documento gerado pelo SintaxeHub — Plataforma Territorial de APS.
+                </div>
+            </main>
+
+        </body>
+        </html>
+    `);
+
+    janela.document.close();
+
+    setTimeout(() => {
+        janela.focus();
+        janela.print();
+    }, 500);
 }
 
 /* ==========================================================
@@ -1198,3 +1445,4 @@ window.carregarRelatorioAPS = carregarRelatorioAPS;
 window.aplicarFiltrosRelatorioAPS = aplicarFiltrosRelatorioAPS;
 window.exportarRelatorioAPSCSV = exportarRelatorioAPSCSV;
 window.imprimirRelatorioAPS = imprimirRelatorioAPS;
+window.gerarRelatorioPDFProfissionalAPS = gerarRelatorioPDFProfissionalAPS;
