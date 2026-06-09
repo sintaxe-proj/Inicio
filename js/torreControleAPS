@@ -522,6 +522,10 @@ function renderizarTorreControleAPS() {
 
         ${renderizarPainelPredicaoTorreAPS(dados)}
 
+        ${renderizarEstratificacaoTerritorialTorreAPS(dados)}
+
+        ${renderizarProducaoAPSTorreAPS(dados)}
+
         ${renderizarHotspotsTorreAPS(dados)}
 
         ${renderizarBuscaAtivaTorreAPS(dados)}
@@ -617,6 +621,17 @@ function calcularDadosTorreControleAPS(base, filtros) {
             solicitacoes
         );
 
+    const producaoAPS =
+        calcularProducaoAPSTorreAPS(
+            atendimentos,
+            interacoes,
+            reuniaoCasos,
+            solicitacoes
+        );
+
+    const estratificacao =
+        calcularEstratificacaoTerritorialTorreAPS(base);
+
     return {
         filtros,
         base,
@@ -640,7 +655,9 @@ function calcularDadosTorreControleAPS(base, filtros) {
         hotspots,
         busca,
         eventosColetivos,
-        estoqueAlertas
+        estoqueAlertas,
+        producaoAPS,
+        estratificacao
     };
 }
 
@@ -804,6 +821,495 @@ function calcularScorePredicaoTorreAPS(p) {
                     : "Baixo risco preditivo"
     };
 }
+
+
+/* ==========================================================
+   ESTRATIFICAÇÃO TERRITORIAL V2
+   ========================================================== */
+
+function calcularEstratificacaoTerritorialTorreAPS(base) {
+    return {
+        equipes:
+            agruparEstratificacaoTorreAPS(
+                base,
+                p => p.equipe || "Equipe não informada",
+                "Equipe"
+            ),
+
+        ubs:
+            agruparEstratificacaoTorreAPS(
+                base,
+                p => p.ubs || "UBS não informada",
+                "UBS"
+            ),
+
+        territorios:
+            agruparEstratificacaoTorreAPS(
+                base,
+                p => p.cep || p.bairro || p.ubs || "Território não informado",
+                "Território"
+            )
+    };
+}
+
+function agruparEstratificacaoTorreAPS(base, chaveFn, tipo) {
+    const grupos = {};
+
+    (base || []).forEach(p => {
+        const chave =
+            chaveFn(p) ||
+            "Não informado";
+
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                tipo,
+                nome: chave,
+                populacao: 0,
+                has: 0,
+                dm: 0,
+                gestantes: 0,
+                tb: 0,
+                hansen: 0,
+                criticos: 0,
+                pendencias: 0,
+                semAtendimento180: 0,
+                score: 0,
+                status: "🟢 Estável"
+            };
+        }
+
+        const g =
+            grupos[chave];
+
+        g.populacao++;
+
+        if (valorSimTorreAPS(p.has)) g.has++;
+        if (valorSimTorreAPS(p.dm)) g.dm++;
+        if (valorSimTorreAPS(p.gestante)) g.gestantes++;
+        if (valorSimTorreAPS(p.tb)) g.tb++;
+        if (valorSimTorreAPS(p.hansen)) g.hansen++;
+
+        const critico =
+            Number(p.prazo) === 0 ||
+            normalizarTorreAPS(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6 ||
+            Number(p.predicao?.score || 0) >= 10;
+
+        if (critico) {
+            g.criticos++;
+        }
+
+        const qtdPendencias =
+            p.pendencias?.length || 0;
+
+        g.pendencias +=
+            qtdPendencias;
+
+        if (diasDesdeTorreAPS(p.ultimo_atendimento) > 180) {
+            g.semAtendimento180++;
+        }
+
+        g.score +=
+            calcularScoreTerritorialPacienteTorreAPS(p);
+    });
+
+    Object.values(grupos).forEach(g => {
+        g.taxaCriticos =
+            g.populacao > 0
+                ? Number(((g.criticos / g.populacao) * 100).toFixed(1))
+                : 0;
+
+        g.taxaPendencias =
+            g.populacao > 0
+                ? Number(((g.pendencias / g.populacao) * 100).toFixed(1))
+                : 0;
+
+        if (
+            g.score >= 300 ||
+            g.taxaCriticos >= 8 ||
+            g.taxaPendencias >= 40
+        ) {
+            g.status = "🔴 Prioridade Máxima";
+        } else if (
+            g.score >= 120 ||
+            g.taxaCriticos >= 4 ||
+            g.taxaPendencias >= 20
+        ) {
+            g.status = "🟡 Atenção";
+        } else {
+            g.status = "🟢 Estável";
+        }
+    });
+
+    return Object
+        .values(grupos)
+        .sort((a, b) =>
+            b.score - a.score ||
+            b.criticos - a.criticos ||
+            b.pendencias - a.pendencias ||
+            b.populacao - a.populacao
+        );
+}
+
+function calcularScoreTerritorialPacienteTorreAPS(p) {
+    let score = 0;
+
+    if (
+        Number(p.prazo) === 0 ||
+        normalizarTorreAPS(p.risco_global).includes("alto") ||
+        Number(p.risco_pontos || 0) >= 6 ||
+        Number(p.predicao?.score || 0) >= 10
+    ) {
+        score += 5;
+    }
+
+    score +=
+        (p.pendencias?.length || 0) * 2;
+
+    if (valorSimTorreAPS(p.tb)) score += 3;
+    if (valorSimTorreAPS(p.hansen)) score += 3;
+    if (valorSimTorreAPS(p.gestante)) score += 2;
+    if (valorSimTorreAPS(p.has)) score += 1;
+    if (valorSimTorreAPS(p.dm)) score += 1;
+
+    if (diasDesdeTorreAPS(p.ultimo_atendimento) > 180) {
+        score += 3;
+    }
+
+    score +=
+        Number(p.risco_pontos || 0);
+
+    return score;
+}
+
+function renderizarEstratificacaoTerritorialTorreAPS(dados) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📍 Estratificação Territorial APS</h3>
+
+            <div class="dashboard-grid">
+                ${cardResumoEstratificacaoTorreAPS("👥", dados.estratificacao.equipes, "Equipes", "icon-blue")}
+                ${cardResumoEstratificacaoTorreAPS("🏥", dados.estratificacao.ubs, "UBS", "icon-green")}
+                ${cardResumoEstratificacaoTorreAPS("🌎", dados.estratificacao.territorios, "Territórios", "icon-purple")}
+            </div>
+
+            <h4>🚦 Semáforo por Equipe</h4>
+            ${renderizarTabelaEstratificacaoTorreAPS(dados.estratificacao.equipes.slice(0, 12))}
+
+            <h4>🏥 Semáforo por UBS</h4>
+            ${renderizarTabelaEstratificacaoTorreAPS(dados.estratificacao.ubs.slice(0, 12))}
+
+            <h4>🔥 Ranking Territorial Executivo</h4>
+            ${renderizarTabelaEstratificacaoTorreAPS(dados.estratificacao.territorios.slice(0, 20))}
+        </div>
+    `;
+}
+
+function cardResumoEstratificacaoTorreAPS(icone, lista, rotulo, classeIcone) {
+    const prioridade =
+        (lista || []).filter(x =>
+            String(x.status || "").includes("Prioridade")
+        ).length;
+
+    const atencao =
+        (lista || []).filter(x =>
+            String(x.status || "").includes("Atenção")
+        ).length;
+
+    return cardTorreAPS(
+        icone,
+        `${prioridade} 🔴 / ${atencao} 🟡`,
+        `${rotulo} em alerta`,
+        classeIcone
+    );
+}
+
+function renderizarTabelaEstratificacaoTorreAPS(lista) {
+    if (!lista || !lista.length) {
+        return `<p style="color:var(--text-muted);">Sem dados para estratificação.</p>`;
+    }
+
+    return `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Dimensão</th>
+                    <th>Status</th>
+                    <th>População</th>
+                    <th>Críticos</th>
+                    <th>Pendências</th>
+                    <th>Sem atendimento &gt;180d</th>
+                    <th>Score Territorial</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${lista.map(g => `
+                    <tr>
+                        <td>
+                            <strong>${escaparTorreAPS(g.nome)}</strong>
+                            <small>${escaparTorreAPS(g.tipo)}</small>
+                        </td>
+                        <td>${escaparTorreAPS(g.status)}</td>
+                        <td>${g.populacao}</td>
+                        <td>
+                            ${g.criticos}
+                            <small>${g.taxaCriticos}%</small>
+                        </td>
+                        <td>
+                            ${g.pendencias}
+                            <small>${g.taxaPendencias}%</small>
+                        </td>
+                        <td>${g.semAtendimento180}</td>
+                        <td><strong>${g.score}</strong></td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+/* ==========================================================
+   PRODUÇÃO APS V2
+   ========================================================== */
+
+function calcularProducaoAPSTorreAPS(
+    atendimentos,
+    interacoes,
+    reuniaoCasos,
+    solicitacoes
+) {
+    return {
+        profissionais:
+            agruparProducaoAtendimentosTorreAPS(
+                atendimentos,
+                a =>
+                    a.usuario_nome ||
+                    a.usuario_email ||
+                    "Profissional não informado",
+                "Profissional"
+            ),
+
+        equipes:
+            agruparProducaoAtendimentosTorreAPS(
+                atendimentos,
+                a =>
+                    a.equipe_esf ||
+                    a.equipe ||
+                    "Equipe não informada",
+                "Equipe"
+            ),
+
+        ubs:
+            agruparProducaoAtendimentosTorreAPS(
+                atendimentos,
+                a =>
+                    a.ubs_vinculacao ||
+                    a.ubs ||
+                    "UBS não informada",
+                "UBS"
+            ),
+
+        resumo:
+            calcularResumoProducaoTorreAPS(
+                atendimentos,
+                interacoes,
+                reuniaoCasos,
+                solicitacoes
+            )
+    };
+}
+
+function agruparProducaoAtendimentosTorreAPS(atendimentos, chaveFn, tipo) {
+    const grupos = {};
+
+    (atendimentos || []).forEach(a => {
+        const chave =
+            chaveFn(a) ||
+            "Não informado";
+
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                tipo,
+                nome: chave,
+                atendimentos: 0,
+                has: 0,
+                dm: 0,
+                gestantes: 0,
+                tb: 0,
+                hansen: 0,
+                criticos: 0,
+                ciaps: new Set(),
+                produtividade: "🟢 Baixa"
+            };
+        }
+
+        const g =
+            grupos[chave];
+
+        g.atendimentos++;
+
+        if (valorSimTorreAPS(a.has)) g.has++;
+        if (valorSimTorreAPS(a.dm)) g.dm++;
+        if (valorSimTorreAPS(a.gestante)) g.gestantes++;
+        if (valorSimTorreAPS(a.tb)) g.tb++;
+        if (valorSimTorreAPS(a.hansen)) g.hansen++;
+
+        if (
+            Number(a.reavaliacaoDias ?? a.retorno_dias) === 0 ||
+            normalizarTorreAPS(a.risco_global).includes("alto") ||
+            Number(a.risco_pontos || 0) >= 6
+        ) {
+            g.criticos++;
+        }
+
+        const ciap =
+            a.ciapSelecionado ||
+            a.inputBuscaCIAPS ||
+            a.ciap ||
+            a.avaliacao ||
+            "";
+
+        if (ciap) {
+            g.ciaps.add(ciap);
+        }
+    });
+
+    Object.values(grupos).forEach(g => {
+        g.ciapsDistintos =
+            g.ciaps.size;
+
+        delete g.ciaps;
+
+        if (g.atendimentos >= 80) {
+            g.produtividade = "🔵 Alta";
+        } else if (g.atendimentos >= 30) {
+            g.produtividade = "🟡 Moderada";
+        } else {
+            g.produtividade = "🟢 Baixa";
+        }
+    });
+
+    return Object
+        .values(grupos)
+        .sort((a, b) =>
+            b.atendimentos - a.atendimentos ||
+            b.criticos - a.criticos
+        );
+}
+
+function calcularResumoProducaoTorreAPS(
+    atendimentos,
+    interacoes,
+    reuniaoCasos,
+    solicitacoes
+) {
+    const profissionais =
+        new Set(
+            (atendimentos || [])
+                .map(a => a.usuario_nome || a.usuario_email)
+                .filter(Boolean)
+        ).size;
+
+    const equipes =
+        new Set(
+            (atendimentos || [])
+                .map(a => a.equipe_esf || a.equipe)
+                .filter(Boolean)
+        ).size;
+
+    const ubs =
+        new Set(
+            (atendimentos || [])
+                .map(a => a.ubs_vinculacao || a.ubs)
+                .filter(Boolean)
+        ).size;
+
+    return {
+        atendimentos: (atendimentos || []).length,
+        interacoes: (interacoes || []).length,
+        casosDiscutidos: (reuniaoCasos || []).length,
+        solicitacoes: (solicitacoes || []).length,
+        profissionais,
+        equipes,
+        ubs
+    };
+}
+
+function renderizarProducaoAPSTorreAPS(dados) {
+    const resumo =
+        dados.producaoAPS.resumo;
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📈 Produção APS</h3>
+
+            <div class="dashboard-grid">
+                ${cardTorreAPS("🩺", resumo.atendimentos, "Atendimentos", "icon-blue")}
+                ${cardTorreAPS("📞", resumo.interacoes, "Busca ativa", "icon-cyan")}
+                ${cardTorreAPS("👥", resumo.casosDiscutidos, "Casos discutidos", "icon-purple")}
+                ${cardTorreAPS("📦", resumo.solicitacoes, "Solicitações", "icon-yellow")}
+                ${cardTorreAPS("🧑‍⚕️", resumo.profissionais, "Profissionais", "icon-green")}
+                ${cardTorreAPS("🏥", resumo.ubs, "UBS com produção", "icon-red")}
+            </div>
+
+            <h4>🧑‍⚕️ Produção por Profissional</h4>
+            ${renderizarTabelaProducaoTorreAPS(dados.producaoAPS.profissionais.slice(0, 15))}
+
+            <h4>👥 Produção por Equipe</h4>
+            ${renderizarTabelaProducaoTorreAPS(dados.producaoAPS.equipes.slice(0, 15))}
+
+            <h4>🏥 Produção por UBS</h4>
+            ${renderizarTabelaProducaoTorreAPS(dados.producaoAPS.ubs.slice(0, 15))}
+        </div>
+    `;
+}
+
+function renderizarTabelaProducaoTorreAPS(lista) {
+    if (!lista || !lista.length) {
+        return `<p style="color:var(--text-muted);">Sem produção no período selecionado.</p>`;
+    }
+
+    return `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Dimensão</th>
+                    <th>Produtividade</th>
+                    <th>Atendimentos</th>
+                    <th>HAS</th>
+                    <th>DM</th>
+                    <th>Gest.</th>
+                    <th>TB</th>
+                    <th>Hansen</th>
+                    <th>Críticos</th>
+                    <th>CIAPs</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${lista.map(g => `
+                    <tr>
+                        <td>
+                            <strong>${escaparTorreAPS(g.nome)}</strong>
+                            <small>${escaparTorreAPS(g.tipo)}</small>
+                        </td>
+                        <td>${escaparTorreAPS(g.produtividade)}</td>
+                        <td><strong>${g.atendimentos}</strong></td>
+                        <td>${g.has}</td>
+                        <td>${g.dm}</td>
+                        <td>${g.gestantes}</td>
+                        <td>${g.tb}</td>
+                        <td>${g.hansen}</td>
+                        <td>${g.criticos}</td>
+                        <td>${g.ciapsDistintos}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
 
 /* ==========================================================
    HOTSPOTS
@@ -1371,7 +1877,8 @@ function exportarTorreControleAPSCSV() {
             "prazo",
             "score_predicao",
             "classe_predicao",
-            "pendencias"
+            "pendencias",
+            "score_territorial_paciente"
         ]
     ];
 
@@ -1392,7 +1899,8 @@ function exportarTorreControleAPSCSV() {
             p.prazo,
             p.predicao.score,
             p.predicao.classe,
-            (p.pendencias || []).join(" | ")
+            (p.pendencias || []).join(" | "),
+            calcularScoreTerritorialPacienteTorreAPS(p)
         ]);
     });
 
@@ -1561,4 +2069,7 @@ function escaparTorreAPS(valor) {
 window.carregarTorreControleAPS = carregarTorreControleAPS;
 window.renderizarTorreControleAPS = renderizarTorreControleAPS;
 window.exportarTorreControleAPSCSV = exportarTorreControleAPSCSV;
+window.calcularEstratificacaoTerritorialTorreAPS = calcularEstratificacaoTerritorialTorreAPS;
+window.calcularProducaoAPSTorreAPS = calcularProducaoAPSTorreAPS;
+window.calcularScoreTerritorialPacienteTorreAPS = calcularScoreTerritorialPacienteTorreAPS;
 window.torreControleAPSAtual = torreControleAPSAtual;
