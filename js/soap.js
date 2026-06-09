@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🩺 SOAP.JS — PRONTUÁRIO DIGITAL SUPABASE + AUTOCOMPLETE
+   🩺 SOAP.JS — PRONTUÁRIO DIGITAL SUPABASE + AUTOCOMPLETE + TERRITÓRIO INTELIGENTE
    pacientes = identificação
    atendimentos = dados clínicos
    ========================================================================== */
@@ -609,17 +609,28 @@ async function salvarProntuario() {
            UPSERT PACIENTE
            ================================================== */
 
-        const { error: erroPaciente } = await supabaseClient
+        const {
+            data: pacienteSalvo,
+            error: erroPaciente
+        } = await supabaseClient
             .from("pacientes")
             .upsert([paciente], {
                 onConflict: paciente.cpf ? "cpf" : "cns"
-            });
+            })
+            .select()
+            .single();
 
         if (erroPaciente) {
             console.error("Erro paciente:", erroPaciente);
-            alert("Erro ao salvar paciente.");
+            alert(
+                "Erro ao salvar paciente: " +
+                (erroPaciente.message || "verifique permissões e colunas da tabela pacientes.")
+            );
             return;
         }
+
+        const pacienteIdSalvo =
+            pacienteSalvo?.id || null;
 
         /* ==================================================
            DADOS CLÍNICOS
@@ -681,6 +692,7 @@ async function salvarProntuario() {
 
         const atendimento = {
             usuario_id: usuario.id,
+            paciente_id: pacienteIdSalvo,
             usuario_email: usuario.email,
             usuario_nome: usuarioSessao.nome || usuario.email,
             usuario_perfil: usuarioSessao.perfil || null,
@@ -767,14 +779,50 @@ async function salvarProntuario() {
            SALVAR ATENDIMENTO
            ================================================== */
 
-        const { error: erroAtendimento } = await supabaseClient
+        const {
+            data: atendimentoSalvo,
+            error: erroAtendimento
+        } = await supabaseClient
             .from("atendimentos")
-            .insert([atendimento]);
+            .insert([atendimento])
+            .select()
+            .single();
 
         if (erroAtendimento) {
             console.error("Erro atendimento:", erroAtendimento);
-            alert("Erro ao salvar atendimento.");
+            alert(
+                "Erro ao salvar atendimento: " +
+                (erroAtendimento.message || "verifique permissões e colunas da tabela atendimentos.")
+            );
             return;
+        }
+
+        /* ==================================================
+           TERRITÓRIO INTELIGENTE
+           Atualiza o cérebro territorial sem interromper o salvamento.
+           ================================================== */
+
+        try {
+            const identificadorTI =
+                paciente.cpf ||
+                paciente.cns ||
+                atendimentoSalvo?.paciente_cpf ||
+                atendimentoSalvo?.cns ||
+                "";
+
+            if (
+                identificadorTI &&
+                typeof atualizarTerritorioInteligente === "function"
+            ) {
+                await atualizarTerritorioInteligente(identificadorTI);
+                console.log("🧠 Território Inteligente atualizado:", identificadorTI);
+            }
+
+        } catch (erroTI) {
+            console.warn(
+                "Prontuário salvo, mas não foi possível atualizar Território Inteligente:",
+                erroTI
+            );
         }
 
         mostrarToast?.("✅ Prontuário salvo.");
@@ -782,18 +830,61 @@ async function salvarProntuario() {
         atualizarIndicatorsDashboard?.();
         atualizarCentralAvisosSininho?.();
 
+        if (typeof carregarDashboardInicialSintaxeHub === "function") {
+            carregarDashboardInicialSintaxeHub();
+        }
+
+        if (typeof carregarResumoTerritorioInteligente === "function") {
+            carregarResumoTerritorioInteligente().catch(console.warn);
+        }
+
         await carregarHistoricoClinicoPaciente(
             paciente.cpf,
             paciente.cns
         );
 
-        window.pacienteAtual = paciente;
-        window.pacienteSelecionado = paciente;
+        window.pacienteAtual = pacienteSalvo || paciente;
+        window.pacienteSelecionado = pacienteSalvo || paciente;
 
     } catch (erro) {
         console.error("Erro prontuário:", erro);
         alert("Erro inesperado.");
     }
+}
+
+
+/* ==========================================================================
+   🧠 TERRITÓRIO INTELIGENTE — ATUALIZAÇÃO MANUAL DO PACIENTE ATUAL
+   ========================================================================== */
+
+async function atualizarTerritorioInteligenteDoFormulario() {
+    const cpf =
+        document.getElementById("cpfPaciente")?.value?.replace(/\D/g, "") || "";
+
+    const cns =
+        document.getElementById("cnsPaciente")?.value?.replace(/\D/g, "") || "";
+
+    const identificador =
+        cpf || cns;
+
+    if (!identificador) {
+        mostrarToast?.("⚠️ Informe CPF ou CNS para atualizar o Território Inteligente.");
+        return null;
+    }
+
+    if (typeof atualizarTerritorioInteligente !== "function") {
+        mostrarToast?.("⚠️ Módulo territorioInteligente.js não carregado.");
+        return null;
+    }
+
+    const resultado =
+        await atualizarTerritorioInteligente(identificador);
+
+    if (resultado) {
+        mostrarToast?.("🧠 Território Inteligente atualizado.");
+    }
+
+    return resultado;
 }
 
 /* ==========================================================================
@@ -894,3 +985,5 @@ window.fecharProntuarioAtivo = fecharProntuarioAtivo;
 window.sincronizarPAObjetivoParaHAS = sincronizarPAObjetivoParaHAS;
 window.sincronizarPAHASParaObjetivo = sincronizarPAHASParaObjetivo;
 window.valorSimNaoCampo = valorSimNaoCampo;
+
+window.atualizarTerritorioInteligenteDoFormulario = atualizarTerritorioInteligenteDoFormulario;
