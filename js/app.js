@@ -118,6 +118,13 @@ function navigate(view) {
         carregarAuditoriaEstoque();
     }
 
+    if (
+        view === "mapa-territorial" &&
+        typeof carregarMapaTerritorialAPS === "function"
+    ) {
+        carregarMapaTerritorialAPS();
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
