@@ -697,3 +697,98 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("listaItensPauta")) adicionarItemPauta();
     if (document.getElementById("listaEncaminhamentos")) adicionarEncaminhamento();
 });
+
+let pacientesReuniaoCache = [];
+
+async function carregarPacientesReuniao() {
+
+    const { data, error } =
+        await supabaseClient
+            .from("pacientes")
+            .select(`
+                cpf,
+                cns,
+                nome
+            `)
+            .order("nome");
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    pacientesReuniaoCache =
+        data || [];
+}
+
+function filtrarPacientesReuniao() {
+
+    const termo =
+        document
+            .getElementById("buscaPacienteReuniao")
+            .value
+            .toLowerCase()
+            .trim();
+
+    const container =
+        document.getElementById(
+            "resultadoBuscaPacienteReuniao"
+        );
+
+    if (!container) return;
+
+    if (!termo) {
+        container.innerHTML = "";
+        return;
+    }
+
+    const encontrados =
+        pacientesReuniaoCache
+            .filter(p =>
+                (p.nome || "")
+                    .toLowerCase()
+                    .includes(termo)
+                ||
+                (p.cpf || "")
+                    .includes(termo)
+                ||
+                (p.cns || "")
+                    .includes(termo)
+            )
+            .slice(0, 15);
+
+    container.innerHTML =
+        encontrados.map(p => `
+            <div
+                class="item-paciente-reuniao"
+                onclick="
+                    selecionarPacienteReuniao(
+                        '${p.cpf || ""}',
+                        '${p.nome || ""}'
+                    )
+                ">
+
+                <strong>${p.nome}</strong><br>
+
+                CPF: ${p.cpf || "-"}
+            </div>
+        `).join("");
+}
+
+function selecionarPacienteReuniao(
+    cpf,
+    nome
+) {
+
+    document.getElementById(
+        "reuniaoPacienteCaso"
+    ).value = cpf;
+
+    document.getElementById(
+        "buscaPacienteReuniao"
+    ).value = nome;
+
+    document.getElementById(
+        "resultadoBuscaPacienteReuniao"
+    ).innerHTML = "";
+}
