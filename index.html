@@ -94,7 +94,68 @@
                 <div class="sidebar-section-title">Sistema</div>
 
                 <a class="nav-link somente-admin" id="btnConfiguracoes" onclick="navigate('config')">
-                   <div id="cabecalhoProntuario"
+                    ⚙️ Configurações
+                </a>
+
+            </nav>
+
+            <div class="sidebar-status">
+                <strong>Sistema online</strong>
+                <small>Supabase conectado em tempo real</small>
+            </div>
+
+        </aside>
+
+        <!-- ======================================================
+             CONTEÚDO PRINCIPAL
+             ====================================================== -->
+        <main class="app-main">
+
+            <header class="topbar">
+
+                <div class="brand-area">
+                    <div class="brand-icon">☰</div>
+
+                    <div class="brand-text">
+                        <h1>SintaxeHub</h1>
+                        <p>Central Operacional de Busca Ativa Territorial</p>
+                    </div>
+                </div>
+
+                <div class="topbar-actions">
+
+                    <select
+                        id="seletorNivelAcesso"
+                        onchange="alternarVisaoGestor(this.value)"
+                        style="max-width:210px;">
+                        <option value="user">Visão Assistencial</option>
+                        <option value="admin" selected>Visão Coordenador/Gestor</option>
+                    </select>
+
+                    <div
+                        id="centralAvisosContainer"
+                        class="alert-badge"
+                        onclick="abrirPainelEpidemiologico('criticos')"
+                        title="">
+                        🔔 <span id="contadorAvisosSininho">0</span>
+                    </div>
+
+                    <div class="usuario-info">
+                        <span id="nomeUsuarioLogado">Usuário</span>
+                        <span id="cargoUsuarioLogado">Perfil</span>
+                    </div>
+
+                    <button
+                        class="btn-logout"
+                        onclick="efetuarLogout()">
+                        Sair
+                    </button>
+
+                </div>
+
+            </header>
+
+            <div id="cabecalhoProntuario"
                  class="form-section"
                  style="display:none; margin:16px 24px 0 24px; padding:12px 16px;">
 
