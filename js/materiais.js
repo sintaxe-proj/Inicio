@@ -546,41 +546,78 @@ async function atualizarDashboardEstoque() {
         return;
     }
 
-    const { data, error } = await supabaseClient
+    const { data: solicitacoes, error: erroSolicitacoes } = await supabaseClient
         .from("solicitacoes_materiais")
         .select("status");
 
-    if (error) {
-        console.error("Erro dashboard estoque:", error);
+    if (erroSolicitacoes) {
+        console.error("Erro dashboard solicitações:", erroSolicitacoes);
         return;
     }
 
-    const banco = data || [];
+    const { data: estoque, error: erroEstoque } = await supabaseClient
+        .from("estoque_itens")
+        .select(`
+            id,
+            nome_item,
+            data_validade,
+            quantidade_atual,
+            quantidade_minima,
+            status
+        `);
+
+    if (erroEstoque) {
+        console.warn("Erro dashboard estoque:", erroEstoque);
+    }
+
+    const bancoSolicitacoes = solicitacoes || [];
+    const bancoEstoque = estoque || [];
 
     const pendentes =
-        banco.filter(x => x.status === "PENDENTE").length;
+        bancoSolicitacoes.filter(x => x.status === "PENDENTE").length;
 
     const aprovadas =
-        banco.filter(x =>
+        bancoSolicitacoes.filter(x =>
             x.status === "AUTORIZADO" ||
             x.status === "APROVADO"
         ).length;
 
     const entregues =
-        banco.filter(x => x.status === "ENTREGUE").length;
+        bancoSolicitacoes.filter(x => x.status === "ENTREGUE").length;
 
     const negadas =
-        banco.filter(x => x.status === "NEGADO").length;
+        bancoSolicitacoes.filter(x => x.status === "NEGADO").length;
 
-    const dashPend = document.getElementById("dashSolicitacoesPendentes");
-    const dashAprov = document.getElementById("dashSolicitacoesAprovadas");
-    const dashEntr = document.getElementById("dashSolicitacoesEntregues");
-    const dashNeg = document.getElementById("dashSolicitacoesNegadas");
+    const itensAtivos =
+        bancoEstoque.filter(x =>
+            (x.status || "ATIVO") === "ATIVO"
+        ).length;
 
-    if (dashPend) dashPend.innerText = pendentes;
-    if (dashAprov) dashAprov.innerText = aprovadas;
-    if (dashEntr) dashEntr.innerText = entregues;
-    if (dashNeg) dashNeg.innerText = negadas;
+    const estoqueBaixo =
+        bancoEstoque.filter(x =>
+            Number(x.quantidade_atual || 0) <=
+            Number(x.quantidade_minima || 0)
+        ).length;
+
+    const vencidos =
+        bancoEstoque.filter(x =>
+            calcularStatusValidadeEstoque(x.data_validade).tipo === "VENCIDO"
+        ).length;
+
+    const vencem30 =
+        bancoEstoque.filter(x =>
+            calcularStatusValidadeEstoque(x.data_validade).tipo === "VENCE_30"
+        ).length;
+
+    setTextoMateriais("dashSolicitacoesPendentes", pendentes);
+    setTextoMateriais("dashSolicitacoesAprovadas", aprovadas);
+    setTextoMateriais("dashSolicitacoesEntregues", entregues);
+    setTextoMateriais("dashSolicitacoesNegadas", negadas);
+
+    setTextoMateriais("dashItensEstoque", itensAtivos);
+    setTextoMateriais("dashEstoqueBaixo", estoqueBaixo);
+    setTextoMateriais("dashItensVencidos", vencidos);
+    setTextoMateriais("dashItensVencem30", vencem30);
 }
 
 /* ==========================================================
@@ -711,7 +748,8 @@ async function carregarEstoqueItens() {
     const { data, error } = await supabaseClient
         .from("estoque_itens")
         .select("*")
-        .order("nome_item", { ascending: true });
+        .order("nome_item", { ascending: true })
+        .order("data_validade", { ascending: true, nullsFirst: false });
 
     if (error) {
         console.error("Erro ao carregar estoque:", error);
@@ -723,11 +761,12 @@ async function carregarEstoqueItens() {
     if (!data || data.length === 0) {
         container.innerHTML =
             `<p style="color:var(--text-muted);">Nenhum item cadastrado no estoque.</p>`;
+        atualizarDashboardEstoque?.();
         return;
     }
 
     container.innerHTML = `
-        <table>
+        <table class="table-sintaxe">
             <thead>
                 <tr>
                     <th>Item</th>
@@ -738,41 +777,59 @@ async function carregarEstoqueItens() {
                     <th>Saldo</th>
                     <th>Mínimo</th>
                     <th>Status</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
                 ${data.map(item => {
-                    const vencido =
-                        item.data_validade &&
-                        new Date(item.data_validade) < new Date();
+                    const validade =
+                        calcularStatusValidadeEstoque(item.data_validade);
 
                     const baixo =
                         Number(item.quantidade_atual || 0) <=
                         Number(item.quantidade_minima || 0);
 
-                    const status =
-                        vencido
-                            ? "🔴 Vencido"
-                            : baixo
-                                ? "🟡 Estoque baixo"
-                                : "🟢 Disponível";
+                    const statusSaldo =
+                        baixo
+                            ? `<span class="status-badge status-warning">Estoque baixo</span>`
+                            : `<span class="status-badge status-success">Disponível</span>`;
+
+                    const statusValidade =
+                        renderizarBadgeValidadeEstoque(validade);
 
                     return `
                         <tr>
-                            <td><strong>${item.nome_item || "-"}</strong></td>
-                            <td>${item.marca || "-"}</td>
-                            <td>${item.referencia_lote || "-"}</td>
+                            <td>
+                                <strong>${escaparMateriais(item.nome_item || "-")}</strong>
+                                <small>ID: ${escaparMateriais(item.id || "-")}</small>
+                            </td>
+                            <td>${escaparMateriais(item.marca || "-")}</td>
+                            <td>${escaparMateriais(item.referencia_lote || "-")}</td>
                             <td>${formatarDataSimples(item.data_fabricacao)}</td>
                             <td>${formatarDataSimples(item.data_validade)}</td>
-                            <td>${item.quantidade_atual ?? 0}</td>
+                            <td><strong>${item.quantidade_atual ?? 0}</strong></td>
                             <td>${item.quantidade_minima ?? 0}</td>
-                            <td>${status}</td>
+                            <td>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    ${statusSaldo}
+                                    ${statusValidade}
+                                </div>
+                            </td>
+                            <td>
+                                <button
+                                    class="btn-table-action btn-edit"
+                                    onclick="ajustarSaldoEstoque('${item.id}', '${escaparMateriais(item.nome_item || "")}', ${Number(item.quantidade_atual || 0)})">
+                                    Ajustar
+                                </button>
+                            </td>
                         </tr>
                     `;
                 }).join("")}
             </tbody>
         </table>
     `;
+
+    atualizarDashboardEstoque?.();
 }
 
 async function baixarEstoquePorSolicitacao(solicitacao) {
@@ -790,21 +847,23 @@ async function baixarEstoquePorSolicitacao(solicitacao) {
         const nome =
             item.nome || item.nome_item || "";
 
-        const quantidade =
+        const quantidadeSolicitada =
             Number(item.qtd || item.quantidade || 0);
 
-        if (!nome || quantidade <= 0) {
+        if (!nome || quantidadeSolicitada <= 0) {
             continue;
         }
 
-        const { data: estoque, error: erroBusca } =
+        const { data: lotes, error: erroBusca } =
             await supabaseClient
                 .from("estoque_itens")
                 .select("*")
                 .ilike("nome_item", nome)
-                .order("data_validade", { ascending: true, nullsFirst: false })
-                .limit(1)
-                .maybeSingle();
+                .gt("quantidade_atual", 0)
+                .order("data_validade", {
+                    ascending: true,
+                    nullsFirst: false
+                });
 
         if (erroBusca) {
             console.error("Erro ao buscar item no estoque:", erroBusca);
@@ -812,37 +871,71 @@ async function baixarEstoquePorSolicitacao(solicitacao) {
             return false;
         }
 
-        if (!estoque) {
-            mostrarToast?.(`⚠️ Item não encontrado no estoque: ${nome}`);
+        if (!lotes || !lotes.length) {
+            mostrarToast?.(`⚠️ Item não encontrado ou sem saldo no estoque: ${nome}`);
             return false;
         }
 
-        const saldoAtual =
-            Number(estoque.quantidade_atual || 0);
+        const saldoTotal =
+            lotes.reduce(
+                (total, lote) =>
+                    total + Number(lote.quantidade_atual || 0),
+                0
+            );
 
-        if (saldoAtual < quantidade) {
+        if (saldoTotal < quantidadeSolicitada) {
             mostrarToast?.(
-                `⚠️ Estoque insuficiente para ${nome}. Saldo: ${saldoAtual}, solicitado: ${quantidade}.`
+                `⚠️ Estoque insuficiente para ${nome}. Saldo total: ${saldoTotal}, solicitado: ${quantidadeSolicitada}.`
             );
             return false;
         }
 
-        const novoSaldo =
-            saldoAtual - quantidade;
+        let restante =
+            quantidadeSolicitada;
 
-        const { error: erroUpdate } =
-            await supabaseClient
-                .from("estoque_itens")
-                .update({
-                    quantidade_atual: novoSaldo,
-                    atualizado_em: new Date().toISOString()
-                })
-                .eq("id", estoque.id);
+        for (const lote of lotes) {
+            if (restante <= 0) break;
 
-        if (erroUpdate) {
-            console.error("Erro ao baixar estoque:", erroUpdate);
-            mostrarToast?.(`❌ Erro ao baixar estoque de ${nome}.`);
-            return false;
+            const saldoLote =
+                Number(lote.quantidade_atual || 0);
+
+            if (saldoLote <= 0) continue;
+
+            const baixa =
+                Math.min(saldoLote, restante);
+
+            const novoSaldo =
+                saldoLote - baixa;
+
+            const { error: erroUpdate } =
+                await supabaseClient
+                    .from("estoque_itens")
+                    .update({
+                        quantidade_atual: novoSaldo,
+                        atualizado_em: new Date().toISOString()
+                    })
+                    .eq("id", lote.id);
+
+            if (erroUpdate) {
+                console.error("Erro ao baixar estoque:", erroUpdate);
+                mostrarToast?.(`❌ Erro ao baixar estoque de ${nome}.`);
+                return false;
+            }
+
+            await registrarMovimentacaoEstoque({
+                item_id: lote.id,
+                nome_item: lote.nome_item,
+                referencia_lote: lote.referencia_lote,
+                tipo: "SAIDA",
+                quantidade: baixa,
+                saldo_anterior: saldoLote,
+                saldo_atual: novoSaldo,
+                origem: "SOLICITACAO_MATERIAL",
+                origem_id: solicitacao.id || null,
+                observacao: `Baixa automática por entrega de solicitação ${solicitacao.id || ""}`.trim()
+            });
+
+            restante -= baixa;
         }
     }
 
@@ -858,6 +951,203 @@ function formatarDataSimples(valor) {
         return "-";
     }
 }
+
+
+/* ==========================================================
+   INTELIGÊNCIA DE ESTOQUE
+   ========================================================== */
+
+function setTextoMateriais(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor;
+    }
+}
+
+function calcularStatusValidadeEstoque(dataValidade) {
+    if (!dataValidade) {
+        return {
+            tipo: "SEM_VALIDADE",
+            texto: "Sem validade"
+        };
+    }
+
+    const hoje =
+        new Date();
+
+    hoje.setHours(0, 0, 0, 0);
+
+    const validade =
+        new Date(dataValidade);
+
+    validade.setHours(0, 0, 0, 0);
+
+    const diffDias =
+        Math.ceil(
+            (validade.getTime() - hoje.getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+    if (diffDias < 0) {
+        return {
+            tipo: "VENCIDO",
+            texto: `Vencido há ${Math.abs(diffDias)} dia(s)`
+        };
+    }
+
+    if (diffDias <= 30) {
+        return {
+            tipo: "VENCE_30",
+            texto: `Vence em ${diffDias} dia(s)`
+        };
+    }
+
+    return {
+        tipo: "VALIDO",
+        texto: `Válido por ${diffDias} dia(s)`
+    };
+}
+
+function renderizarBadgeValidadeEstoque(validade) {
+    if (!validade) {
+        return `<span class="status-badge status-info">Sem validade</span>`;
+    }
+
+    if (validade.tipo === "VENCIDO") {
+        return `<span class="status-badge status-danger">${validade.texto}</span>`;
+    }
+
+    if (validade.tipo === "VENCE_30") {
+        return `<span class="status-badge status-warning">${validade.texto}</span>`;
+    }
+
+    if (validade.tipo === "VALIDO") {
+        return `<span class="status-badge status-success">${validade.texto}</span>`;
+    }
+
+    return `<span class="status-badge status-info">${validade.texto}</span>`;
+}
+
+async function registrarMovimentacaoEstoque(dados) {
+    if (typeof supabaseClient === "undefined") return;
+
+    const usuario =
+        getUsuarioMateriais();
+
+    const payload = {
+        item_id: dados.item_id || null,
+        nome_item: dados.nome_item || null,
+        referencia_lote: dados.referencia_lote || null,
+        tipo: dados.tipo || "MOVIMENTACAO",
+        quantidade: Number(dados.quantidade || 0),
+        saldo_anterior: Number(dados.saldo_anterior || 0),
+        saldo_atual: Number(dados.saldo_atual || 0),
+        origem: dados.origem || null,
+        origem_id: dados.origem_id || null,
+        observacao: dados.observacao || null,
+        criado_em: new Date().toISOString(),
+        usuario_id: usuario.usuario_id,
+        usuario_nome: usuario.usuario_nome,
+        usuario_email: usuario.usuario_email,
+        usuario_perfil: usuario.usuario_perfil
+    };
+
+    const { error } =
+        await supabaseClient
+            .from("movimentacoes_estoque")
+            .insert(payload);
+
+    if (error) {
+        console.warn(
+            "Movimentação de estoque não registrada. Verifique se a tabela movimentacoes_estoque existe:",
+            error
+        );
+    }
+}
+
+async function ajustarSaldoEstoque(id, nomeItem, saldoAtual) {
+    if (!usuarioPodeGerenciarMateriais()) {
+        mostrarToast?.("🚫 Apenas gestores podem ajustar estoque.");
+        return;
+    }
+
+    const novoValorTexto =
+        prompt(
+            `Informe o novo saldo para ${nomeItem}:`,
+            String(saldoAtual ?? 0)
+        );
+
+    if (novoValorTexto === null) return;
+
+    const novoSaldo =
+        Number(novoValorTexto);
+
+    if (Number.isNaN(novoSaldo) || novoSaldo < 0) {
+        mostrarToast?.("⚠️ Saldo inválido.");
+        return;
+    }
+
+    const { data: itemAtual, error: erroBusca } =
+        await supabaseClient
+            .from("estoque_itens")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+    if (erroBusca || !itemAtual) {
+        console.error("Erro ao buscar item para ajuste:", erroBusca);
+        mostrarToast?.("❌ Erro ao localizar item.");
+        return;
+    }
+
+    const saldoAnterior =
+        Number(itemAtual.quantidade_atual || 0);
+
+    const { error } =
+        await supabaseClient
+            .from("estoque_itens")
+            .update({
+                quantidade_atual: novoSaldo,
+                atualizado_em: new Date().toISOString()
+            })
+            .eq("id", id);
+
+    if (error) {
+        console.error("Erro ao ajustar saldo:", error);
+        mostrarToast?.("❌ Erro ao ajustar saldo.");
+        return;
+    }
+
+    await registrarMovimentacaoEstoque({
+        item_id: id,
+        nome_item: itemAtual.nome_item,
+        referencia_lote: itemAtual.referencia_lote,
+        tipo: "AJUSTE",
+        quantidade: novoSaldo - saldoAnterior,
+        saldo_anterior: saldoAnterior,
+        saldo_atual: novoSaldo,
+        origem: "AJUSTE_MANUAL",
+        origem_id: null,
+        observacao: "Ajuste manual de saldo"
+    });
+
+    mostrarToast?.("✅ Saldo ajustado.");
+    carregarEstoqueItens();
+    atualizarDashboardEstoque?.();
+}
+
+function escaparMateriais(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
 
 /* ==========================================================
    HELPERS
@@ -901,3 +1191,8 @@ window.limparFormularioEstoque = limparFormularioEstoque;
 window.salvarItemEstoque = salvarItemEstoque;
 window.carregarEstoqueItens = carregarEstoqueItens;
 window.baixarEstoquePorSolicitacao = baixarEstoquePorSolicitacao;
+
+
+window.ajustarSaldoEstoque = ajustarSaldoEstoque;
+window.registrarMovimentacaoEstoque = registrarMovimentacaoEstoque;
+window.calcularStatusValidadeEstoque = calcularStatusValidadeEstoque;
