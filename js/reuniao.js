@@ -13,6 +13,10 @@ let pacientesReuniao = [];
 
 async function abrirModuloReuniao() {
     await carregarHistoricoReunioes();
+
+    if (typeof carregarIndicadoresReuniaoEquipe === "function") {
+        await carregarIndicadoresReuniaoEquipe();
+    }
 }
 
 /* ======================================================
@@ -90,6 +94,558 @@ function adicionarEncaminhamento() {
 
     lista.appendChild(item);
 }
+
+
+/* ======================================================
+   REUNIÃO DE EQUIPE 2.0 — INDICADORES / CASOS / BUSCA ATIVA
+   ====================================================== */
+
+let baseReuniaoEquipeCache = [];
+let casosCriticosReuniaoCache = [];
+let indicadoresReuniaoAtual = null;
+
+async function carregarIndicadoresReuniaoEquipe() {
+    if (typeof supabaseClient === "undefined") {
+        console.warn("Supabase não carregado para indicadores da reunião.");
+        return;
+    }
+
+    const equipeSelecionada =
+        document.getElementById("filtroEquipeReuniao")?.value || "TODAS";
+
+    const containerCriticos =
+        document.getElementById("listaCasosCriticosReuniao");
+
+    if (containerCriticos) {
+        containerCriticos.innerHTML =
+            `<p style="color:var(--text-muted);">Carregando casos críticos...</p>`;
+    }
+
+    const { data: pacientes, error: erroPacientes } =
+        await supabaseClient
+            .from("pacientes")
+            .select(`
+                id,
+                nome,
+                cpf,
+                cns,
+                telefone,
+                ubs,
+                equipe,
+                ubs_vinculacao,
+                equipe_esf
+            `)
+            .limit(5000);
+
+    if (erroPacientes) {
+        console.error("Erro ao carregar pacientes para reunião:", erroPacientes);
+        return;
+    }
+
+    const { data: atendimentos, error: erroAtendimentos } =
+        await supabaseClient
+            .from("atendimentos")
+            .select(`
+                id,
+                paciente_cpf,
+                cpf,
+                cns,
+                nome_paciente,
+                has,
+                dm,
+                gestante,
+                tb,
+                hansen,
+                risco_global,
+                risco_pontos,
+                reavaliacaoDias,
+                retorno_dias,
+                data_atendimento,
+                criado_em,
+                ubs_vinculacao,
+                equipe_esf
+            `)
+            .order("data_atendimento", { ascending: false })
+            .limit(10000);
+
+    if (erroAtendimentos) {
+        console.error("Erro ao carregar atendimentos para reunião:", erroAtendimentos);
+        return;
+    }
+
+    baseReuniaoEquipeCache =
+        consolidarBaseReuniaoEquipe(
+            pacientes || [],
+            atendimentos || []
+        );
+
+    carregarSelectEquipeReuniao(baseReuniaoEquipeCache);
+
+    let base =
+        [...baseReuniaoEquipeCache];
+
+    if (equipeSelecionada !== "TODAS") {
+        base =
+            base.filter(p =>
+                String(p.equipe || "Não informado") === equipeSelecionada
+            );
+    }
+
+    const indicadores = {
+        equipe: equipeSelecionada,
+        total: base.length,
+        has: base.filter(p => valorSimReuniao(p.has)).length,
+        dm: base.filter(p => valorSimReuniao(p.dm)).length,
+        gestantes: base.filter(p => valorSimReuniao(p.gestante)).length,
+        tb: base.filter(p => valorSimReuniao(p.tb)).length,
+        hansen: base.filter(p => valorSimReuniao(p.hansen)).length,
+        criticos: base.filter(p =>
+            Number(p.prazo) === 0 ||
+            normalizarReuniaoPlus(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6
+        ).length
+    };
+
+    indicadoresReuniaoAtual =
+        indicadores;
+
+    atualizarCardsReuniaoEquipe(indicadores);
+
+    casosCriticosReuniaoCache =
+        base
+            .filter(p =>
+                Number(p.prazo) === 0 ||
+                normalizarReuniaoPlus(p.risco_global).includes("alto") ||
+                Number(p.risco_pontos || 0) >= 6
+            )
+            .sort((a, b) =>
+                Number(a.prazo ?? 9999) - Number(b.prazo ?? 9999)
+            );
+
+    renderizarCasosCriticosReuniao(casosCriticosReuniaoCache);
+
+    await carregarResumoBuscaAtivaReuniao(equipeSelecionada);
+}
+
+function consolidarBaseReuniaoEquipe(pacientes, atendimentos) {
+    const mapa = new Map();
+
+    pacientes.forEach(p => {
+        const chave =
+            p.cpf ||
+            p.cns ||
+            p.id;
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            id: p.id || "",
+            nome: p.nome || "",
+            cpf: p.cpf || "",
+            cns: p.cns || "",
+            telefone: p.telefone || "",
+            ubs: p.ubs_vinculacao || p.ubs || "Não informado",
+            equipe: p.equipe_esf || p.equipe || "Não informado",
+            has: "Não",
+            dm: "Não",
+            gestante: "Não",
+            tb: "Não",
+            hansen: "Não",
+            risco_global: "Não informado",
+            risco_pontos: 0,
+            prazo: null,
+            ultimo_atendimento: null
+        });
+    });
+
+    atendimentos.forEach(a => {
+        const chave =
+            a.paciente_cpf ||
+            a.cpf ||
+            a.cns;
+
+        if (!chave) return;
+
+        const atual =
+            mapa.get(chave) || {
+                id: "",
+                nome: a.nome_paciente || "",
+                cpf: a.paciente_cpf || a.cpf || "",
+                cns: a.cns || "",
+                telefone: "",
+                ubs: a.ubs_vinculacao || "Não informado",
+                equipe: a.equipe_esf || "Não informado",
+                has: "Não",
+                dm: "Não",
+                gestante: "Não",
+                tb: "Não",
+                hansen: "Não",
+                risco_global: "Não informado",
+                risco_pontos: 0,
+                prazo: null,
+                ultimo_atendimento: null
+            };
+
+        if (!atual.nome && a.nome_paciente) atual.nome = a.nome_paciente;
+        if (valorSimReuniao(a.has)) atual.has = "Sim";
+        if (valorSimReuniao(a.dm)) atual.dm = "Sim";
+        if (valorSimReuniao(a.gestante)) atual.gestante = "Sim";
+        if (valorSimReuniao(a.tb)) atual.tb = "Sim";
+        if (valorSimReuniao(a.hansen)) atual.hansen = "Sim";
+
+        if (a.risco_global) atual.risco_global = a.risco_global;
+
+        if (a.risco_pontos !== null && a.risco_pontos !== undefined) {
+            atual.risco_pontos = Number(a.risco_pontos || 0);
+        }
+
+        const prazo =
+            a.reavaliacaoDias ??
+            a.retorno_dias ??
+            atual.prazo;
+
+        atual.prazo =
+            prazo !== null && prazo !== undefined
+                ? Number(prazo)
+                : atual.prazo;
+
+        atual.ultimo_atendimento =
+            a.data_atendimento ||
+            a.criado_em ||
+            atual.ultimo_atendimento;
+
+        if (a.ubs_vinculacao) atual.ubs = a.ubs_vinculacao;
+        if (a.equipe_esf) atual.equipe = a.equipe_esf;
+
+        mapa.set(chave, atual);
+    });
+
+    return Array.from(mapa.values());
+}
+
+function carregarSelectEquipeReuniao(base) {
+    const select =
+        document.getElementById("filtroEquipeReuniao");
+
+    if (!select) return;
+
+    const valorAtual =
+        select.value || "TODAS";
+
+    const equipes =
+        [...new Set(base.map(p => p.equipe || "Não informado"))]
+            .sort();
+
+    select.innerHTML =
+        `<option value="TODAS">Todas as equipes</option>`;
+
+    equipes.forEach(equipe => {
+        const option =
+            document.createElement("option");
+
+        option.value =
+            equipe;
+
+        option.textContent =
+            equipe;
+
+        select.appendChild(option);
+    });
+
+    if (valorAtual === "TODAS" || equipes.includes(valorAtual)) {
+        select.value =
+            valorAtual;
+    }
+}
+
+function atualizarCardsReuniaoEquipe(indicadores) {
+    setTextoReuniaoPlus("reuniaoTotalPessoas", indicadores.total);
+    setTextoReuniaoPlus("reuniaoTotalHAS", indicadores.has);
+    setTextoReuniaoPlus("reuniaoTotalDM", indicadores.dm);
+    setTextoReuniaoPlus("reuniaoTotalGestantes", indicadores.gestantes);
+    setTextoReuniaoPlus("reuniaoTotalTB", indicadores.tb);
+    setTextoReuniaoPlus("reuniaoTotalHansen", indicadores.hansen);
+    setTextoReuniaoPlus("reuniaoTotalCriticos", indicadores.criticos);
+}
+
+function renderizarCasosCriticosReuniao(casos) {
+    const container =
+        document.getElementById("listaCasosCriticosReuniao");
+
+    if (!container) return;
+
+    if (!casos.length) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Nenhum caso crítico localizado para a equipe selecionada.</p>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Equipe</th>
+                    <th>Linhas</th>
+                    <th>Risco</th>
+                    <th>Prazo</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${casos.slice(0, 50).map(p => `
+                    <tr>
+                        <td>
+                            <strong>${escaparHTMLReuniao(p.nome || "Sem nome")}</strong>
+                            <small>CPF: ${escaparHTMLReuniao(p.cpf || "-")} | ${escaparHTMLReuniao(p.telefone || "-")}</small>
+                        </td>
+
+                        <td>
+                            ${escaparHTMLReuniao(p.equipe || "-")}
+                            <small>${escaparHTMLReuniao(p.ubs || "-")}</small>
+                        </td>
+
+                        <td>${badgesLinhasReuniaoPlus(p)}</td>
+
+                        <td>${badgeRiscoReuniaoPlus(p)}</td>
+
+                        <td>${formatarPrazoReuniao(p.prazo)}</td>
+
+                        <td>
+                            <button
+                                class="btn-table-action btn-edit"
+                                onclick="adicionarCasoCriticoNaPautaReuniao('${escaparReuniao(p.cpf || "")}', '${escaparReuniao(p.cns || "")}')">
+                                ➕ Pauta
+                            </button>
+                        </td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function adicionarCasoCriticoNaPautaReuniao(cpf, cns) {
+    const paciente =
+        casosCriticosReuniaoCache.find(p =>
+            String(p.cpf || "") === String(cpf || "") ||
+            String(p.cns || "") === String(cns || "")
+        );
+
+    if (!paciente) {
+        mostrarToast?.("⚠️ Caso crítico não localizado.");
+        return;
+    }
+
+    const lista =
+        document.getElementById("listaItensPauta");
+
+    if (!lista) return;
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "form-grid item-pauta";
+
+    item.style.marginBottom =
+        "10px";
+
+    item.innerHTML = `
+        <div style="grid-column: span 3;">
+            <label>Tema da pauta</label>
+            <input
+                type="text"
+                class="pauta-tema"
+                value="Caso crítico: ${escaparReuniao(paciente.nome || "")}">
+        </div>
+
+        <div>
+            <label>Prioridade</label>
+            <select class="pauta-prioridade">
+                <option value="Baixa">Baixa</option>
+                <option value="Média">Média</option>
+                <option value="Alta">Alta</option>
+                <option value="Crítica" selected>Crítica</option>
+            </select>
+        </div>
+
+        <div style="grid-column: span 4;">
+            <label>Discussão / Observações</label>
+            <textarea class="pauta-observacao" rows="2">Paciente ${escaparReuniao(paciente.nome || "")}, CPF ${escaparReuniao(paciente.cpf || "-")}, equipe ${escaparReuniao(paciente.equipe || "-")}. Risco: ${escaparReuniao(paciente.risco_global || "não informado")}. Prazo: ${formatarPrazoReuniao(paciente.prazo)}.</textarea>
+        </div>
+    `;
+
+    lista.appendChild(item);
+
+    mostrarToast?.("✅ Caso crítico adicionado à pauta.");
+}
+
+async function carregarResumoBuscaAtivaReuniao(equipe = "TODAS") {
+    const container =
+        document.getElementById("resumoBuscaAtivaReuniao");
+
+    if (!container) return;
+
+    const hoje =
+        new Date();
+
+    const inicioMes =
+        new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+
+    let query =
+        supabaseClient
+            .from("interacoes_busca_ativa")
+            .select("resultado,tipo_contato,equipe,criado_em")
+            .gte("criado_em", inicioMes);
+
+    if (equipe && equipe !== "TODAS") {
+        query =
+            query.eq("equipe", equipe);
+    }
+
+    const { data, error } =
+        await query;
+
+    if (error) {
+        console.warn("Resumo de busca ativa indisponível:", error);
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Resumo de busca ativa indisponível.</p>`;
+        return;
+    }
+
+    const base =
+        data || [];
+
+    const atendidos =
+        base.filter(i => i.resultado === "Atendido").length;
+
+    const naoAtendeu =
+        base.filter(i => i.resultado === "Não atendeu").length;
+
+    const invalidos =
+        base.filter(i => i.resultado === "Número inválido").length;
+
+    const agendados =
+        base.filter(i => i.resultado === "Agendado").length;
+
+    const resolvidos =
+        base.filter(i => i.resultado === "Resolvido").length;
+
+    container.innerHTML = `
+        <div class="dashboard-grid">
+            <div class="dash-card">
+                <div class="dash-icon icon-blue">📞</div>
+                <div>
+                    <h3>${base.length}</h3>
+                    <p>Contatos no mês</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-green">✅</div>
+                <div>
+                    <h3>${atendidos}</h3>
+                    <p>Atendidos</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-yellow">📅</div>
+                <div>
+                    <h3>${agendados}</h3>
+                    <p>Agendados</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-red">⚠️</div>
+                <div>
+                    <h3>${naoAtendeu + invalidos}</h3>
+                    <p>Não localizados</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-icon icon-cyan">✔️</div>
+                <div>
+                    <h3>${resolvidos}</h3>
+                    <p>Resolvidos</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function inserirIndicadoresNaAtaReuniao() {
+    if (!indicadoresReuniaoAtual) {
+        return "";
+    }
+
+    return `
+INDICADORES DA EQUIPE:
+Equipe: ${indicadoresReuniaoAtual.equipe || "Todas"}
+Pessoas cadastradas: ${indicadoresReuniaoAtual.total}
+HAS: ${indicadoresReuniaoAtual.has}
+DM: ${indicadoresReuniaoAtual.dm}
+Gestantes: ${indicadoresReuniaoAtual.gestantes}
+Tuberculose: ${indicadoresReuniaoAtual.tb}
+Hanseníase: ${indicadoresReuniaoAtual.hansen}
+Casos críticos / alto risco: ${indicadoresReuniaoAtual.criticos}
+`;
+}
+
+function badgesLinhasReuniaoPlus(p) {
+    const badges = [];
+
+    if (valorSimReuniao(p.has)) badges.push(`<span class="status-badge status-danger">HAS</span>`);
+    if (valorSimReuniao(p.dm)) badges.push(`<span class="status-badge status-success">DM</span>`);
+    if (valorSimReuniao(p.gestante)) badges.push(`<span class="status-badge status-warning">Gestante</span>`);
+    if (valorSimReuniao(p.tb)) badges.push(`<span class="status-badge status-info">TB</span>`);
+    if (valorSimReuniao(p.hansen)) badges.push(`<span class="status-badge status-info">Hanseníase</span>`);
+
+    return badges.length
+        ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+}
+
+function badgeRiscoReuniaoPlus(p) {
+    const risco =
+        p.risco_global || "Não informado";
+
+    const r =
+        normalizarReuniaoPlus(risco);
+
+    if (r.includes("alto") || Number(p.risco_pontos || 0) >= 6) {
+        return `<span class="status-badge status-danger">${escaparHTMLReuniao(risco)}</span>`;
+    }
+
+    if (r.includes("moderado") || r.includes("medio")) {
+        return `<span class="status-badge status-warning">${escaparHTMLReuniao(risco)}</span>`;
+    }
+
+    return `<span class="status-badge status-info">${escaparHTMLReuniao(risco)}</span>`;
+}
+
+function normalizarReuniaoPlus(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function setTextoReuniaoPlus(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor;
+    }
+}
+
 
 /* ======================================================
    DISCUSSÃO DE CASO → ATENDIMENTOS
@@ -187,6 +743,8 @@ async function registrarDiscussaoCasoNoProntuario() {
         return;
     }
 
+    await salvarCasoReuniaoPlus(paciente, discussao, conduta);
+
     adicionarCasoNaAta(paciente, discussao, conduta);
 
     const campoDiscussao =
@@ -246,6 +804,62 @@ function adicionarCasoNaAta(paciente, discussao, conduta) {
 
     lista.appendChild(item);
 }
+
+
+async function salvarCasoReuniaoPlus(paciente, discussao, conduta) {
+    if (typeof supabaseClient === "undefined") return;
+
+    const usuario =
+        getUsuarioReuniao();
+
+    const payload = {
+        data_reuniao:
+            document.getElementById("reuniaoData")?.value || null,
+
+        paciente_cpf:
+            paciente.cpf || null,
+
+        paciente_cns:
+            paciente.cns || null,
+
+        paciente_nome:
+            paciente.nome || null,
+
+        situacao:
+            discussao || null,
+
+        conduta:
+            conduta || null,
+
+        responsavel:
+            usuario.usuario_nome || null,
+
+        prazo_dias:
+            null,
+
+        usuario_id:
+            usuario.usuario_id || null,
+
+        usuario_nome:
+            usuario.usuario_nome || null,
+
+        created_at:
+            new Date().toISOString()
+    };
+
+    const { error } =
+        await supabaseClient
+            .from("reuniao_casos")
+            .insert(payload);
+
+    if (error) {
+        console.warn(
+            "Caso não registrado em reuniao_casos. Verifique se a tabela existe:",
+            error
+        );
+    }
+}
+
 
 /* ======================================================
    COLETAR DADOS
@@ -355,6 +969,8 @@ Data: ${reuniao.data_reuniao || reuniao.data || "-"}
 Horário: ${reuniao.horario || "-"}
 Local: ${reuniao.local || "-"}
 Coordenação: ${reuniao.coordenador || "-"}
+
+${inserirIndicadoresNaAtaReuniao()}
 
 PARTICIPANTES:
 ${reuniao.participantes || "-"}
@@ -1047,3 +1663,9 @@ window.selecionarPacienteReuniaoSupabase =
 
 window.carregarResumoPacienteReuniao =
     carregarResumoPacienteReuniao;
+
+
+window.carregarIndicadoresReuniaoEquipe = carregarIndicadoresReuniaoEquipe;
+window.adicionarCasoCriticoNaPautaReuniao = adicionarCasoCriticoNaPautaReuniao;
+window.carregarResumoBuscaAtivaReuniao = carregarResumoBuscaAtivaReuniao;
+window.salvarCasoReuniaoPlus = salvarCasoReuniaoPlus;
