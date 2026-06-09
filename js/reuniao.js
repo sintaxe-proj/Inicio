@@ -12,9 +12,7 @@ let pacientesReuniao = [];
    ====================================================== */
 
 async function abrirModuloReuniao() {
-    await carregarPacientesParaDiscussao();
     await carregarHistoricoReunioes();
-    await carregarPacientesReuniao();
 }
 
 /* ======================================================
@@ -22,59 +20,10 @@ async function abrirModuloReuniao() {
    ====================================================== */
 
 async function carregarPacientesParaDiscussao() {
-    const select = document.getElementById("reuniaoPacienteCaso");
-    if (!select) return;
-
-    if (typeof supabaseClient === "undefined") {
-        select.innerHTML = '<option value="">Supabase não carregado</option>';
-        return;
-    }
-
-    select.innerHTML = '<option value="">Carregando pacientes...</option>';
-
-    const { data, error } = await supabaseClient
-        .from("pacientes")
-        .select(`
-            id,
-            nome,
-            cpf,
-            cns,
-            ubs,
-            equipe,
-            ubs_vinculacao,
-            equipe_esf
-        `)
-        .order("nome", { ascending: true });
-
-    if (error) {
-        console.error("Erro ao carregar pacientes:", error);
-        select.innerHTML = '<option value="">Erro ao carregar pacientes</option>';
-        return;
-    }
-
-    pacientesReuniao = data || [];
-
-    select.innerHTML = '<option value="">-- Selecione um paciente --</option>';
-
-    pacientesReuniao.forEach(p => {
-        const option = document.createElement("option");
-        option.value = p.id;
-
-        const ubs =
-            p.ubs_vinculacao ||
-            p.ubs ||
-            "UBS não informada";
-
-        const equipe =
-            p.equipe_esf ||
-            p.equipe ||
-            "Equipe não informada";
-
-        option.textContent =
-            `${p.nome || "Sem nome"} - CPF: ${p.cpf || "-"} CNS: ${p.cns || "-"} | ${ubs} / ${equipe}`;
-
-        select.appendChild(option);
-    });
+    // Compatibilidade com versões antigas.
+    // A seleção de paciente agora é feita por busca direta no Supabase
+    // usando buscarPacientesReuniaoSupabase().
+    return;
 }
 
 /* ======================================================
@@ -167,6 +116,7 @@ async function registrarDiscussaoCasoNoProntuario() {
     }
 
     const paciente =
+        window.pacienteReuniaoSelecionado ||
         pacientesReuniao.find(p => String(p.id) === String(pacienteId));
 
     if (!paciente) {
@@ -694,102 +644,177 @@ window.visualizarReuniao = visualizarReuniao;
 window.imprimirAtaHistorico = imprimirAtaHistorico;
 window.excluirReuniao = excluirReuniao;
 
-document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById("listaItensPauta")) adicionarItemPauta();
-    if (document.getElementById("listaEncaminhamentos")) adicionarEncaminhamento();
-});
+// Não cria pauta/encaminhamento automaticamente ao carregar.
 
-let pacientesReuniaoCache = [];
 
-async function carregarPacientesReuniao() {
+/* ======================================================
+   BUSCA DE PACIENTE DA REUNIÃO — SUPABASE DIRETO
+   ====================================================== */
 
-    const { data, error } =
-        await supabaseClient
-            .from("pacientes")
-            .select(`
-                cpf,
-                cns,
-                nome
-            `)
-            .order("nome");
+let pacientesReuniaoBusca = [];
 
-    if (error) {
-        console.error(error);
-        return;
-    }
-
-    pacientesReuniaoCache =
-        data || [];
-}
-
-function filtrarPacientesReuniao() {
-
-    const termo =
-        document
-            .getElementById("buscaPacienteReuniao")
-            .value
-            .toLowerCase()
-            .trim();
+async function buscarPacientesReuniaoSupabase() {
+    const campoBusca =
+        document.getElementById("buscaPacienteReuniao");
 
     const container =
-        document.getElementById(
-            "resultadoBuscaPacienteReuniao"
-        );
+        document.getElementById("resultadoBuscaPacienteReuniao");
 
-    if (!container) return;
+    if (!campoBusca || !container) return;
 
-    if (!termo) {
+    const termo =
+        campoBusca.value.trim();
+
+    if (termo.length < 3) {
         container.innerHTML = "";
         return;
     }
 
-    const encontrados =
-        pacientesReuniaoCache
-            .filter(p =>
-                (p.nome || "")
-                    .toLowerCase()
-                    .includes(termo)
-                ||
-                (p.cpf || "")
-                    .includes(termo)
-                ||
-                (p.cns || "")
-                    .includes(termo)
-            )
-            .slice(0, 15);
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        return;
+    }
+
+    const numeros =
+        termo.replace(/\D/g, "");
 
     container.innerHTML =
-        encontrados.map(p => `
-            <div
-                class="item-paciente-reuniao"
-                onclick="
-                    selecionarPacienteReuniao(
-                        '${p.cpf || ""}',
-                        '${p.nome || ""}'
-                    )
-                ">
+        `<p style="color:var(--text-muted);">🔎 Buscando no Supabase...</p>`;
 
-                <strong>${p.nome}</strong><br>
+    let query =
+        supabaseClient
+            .from("pacientes")
+            .select(`
+                id,
+                nome,
+                cpf,
+                cns,
+                telefone,
+                ubs,
+                equipe,
+                ubs_vinculacao,
+                equipe_esf
+            `)
+            .limit(15);
 
-                CPF: ${p.cpf || "-"}
-            </div>
-        `).join("");
+    if (numeros.length >= 3 && numeros === termo.replace(/\D/g, "")) {
+        query =
+            query.or(
+                `cpf.ilike.%${numeros}%,cns.ilike.%${numeros}%,telefone.ilike.%${numeros}%`
+            );
+    } else {
+        query =
+            query.ilike("nome", `%${termo}%`);
+    }
+
+    const { data, error } =
+        await query;
+
+    if (error) {
+        console.error(
+            "Erro ao buscar pacientes reunião:",
+            error
+        );
+
+        container.innerHTML =
+            `<p style="color:var(--danger);">Erro ao buscar pacientes no Supabase.</p>`;
+
+        return;
+    }
+
+    pacientesReuniaoBusca =
+        data || [];
+
+    window.pacientesReuniaoBusca =
+        pacientesReuniaoBusca;
+
+    if (!pacientesReuniaoBusca.length) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Nenhum paciente encontrado.</p>`;
+        return;
+    }
+
+    container.innerHTML =
+        pacientesReuniaoBusca.map(p => {
+            const ubs =
+                p.ubs_vinculacao ||
+                p.ubs ||
+                "UBS pendente";
+
+            const equipe =
+                p.equipe_esf ||
+                p.equipe ||
+                "Equipe pendente";
+
+            return `
+                <div
+                    class="item-paciente-reuniao"
+                    onclick="selecionarPacienteReuniaoSupabase('${escaparReuniao(p.id)}')">
+
+                    <strong>${escaparHTMLReuniao(p.nome || "Sem nome")}</strong><br>
+
+                    <small>
+                        CPF: ${escaparHTMLReuniao(p.cpf || "-")} |
+                        CNS: ${escaparHTMLReuniao(p.cns || "-")} |
+                        ${escaparHTMLReuniao(ubs)} /
+                        ${escaparHTMLReuniao(equipe)}
+                    </small>
+                </div>
+            `;
+        }).join("");
 }
 
-function selecionarPacienteReuniao(
-    cpf,
-    nome
-) {
+function selecionarPacienteReuniaoSupabase(id) {
+    const paciente =
+        (window.pacientesReuniaoBusca || pacientesReuniaoBusca || [])
+            .find(p => String(p.id) === String(id));
 
-    document.getElementById(
-        "reuniaoPacienteCaso"
-    ).value = cpf;
+    if (!paciente) {
+        mostrarToast?.("⚠️ Paciente não encontrado na seleção.");
+        return;
+    }
 
-    document.getElementById(
-        "buscaPacienteReuniao"
-    ).value = nome;
+    const campoHidden =
+        document.getElementById("reuniaoPacienteCaso");
 
-    document.getElementById(
-        "resultadoBuscaPacienteReuniao"
-    ).innerHTML = "";
+    const campoBusca =
+        document.getElementById("buscaPacienteReuniao");
+
+    const container =
+        document.getElementById("resultadoBuscaPacienteReuniao");
+
+    if (campoHidden) {
+        campoHidden.value =
+            paciente.id;
+    }
+
+    if (campoBusca) {
+        campoBusca.value =
+            paciente.nome || "";
+    }
+
+    if (container) {
+        container.innerHTML = "";
+    }
+
+    window.pacienteReuniaoSelecionado =
+        paciente;
+
+    pacientesReuniao =
+        [paciente];
+
+    mostrarToast?.(
+        `✅ Paciente selecionado: ${paciente.nome || "Sem nome"}`
+    );
 }
+
+/* ======================================================
+   GLOBAL — BUSCA SUPABASE REUNIÃO
+   ====================================================== */
+
+window.buscarPacientesReuniaoSupabase =
+    buscarPacientesReuniaoSupabase;
+
+window.selecionarPacienteReuniaoSupabase =
+    selecionarPacienteReuniaoSupabase;
