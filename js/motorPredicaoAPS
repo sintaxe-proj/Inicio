@@ -1,0 +1,1069 @@
+/* ==========================================================
+   🧠 MOTOR DE PREDIÇÃO APS — SINTAXEHUB
+   Nível 2: IA preditiva explicável local
+   Nível 4: Recomendações proativas
+   Nível 5 inicial: Gêmeo digital territorial simplificado
+
+   Importante:
+   - Não usa API externa.
+   - Não treina modelo estatístico real ainda.
+   - Usa modelo preditivo explicável por score ponderado.
+   - Pode ser substituído no futuro por ML treinado.
+   ========================================================== */
+
+let motorPredicaoAPSAtual = {
+    pacientes: [],
+    atendimentos: [],
+    interacoes: [],
+    estoque: [],
+    base: [],
+    predicoes: [],
+    territorios: [],
+    recomendacoes: []
+};
+
+/* ==========================================================
+   CARREGAMENTO PRINCIPAL
+   ========================================================== */
+
+async function carregarMotorPredicaoAPS() {
+    const container =
+        document.getElementById("conteudoMotorPredicaoAPS");
+
+    if (container) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">Calculando predições APS...</p>`;
+    }
+
+    if (typeof supabaseClient === "undefined") {
+        if (container) {
+            container.innerHTML =
+                `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        }
+        return;
+    }
+
+    const dados =
+        await carregarDadosMotorPredicaoAPS();
+
+    const base =
+        consolidarBaseMotorPredicaoAPS(
+            dados.pacientes,
+            dados.atendimentos,
+            dados.interacoes
+        );
+
+    const predicoes =
+        base.map(paciente =>
+            calcularPredicaoIndividualAPS(
+                paciente,
+                dados
+            )
+        ).sort((a, b) =>
+            b.scoreGeral - a.scoreGeral
+        );
+
+    const territorios =
+        calcularGemeoDigitalTerritorialAPS(
+            predicoes,
+            dados
+        );
+
+    const recomendacoes =
+        gerarRecomendacoesProativasAPS(
+            predicoes,
+            territorios,
+            dados
+        );
+
+    motorPredicaoAPSAtual = {
+        ...dados,
+        base,
+        predicoes,
+        territorios,
+        recomendacoes
+    };
+
+    renderizarMotorPredicaoAPS();
+}
+
+/* ==========================================================
+   DADOS
+   ========================================================== */
+
+async function carregarDadosMotorPredicaoAPS() {
+    const [
+        pacientesResp,
+        atendimentosResp,
+        interacoesResp,
+        estoqueResp
+    ] = await Promise.all([
+        supabaseClient
+            .from("pacientes")
+            .select("*")
+            .limit(20000),
+
+        supabaseClient
+            .from("atendimentos")
+            .select("*")
+            .order("data_atendimento", { ascending: false, nullsFirst: false })
+            .limit(50000),
+
+        supabaseClient
+            .from("interacoes_busca_ativa")
+            .select("*")
+            .order("criado_em", { ascending: false, nullsFirst: false })
+            .limit(30000),
+
+        supabaseClient
+            .from("estoque_itens")
+            .select("*")
+            .limit(10000)
+    ]);
+
+    return {
+        pacientes: pacientesResp.data || [],
+        atendimentos: atendimentosResp.data || [],
+        interacoes: interacoesResp.data || [],
+        estoque: estoqueResp.data || []
+    };
+}
+
+function consolidarBaseMotorPredicaoAPS(pacientes, atendimentos, interacoes) {
+    if (typeof consolidarBaseTorreAPS === "function") {
+        const base =
+            consolidarBaseTorreAPS(pacientes, atendimentos);
+
+        return base.map(p => ({
+            ...p,
+            interacoes:
+                contarInteracoesPacienteMotorAPS(
+                    p,
+                    interacoes
+                )
+        }));
+    }
+
+    const mapa = new Map();
+
+    pacientes.forEach(p => {
+        const chave =
+            p.cpf ||
+            p.cns ||
+            p.id;
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            id: p.id || "",
+            nome: p.nome || "",
+            cpf: limparDocumentoMotorAPS(p.cpf || ""),
+            cns: p.cns || "",
+            telefone: p.telefone || "",
+            cep: p.cep || "",
+            bairro: p.bairro || "",
+            cidade: p.cidade || "",
+            ubs: p.ubs_vinculacao || p.ubs || "Não informado",
+            equipe: p.equipe_esf || p.equipe || "Não informado",
+            has: "Não",
+            dm: "Não",
+            gestante: "Não",
+            tb: "Não",
+            hansen: "Não",
+            risco_global: "Não informado",
+            risco_pontos: 0,
+            prazo: null,
+            ultimo_atendimento: null,
+            hasPAS: null,
+            hasPAD: null,
+            dmHbA1c: null,
+            pendencias: []
+        });
+    });
+
+    atendimentos.forEach(a => {
+        const chave =
+            a.paciente_cpf ||
+            a.cpf ||
+            a.cns;
+
+        if (!chave) return;
+
+        const atual =
+            mapa.get(chave) || {
+                nome: a.nome_paciente || a.nome || "",
+                cpf: limparDocumentoMotorAPS(a.paciente_cpf || a.cpf || ""),
+                cns: a.cns || "",
+                telefone: "",
+                cep: a.cep || "",
+                bairro: a.bairro || "",
+                cidade: "",
+                ubs: a.ubs_vinculacao || a.ubs || "Não informado",
+                equipe: a.equipe_esf || a.equipe || "Não informado",
+                has: "Não",
+                dm: "Não",
+                gestante: "Não",
+                tb: "Não",
+                hansen: "Não",
+                risco_global: "Não informado",
+                risco_pontos: 0,
+                prazo: null,
+                ultimo_atendimento: null,
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+                pendencias: []
+            };
+
+        if (!atual.nome) atual.nome = a.nome_paciente || a.nome || "";
+
+        if (valorSimMotorAPS(a.has)) atual.has = "Sim";
+        if (valorSimMotorAPS(a.dm)) atual.dm = "Sim";
+        if (valorSimMotorAPS(a.gestante)) atual.gestante = "Sim";
+        if (valorSimMotorAPS(a.tb)) atual.tb = "Sim";
+        if (valorSimMotorAPS(a.hansen)) atual.hansen = "Sim";
+
+        atual.risco_global =
+            a.risco_global ||
+            atual.risco_global;
+
+        atual.risco_pontos =
+            Number(a.risco_pontos || atual.risco_pontos || 0);
+
+        atual.prazo =
+            a.reavaliacaoDias ??
+            a.retorno_dias ??
+            atual.prazo;
+
+        atual.ultimo_atendimento =
+            a.data_atendimento ||
+            a.criado_em ||
+            a.created_at ||
+            atual.ultimo_atendimento;
+
+        atual.hasPAS =
+            primeiroValorMotorAPS(a.hasPAS, a.has_pas, a.objPAS, a.obj_pas, atual.hasPAS);
+
+        atual.hasPAD =
+            primeiroValorMotorAPS(a.hasPAD, a.has_pad, a.objPAD, a.obj_pad, atual.hasPAD);
+
+        atual.dmHbA1c =
+            primeiroValorMotorAPS(a.dmHbA1c, a.dm_hba1c, a.hba1c, atual.dmHbA1c);
+
+        if (a.ubs_vinculacao || a.ubs) atual.ubs = a.ubs_vinculacao || a.ubs;
+        if (a.equipe_esf || a.equipe) atual.equipe = a.equipe_esf || a.equipe;
+
+        mapa.set(chave, atual);
+    });
+
+    return Array.from(mapa.values()).map(p => ({
+        ...p,
+        pendencias:
+            identificarPendenciasMotorAPS(p),
+        interacoes:
+            contarInteracoesPacienteMotorAPS(
+                p,
+                interacoes
+            )
+    }));
+}
+
+/* ==========================================================
+   PREDIÇÃO INDIVIDUAL
+   ========================================================== */
+
+function calcularPredicaoIndividualAPS(paciente, dados = {}) {
+    const abandono =
+        calcularRiscoAbandonoAPS(paciente);
+
+    const descompensacao =
+        calcularRiscoDescompensacaoAPS(paciente);
+
+    const internacao =
+        calcularRiscoInternacaoAPS(paciente);
+
+    const evasaoGestante =
+        calcularRiscoEvasaoGestanteAPS(paciente);
+
+    const falhaSeguimento =
+        calcularRiscoFalhaSeguimentoAPS(paciente);
+
+    const scoreGeral =
+        Math.round(
+            abandono.probabilidade * 0.25 +
+            descompensacao.probabilidade * 0.25 +
+            internacao.probabilidade * 0.25 +
+            evasaoGestante.probabilidade * 0.10 +
+            falhaSeguimento.probabilidade * 0.15
+        );
+
+    const prioridade =
+        classificarPrioridadePreditivaAPS(scoreGeral);
+
+    return {
+        paciente,
+        nome: paciente.nome,
+        cpf: paciente.cpf,
+        cns: paciente.cns,
+        equipe: paciente.equipe,
+        ubs: paciente.ubs,
+        territorio: paciente.cep || paciente.bairro || paciente.equipe || "Não informado",
+
+        scoreGeral,
+        prioridade,
+
+        abandono,
+        descompensacao,
+        internacao,
+        evasaoGestante,
+        falhaSeguimento,
+
+        fatores:
+            [
+                ...abandono.fatores,
+                ...descompensacao.fatores,
+                ...internacao.fatores,
+                ...evasaoGestante.fatores,
+                ...falhaSeguimento.fatores
+            ].filter(Boolean)
+    };
+}
+
+function calcularRiscoAbandonoAPS(p) {
+    let score = 0;
+    const fatores = [];
+
+    const dias =
+        diasDesdeMotorAPS(p.ultimo_atendimento);
+
+    if (dias > 365) {
+        score += 40;
+        fatores.push("sem atendimento há mais de 1 ano");
+    } else if (dias > 180) {
+        score += 28;
+        fatores.push("sem atendimento há mais de 180 dias");
+    } else if (dias > 90) {
+        score += 12;
+        fatores.push("sem atendimento há mais de 90 dias");
+    }
+
+    if (Number(p.prazo) === 0) {
+        score += 25;
+        fatores.push("retorno vencido");
+    }
+
+    if ((p.interacoes?.naoLocalizado || 0) >= 2) {
+        score += 20;
+        fatores.push("múltiplas tentativas sem sucesso");
+    }
+
+    if (valorSimMotorAPS(p.tb) || valorSimMotorAPS(p.hansen)) {
+        score += 15;
+        fatores.push("linha de cuidado sensível ao abandono");
+    }
+
+    return {
+        probabilidade: limitarProbabilidadeAPS(score),
+        classe: classificarProbabilidadeAPS(score),
+        fatores
+    };
+}
+
+function calcularRiscoDescompensacaoAPS(p) {
+    let score = 0;
+    const fatores = [];
+
+    const pas =
+        Number(p.hasPAS || 0);
+
+    const pad =
+        Number(p.hasPAD || 0);
+
+    const hba1c =
+        Number(p.dmHbA1c || 0);
+
+    if (valorSimMotorAPS(p.has)) {
+        score += 8;
+
+        if (pas >= 180 || pad >= 110) {
+            score += 35;
+            fatores.push("PA em faixa crítica");
+        } else if (pas >= 160 || pad >= 100) {
+            score += 24;
+            fatores.push("PA muito elevada");
+        } else if (pas >= 140 || pad >= 90) {
+            score += 12;
+            fatores.push("PA elevada");
+        }
+
+        if (!pas || !pad) {
+            score += 12;
+            fatores.push("HAS sem PA registrada");
+        }
+    }
+
+    if (valorSimMotorAPS(p.dm)) {
+        score += 8;
+
+        if (hba1c >= 10) {
+            score += 35;
+            fatores.push("HbA1c muito elevada");
+        } else if (hba1c >= 9) {
+            score += 25;
+            fatores.push("HbA1c elevada");
+        } else if (hba1c >= 7) {
+            score += 10;
+            fatores.push("HbA1c acima do alvo");
+        }
+
+        if (!hba1c) {
+            score += 12;
+            fatores.push("DM sem HbA1c registrada");
+        }
+    }
+
+    if (normalizarMotorAPS(p.risco_global).includes("alto")) {
+        score += 20;
+        fatores.push("risco global alto");
+    }
+
+    score +=
+        Math.min(Number(p.risco_pontos || 0) * 3, 20);
+
+    return {
+        probabilidade: limitarProbabilidadeAPS(score),
+        classe: classificarProbabilidadeAPS(score),
+        fatores
+    };
+}
+
+function calcularRiscoInternacaoAPS(p) {
+    let score = 0;
+    const fatores = [];
+
+    if (normalizarMotorAPS(p.risco_global).includes("alto")) {
+        score += 25;
+        fatores.push("alto risco global");
+    }
+
+    if (Number(p.risco_pontos || 0) >= 8) {
+        score += 22;
+        fatores.push("pontuação clínica elevada");
+    }
+
+    if (valorSimMotorAPS(p.has) && valorSimMotorAPS(p.dm)) {
+        score += 18;
+        fatores.push("multimorbidade HAS + DM");
+    }
+
+    if (valorSimMotorAPS(p.tb)) {
+        score += 18;
+        fatores.push("tuberculose em acompanhamento");
+    }
+
+    if (valorSimMotorAPS(p.hansen)) {
+        score += 12;
+        fatores.push("hanseníase em acompanhamento");
+    }
+
+    if ((p.pendencias?.length || 0) >= 3) {
+        score += 18;
+        fatores.push("múltiplas pendências clínicas");
+    }
+
+    if (diasDesdeMotorAPS(p.ultimo_atendimento) > 180) {
+        score += 12;
+        fatores.push("sem acompanhamento recente");
+    }
+
+    return {
+        probabilidade: limitarProbabilidadeAPS(score),
+        classe: classificarProbabilidadeAPS(score),
+        fatores
+    };
+}
+
+function calcularRiscoEvasaoGestanteAPS(p) {
+    if (!valorSimMotorAPS(p.gestante)) {
+        return {
+            probabilidade: 0,
+            classe: "Não aplicável",
+            fatores: []
+        };
+    }
+
+    let score = 20;
+    const fatores = ["gestação ativa"];
+
+    if (diasDesdeMotorAPS(p.ultimo_atendimento) > 30) {
+        score += 35;
+        fatores.push("gestante sem consulta recente");
+    }
+
+    if (Number(p.prazo) === 0) {
+        score += 25;
+        fatores.push("retorno pré-natal vencido");
+    }
+
+    if ((p.interacoes?.naoLocalizado || 0) > 0) {
+        score += 15;
+        fatores.push("dificuldade de contato");
+    }
+
+    return {
+        probabilidade: limitarProbabilidadeAPS(score),
+        classe: classificarProbabilidadeAPS(score),
+        fatores
+    };
+}
+
+function calcularRiscoFalhaSeguimentoAPS(p) {
+    let score = 0;
+    const fatores = [];
+
+    if ((p.pendencias?.length || 0) >= 2) {
+        score += 25;
+        fatores.push("duas ou mais pendências");
+    }
+
+    if (Number(p.prazo) === 0) {
+        score += 25;
+        fatores.push("retorno vencido");
+    }
+
+    if (diasDesdeMotorAPS(p.ultimo_atendimento) > 180) {
+        score += 25;
+        fatores.push("sem atendimento recente");
+    }
+
+    if ((p.interacoes?.total || 0) === 0) {
+        score += 10;
+        fatores.push("sem busca ativa registrada");
+    }
+
+    return {
+        probabilidade: limitarProbabilidadeAPS(score),
+        classe: classificarProbabilidadeAPS(score),
+        fatores
+    };
+}
+
+/* ==========================================================
+   GÊMEO DIGITAL TERRITORIAL INICIAL
+   ========================================================== */
+
+function calcularGemeoDigitalTerritorialAPS(predicoes, dados = {}) {
+    const grupos = {};
+
+    predicoes.forEach(item => {
+        const chave =
+            item.territorio ||
+            item.equipe ||
+            "Não informado";
+
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                territorio: chave,
+                populacao: 0,
+                altoRisco: 0,
+                riscoMedio: 0,
+                riscoBaixo: 0,
+                somaScore: 0,
+                riscoAbandonoMedio: 0,
+                riscoInternacaoMedio: 0,
+                riscoDescompensacaoMedio: 0,
+                pressaoAssistencial: 0,
+                status: "🟢 Estável",
+                recomendacao: ""
+            };
+        }
+
+        const g =
+            grupos[chave];
+
+        g.populacao++;
+        g.somaScore += item.scoreGeral;
+        g.riscoAbandonoMedio += item.abandono.probabilidade;
+        g.riscoInternacaoMedio += item.internacao.probabilidade;
+        g.riscoDescompensacaoMedio += item.descompensacao.probabilidade;
+
+        if (item.scoreGeral >= 70) g.altoRisco++;
+        else if (item.scoreGeral >= 40) g.riscoMedio++;
+        else g.riscoBaixo++;
+    });
+
+    Object.values(grupos).forEach(g => {
+        g.scoreMedio =
+            Math.round(g.somaScore / Math.max(g.populacao, 1));
+
+        g.riscoAbandonoMedio =
+            Math.round(g.riscoAbandonoMedio / Math.max(g.populacao, 1));
+
+        g.riscoInternacaoMedio =
+            Math.round(g.riscoInternacaoMedio / Math.max(g.populacao, 1));
+
+        g.riscoDescompensacaoMedio =
+            Math.round(g.riscoDescompensacaoMedio / Math.max(g.populacao, 1));
+
+        g.pressaoAssistencial =
+            g.altoRisco * 5 +
+            g.riscoMedio * 2 +
+            Math.round(g.scoreMedio / 10);
+
+        if (g.pressaoAssistencial >= 80 || g.altoRisco >= 10) {
+            g.status = "🔴 Crítico";
+            g.recomendacao = "Planejar ação territorial intensiva, busca ativa e agenda protegida.";
+        } else if (g.pressaoAssistencial >= 35 || g.altoRisco >= 4) {
+            g.status = "🟡 Atenção";
+            g.recomendacao = "Priorizar lista nominal e revisão semanal em reunião de equipe.";
+        } else {
+            g.status = "🟢 Estável";
+            g.recomendacao = "Manter monitoramento de rotina.";
+        }
+    });
+
+    return Object
+        .values(grupos)
+        .sort((a, b) =>
+            b.pressaoAssistencial - a.pressaoAssistencial ||
+            b.altoRisco - a.altoRisco
+        );
+}
+
+/* ==========================================================
+   RECOMENDAÇÕES PROATIVAS
+   ========================================================== */
+
+function gerarRecomendacoesProativasAPS(predicoes, territorios, dados = {}) {
+    const recs = [];
+
+    const altoRisco =
+        predicoes.filter(p => p.scoreGeral >= 70);
+
+    const abandono =
+        predicoes.filter(p => p.abandono.probabilidade >= 70);
+
+    const internacao =
+        predicoes.filter(p => p.internacao.probabilidade >= 70);
+
+    const descompensacao =
+        predicoes.filter(p => p.descompensacao.probabilidade >= 70);
+
+    const gestantes =
+        predicoes.filter(p => p.evasaoGestante.probabilidade >= 60);
+
+    const topTerritorio =
+        territorios[0];
+
+    if (altoRisco.length) {
+        recs.push({
+            tipo: "RISCO_GERAL",
+            icone: "🚨",
+            titulo: "Priorizar pacientes de muito alto risco",
+            impacto: "Alto",
+            justificativa: `${altoRisco.length} paciente(s) com score preditivo ≥ 70.`,
+            acao: "Criar agenda protegida e dividir lista nominal por equipe.",
+            lista: altoRisco.slice(0, 20)
+        });
+    }
+
+    if (abandono.length) {
+        recs.push({
+            tipo: "ABANDONO",
+            icone: "📞",
+            titulo: "Prevenir abandono de acompanhamento",
+            impacto: "Alto",
+            justificativa: `${abandono.length} paciente(s) com alto risco de abandono.`,
+            acao: "Acionar busca ativa por telefone, ACS e visita domiciliar.",
+            lista: abandono.slice(0, 20)
+        });
+    }
+
+    if (internacao.length) {
+        recs.push({
+            tipo: "INTERNACAO",
+            icone: "🏥",
+            titulo: "Reduzir risco de internação evitável",
+            impacto: "Alto",
+            justificativa: `${internacao.length} paciente(s) com risco elevado de internação.`,
+            acao: "Avaliar clinicamente casos prioritários e revisar plano terapêutico.",
+            lista: internacao.slice(0, 20)
+        });
+    }
+
+    if (descompensacao.length) {
+        recs.push({
+            tipo: "DESCOMPENSACAO",
+            icone: "🩺",
+            titulo: "Prevenir descompensação clínica",
+            impacto: "Médio/Alto",
+            justificativa: `${descompensacao.length} paciente(s) com risco de descompensação.`,
+            acao: "Atualizar PA, HbA1c e pendências clínicas.",
+            lista: descompensacao.slice(0, 20)
+        });
+    }
+
+    if (gestantes.length) {
+        recs.push({
+            tipo: "GESTANTE",
+            icone: "🤰",
+            titulo: "Busca ativa de gestantes com risco de evasão",
+            impacto: "Alto",
+            justificativa: `${gestantes.length} gestante(s) com risco de atraso/evasão de pré-natal.`,
+            acao: "Agendar contato prioritário e validar calendário de pré-natal.",
+            lista: gestantes.slice(0, 20)
+        });
+    }
+
+    if (topTerritorio && topTerritorio.status.includes("Crítico")) {
+        recs.push({
+            tipo: "TERRITORIO",
+            icone: "🌎",
+            titulo: `Ação territorial em ${topTerritorio.territorio}`,
+            impacto: "Alto",
+            justificativa: `Território com pressão assistencial ${topTerritorio.pressaoAssistencial}.`,
+            acao: topTerritorio.recomendacao,
+            lista: predicoes
+                .filter(p => p.territorio === topTerritorio.territorio)
+                .slice(0, 20)
+        });
+    }
+
+    return recs;
+}
+
+/* ==========================================================
+   RENDERIZAÇÃO
+   ========================================================== */
+
+function renderizarMotorPredicaoAPS() {
+    const container =
+        document.getElementById("conteudoMotorPredicaoAPS");
+
+    if (!container) return;
+
+    const dados =
+        motorPredicaoAPSAtual;
+
+    const muitoAlto =
+        dados.predicoes.filter(p => p.scoreGeral >= 70).length;
+
+    const moderado =
+        dados.predicoes.filter(p => p.scoreGeral >= 40 && p.scoreGeral < 70).length;
+
+    const baixo =
+        dados.predicoes.filter(p => p.scoreGeral < 40).length;
+
+    container.innerHTML = `
+        <div class="dashboard-grid">
+            ${cardMotorAPS("🚨", muitoAlto, "Muito alto risco", "icon-red")}
+            ${cardMotorAPS("🟡", moderado, "Risco moderado", "icon-yellow")}
+            ${cardMotorAPS("🟢", baixo, "Baixo risco", "icon-green")}
+            ${cardMotorAPS("🧠", dados.recomendacoes.length, "Recomendações proativas", "icon-purple")}
+            ${cardMotorAPS("🌎", dados.territorios.length, "Territórios simulados", "icon-cyan")}
+        </div>
+
+        ${renderizarRecomendacoesMotorAPS(dados.recomendacoes)}
+
+        ${renderizarGemeoDigitalMotorAPS(dados.territorios)}
+
+        ${renderizarTabelaPredicoesMotorAPS(dados.predicoes.slice(0, 50))}
+    `;
+}
+
+function renderizarRecomendacoesMotorAPS(recs) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🤖 Recomendações proativas APS</h3>
+
+            ${
+                recs.length
+                    ? recs.map(r => `
+                        <div style="
+                            background:#111c2e;
+                            border:1px solid var(--border);
+                            border-left:5px solid var(--primary);
+                            border-radius:14px;
+                            padding:14px;
+                            margin-bottom:12px;
+                        ">
+                            <strong>${r.icone} ${escaparMotorAPS(r.titulo)}</strong>
+                            <p style="color:var(--text-muted); margin:8px 0;">
+                                ${escaparMotorAPS(r.justificativa)}
+                            </p>
+                            <p style="margin:0;">
+                                <strong>Ação sugerida:</strong>
+                                ${escaparMotorAPS(r.acao)}
+                            </p>
+                        </div>
+                    `).join("")
+                    : `<p style="color:var(--text-muted);">Nenhuma recomendação crítica no momento.</p>`
+            }
+        </div>
+    `;
+}
+
+function renderizarGemeoDigitalMotorAPS(territorios) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">🌎 Gêmeo Digital Territorial Inicial</h3>
+            <p style="color:var(--text-muted);">
+                Simulação simplificada da pressão assistencial territorial baseada em risco preditivo.
+            </p>
+
+            <div style="overflow-x:auto;">
+                <table class="table-sintaxe">
+                    <thead>
+                        <tr>
+                            <th>Território</th>
+                            <th>Status</th>
+                            <th>População</th>
+                            <th>Alto risco</th>
+                            <th>Score médio</th>
+                            <th>Abandono médio</th>
+                            <th>Internação média</th>
+                            <th>Pressão assistencial</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${territorios.slice(0, 20).map(t => `
+                            <tr>
+                                <td><strong>${escaparMotorAPS(t.territorio)}</strong></td>
+                                <td>${escaparMotorAPS(t.status)}</td>
+                                <td>${t.populacao}</td>
+                                <td>${t.altoRisco}</td>
+                                <td>${t.scoreMedio}%</td>
+                                <td>${t.riscoAbandonoMedio}%</td>
+                                <td>${t.riscoInternacaoMedio}%</td>
+                                <td><strong>${t.pressaoAssistencial}</strong></td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderizarTabelaPredicoesMotorAPS(lista) {
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📋 Predições individuais</h3>
+
+            <div style="overflow-x:auto;">
+                <table class="table-sintaxe">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Equipe / UBS</th>
+                            <th>Score geral</th>
+                            <th>Abandono</th>
+                            <th>Descompensação</th>
+                            <th>Internação</th>
+                            <th>Fatores explicativos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${lista.map(p => `
+                            <tr>
+                                <td>
+                                    <strong>${escaparMotorAPS(p.nome || "Sem nome")}</strong>
+                                    <small>CPF: ${escaparMotorAPS(p.cpf || "-")} | CNS: ${escaparMotorAPS(p.cns || "-")}</small>
+                                </td>
+
+                                <td>
+                                    ${escaparMotorAPS(p.equipe || "-")}
+                                    <small>${escaparMotorAPS(p.ubs || "-")}</small>
+                                </td>
+
+                                <td>
+                                    <strong>${p.scoreGeral}%</strong>
+                                    <small>${escaparMotorAPS(p.prioridade)}</small>
+                                </td>
+
+                                <td>${p.abandono.probabilidade}%</td>
+                                <td>${p.descompensacao.probabilidade}%</td>
+                                <td>${p.internacao.probabilidade}%</td>
+
+                                <td>
+                                    <small>${escaparMotorAPS([...new Set(p.fatores)].slice(0, 6).join(", "))}</small>
+                                </td>
+
+                                <td>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente?.('${escaparMotorAPS(p.cpf || "")}', '${escaparMotorAPS(p.cns || "")}')">
+                                            📋 Prontuário
+                                        </button>
+                                        <button class="btn-table-action btn-ok" onclick="abrirLinhaTempoTerritorial?.('${escaparMotorAPS(p.cpf || "")}', '${escaparMotorAPS(p.cns || "")}')">
+                                            🧬 Linha
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   HELPERS
+   ========================================================== */
+
+function cardMotorAPS(icone, valor, rotulo, classeIcone = "") {
+    return `
+        <div class="dash-card">
+            <div class="dash-icon ${classeIcone}">${icone}</div>
+            <div>
+                <h3>${valor}</h3>
+                <p>${rotulo}</p>
+            </div>
+        </div>
+    `;
+}
+
+function classificarPrioridadePreditivaAPS(score) {
+    if (score >= 80) return "Crítica";
+    if (score >= 70) return "Muito alta";
+    if (score >= 40) return "Moderada";
+    return "Baixa";
+}
+
+function classificarProbabilidadeAPS(score) {
+    const p =
+        limitarProbabilidadeAPS(score);
+
+    if (p >= 70) return "Alta";
+    if (p >= 40) return "Moderada";
+    return "Baixa";
+}
+
+function limitarProbabilidadeAPS(valor) {
+    return Math.max(0, Math.min(95, Math.round(valor)));
+}
+
+function contarInteracoesPacienteMotorAPS(p, interacoes) {
+    const cpf =
+        limparDocumentoMotorAPS(p.cpf || "");
+
+    const cns =
+        String(p.cns || "");
+
+    const lista =
+        (interacoes || []).filter(i =>
+            limparDocumentoMotorAPS(i.paciente_cpf || i.cpf || "") === cpf ||
+            String(i.paciente_cns || i.cns || "") === cns
+        );
+
+    return {
+        total: lista.length,
+        naoLocalizado:
+            lista.filter(i =>
+                normalizarMotorAPS(i.resultado).includes("nao") ||
+                normalizarMotorAPS(i.resultado).includes("não") ||
+                normalizarMotorAPS(i.resultado).includes("numero invalido") ||
+                normalizarMotorAPS(i.resultado).includes("número inválido")
+            ).length
+    };
+}
+
+function identificarPendenciasMotorAPS(p) {
+    const pendencias = [];
+
+    if (valorSimMotorAPS(p.has) && (!p.hasPAS || !p.hasPAD)) {
+        pendencias.push("HAS sem PA");
+    }
+
+    if (valorSimMotorAPS(p.dm) && !p.dmHbA1c) {
+        pendencias.push("DM sem HbA1c");
+    }
+
+    if (valorSimMotorAPS(p.gestante) && diasDesdeMotorAPS(p.ultimo_atendimento) > 30) {
+        pendencias.push("Gestante sem consulta recente");
+    }
+
+    if (Number(p.prazo) === 0) {
+        pendencias.push("Retorno vencido");
+    }
+
+    return pendencias;
+}
+
+function valorSimMotorAPS(valor) {
+    const v =
+        normalizarMotorAPS(valor);
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+function normalizarMotorAPS(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function primeiroValorMotorAPS(...valores) {
+    for (const v of valores) {
+        if (v !== null && v !== undefined && String(v).trim() !== "") {
+            return v;
+        }
+    }
+
+    return null;
+}
+
+function diasDesdeMotorAPS(data) {
+    if (!data) return 9999;
+
+    const d =
+        new Date(data);
+
+    if (Number.isNaN(d.getTime())) {
+        return 9999;
+    }
+
+    return Math.floor(
+        (Date.now() - d.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
+function limparDocumentoMotorAPS(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
+}
+
+function escaparMotorAPS(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+/* ==========================================================
+   GLOBAL
+   ========================================================== */
+
+window.carregarMotorPredicaoAPS = carregarMotorPredicaoAPS;
+window.calcularPredicaoIndividualAPS = calcularPredicaoIndividualAPS;
+window.calcularGemeoDigitalTerritorialAPS = calcularGemeoDigitalTerritorialAPS;
+window.gerarRecomendacoesProativasAPS = gerarRecomendacoesProativasAPS;
+window.motorPredicaoAPSAtual = motorPredicaoAPSAtual;
