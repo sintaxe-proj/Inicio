@@ -110,6 +110,8 @@ async function buscarPacientesRelatorioAPS() {
                 cns,
                 telefone,
                 cep,
+                bairro,
+                cidade,
                 ubs,
                 equipe,
                 ubs_vinculacao,
@@ -142,6 +144,17 @@ async function buscarAtendimentosRelatorioAPS(filtros) {
                 hansen,
                 risco_global,
                 risco_pontos,
+                hasPAS,
+                hasPAD,
+                objPAS,
+                objPAD,
+                dmHbA1c,
+                dm_hba1c,
+                hba1c,
+                gestDPP,
+                gest_dpp,
+                gestDUM,
+                gest_dum,
                 reavaliacaoDias,
                 retorno_dias,
                 ciapSelecionado,
@@ -329,6 +342,8 @@ function consolidarBaseRelatorioAPS(pacientes, atendimentos) {
             cns: p.cns || "",
             telefone: p.telefone || "",
             cep: p.cep || "",
+            bairro: p.bairro || "Não informado",
+            cidade: p.cidade || "",
             ubs: p.ubs_vinculacao || p.ubs || "Não informado",
             equipe: p.equipe_esf || p.equipe || "Não informado",
 
@@ -362,6 +377,8 @@ function consolidarBaseRelatorioAPS(pacientes, atendimentos) {
                 cns: a.cns || "",
                 telefone: "",
                 cep: "",
+                bairro: "Não informado",
+                cidade: "",
                 ubs: a.ubs_vinculacao || "Não informado",
                 equipe: a.equipe_esf || "Não informado",
 
@@ -374,6 +391,13 @@ function consolidarBaseRelatorioAPS(pacientes, atendimentos) {
                 risco_global: "Não informado",
                 risco_pontos: 0,
                 prazo: null,
+
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+                gestDPP: null,
+                gestDUM: null,
+
                 ciap: "",
                 ultimo_atendimento: null
             };
@@ -390,6 +414,46 @@ function consolidarBaseRelatorioAPS(pacientes, atendimentos) {
         if (a.risco_pontos !== null && a.risco_pontos !== undefined) {
             atual.risco_pontos = Number(a.risco_pontos || 0);
         }
+
+        atual.hasPAS =
+            obterPrimeiroValorRelatorioAPS(
+                a.hasPAS,
+                a.has_pas,
+                a.objPAS,
+                a.obj_pas,
+                atual.hasPAS
+            );
+
+        atual.hasPAD =
+            obterPrimeiroValorRelatorioAPS(
+                a.hasPAD,
+                a.has_pad,
+                a.objPAD,
+                a.obj_pad,
+                atual.hasPAD
+            );
+
+        atual.dmHbA1c =
+            obterPrimeiroValorRelatorioAPS(
+                a.dmHbA1c,
+                a.dm_hba1c,
+                a.hba1c,
+                atual.dmHbA1c
+            );
+
+        atual.gestDPP =
+            obterPrimeiroValorRelatorioAPS(
+                a.gestDPP,
+                a.gest_dpp,
+                atual.gestDPP
+            );
+
+        atual.gestDUM =
+            obterPrimeiroValorRelatorioAPS(
+                a.gestDUM,
+                a.gest_dum,
+                atual.gestDUM
+            );
 
         atual.prazo =
             a.reavaliacaoDias ??
@@ -643,6 +707,550 @@ function atualizarCardsRelatorioAPS(indicadores) {
     setTextoRelatorioAPS("relatorioAtendimentos", indicadores.atendimentos.total);
 }
 
+
+/* ==========================================================
+   PAINEL EXECUTIVO ESTRATÉGICO APS
+   ========================================================== */
+
+function calcularIndicadoresExecutivosAPS(base, indicadores) {
+    const populacao =
+        indicadores.populacao || 0;
+
+    const percent =
+        (valor, total = populacao) =>
+            total > 0
+                ? Number(((valor / total) * 100).toFixed(1))
+                : 0;
+
+    const pendencias =
+        calcularPendenciasRelatorioAPS(base);
+
+    return {
+        coberturaHAS: percent(indicadores.has),
+        coberturaDM: percent(indicadores.dm),
+        coberturaGestantes: percent(indicadores.gestantes),
+        coberturaTB: percent(indicadores.tb),
+        coberturaHansen: percent(indicadores.hansen),
+
+        taxaCriticos: percent(indicadores.criticos),
+
+        taxaBuscaAtiva:
+            populacao > 0
+                ? Number(((indicadores.busca.total / populacao) * 100).toFixed(1))
+                : 0,
+
+        efetividadeBusca:
+            indicadores.busca.total > 0
+                ? Number((((indicadores.busca.atendidos + indicadores.busca.agendados + indicadores.busca.resolvidos) / indicadores.busca.total) * 100).toFixed(1))
+                : 0,
+
+        taxaRetornoVencido:
+            populacao > 0
+                ? Number(((pendencias.retornoVencido / populacao) * 100).toFixed(1))
+                : 0,
+
+        pendencias
+    };
+}
+
+function calcularPendenciasRelatorioAPS(base) {
+    const retornoVencido =
+        base.filter(p => Number(p.prazo) === 0).length;
+
+    const hasSemPA =
+        base.filter(p =>
+            valorSimRelatorioAPS(p.has) &&
+            (!temValorRelatorioAPS(p.hasPAS) || !temValorRelatorioAPS(p.hasPAD))
+        ).length;
+
+    const dmSemHbA1c =
+        base.filter(p =>
+            valorSimRelatorioAPS(p.dm) &&
+            !temValorRelatorioAPS(p.dmHbA1c)
+        ).length;
+
+    const gestantesAtrasadas =
+        base.filter(p =>
+            valorSimRelatorioAPS(p.gestante) &&
+            diasDesdeRelatorioAPS(p.ultimo_atendimento) > 30
+        ).length;
+
+    const tbSemAcompanhamento =
+        base.filter(p =>
+            valorSimRelatorioAPS(p.tb) &&
+            diasDesdeRelatorioAPS(p.ultimo_atendimento) > 30
+        ).length;
+
+    const hansenSemAvaliacao =
+        base.filter(p =>
+            valorSimRelatorioAPS(p.hansen) &&
+            diasDesdeRelatorioAPS(p.ultimo_atendimento) > 60
+        ).length;
+
+    return {
+        total:
+            retornoVencido +
+            hasSemPA +
+            dmSemHbA1c +
+            gestantesAtrasadas +
+            tbSemAcompanhamento +
+            hansenSemAvaliacao,
+
+        retornoVencido,
+        hasSemPA,
+        dmSemHbA1c,
+        gestantesAtrasadas,
+        tbSemAcompanhamento,
+        hansenSemAvaliacao
+    };
+}
+
+function gerarSemaforoGerencialEquipesAPS(base, atendimentos, interacoes) {
+    const mapa = {};
+
+    base.forEach(p => {
+        const equipe =
+            p.equipe || "Não informado";
+
+        if (!mapa[equipe]) {
+            mapa[equipe] = criarLinhaSemaforoEquipeAPS(equipe);
+        }
+
+        mapa[equipe].populacao++;
+
+        if (
+            Number(p.prazo) === 0 ||
+            normalizarRelatorioAPS(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6
+        ) {
+            mapa[equipe].criticos++;
+        }
+
+        mapa[equipe].pendencias +=
+            identificarPendenciasRelatorioAPS(p).length;
+    });
+
+    (atendimentos || []).forEach(a => {
+        const equipe =
+            a.equipe_esf ||
+            a.equipe ||
+            "Não informado";
+
+        if (!mapa[equipe]) {
+            mapa[equipe] = criarLinhaSemaforoEquipeAPS(equipe);
+        }
+
+        mapa[equipe].atendimentos++;
+    });
+
+    (interacoes || []).forEach(i => {
+        const equipe =
+            i.equipe ||
+            i.equipe_esf ||
+            "Não informado";
+
+        if (!mapa[equipe]) {
+            mapa[equipe] = criarLinhaSemaforoEquipeAPS(equipe);
+        }
+
+        mapa[equipe].buscaAtiva++;
+    });
+
+    return Object
+        .values(mapa)
+        .map(item => {
+            item.taxaCriticos =
+                item.populacao > 0
+                    ? Number(((item.criticos / item.populacao) * 100).toFixed(1))
+                    : 0;
+
+            item.taxaPendencias =
+                item.populacao > 0
+                    ? Number(((item.pendencias / item.populacao) * 100).toFixed(1))
+                    : 0;
+
+            item.status =
+                classificarSemaforoEquipeAPS(item);
+
+            item.metaMensal =
+                Math.max(
+                    20,
+                    Math.ceil(item.populacao * 0.20)
+                );
+
+            item.percentualMeta =
+                item.metaMensal > 0
+                    ? Number(((item.atendimentos / item.metaMensal) * 100).toFixed(1))
+                    : 0;
+
+            return item;
+        })
+        .sort((a, b) =>
+            b.criticos - a.criticos ||
+            b.pendencias - a.pendencias ||
+            b.populacao - a.populacao
+        );
+}
+
+function criarLinhaSemaforoEquipeAPS(equipe) {
+    return {
+        equipe,
+        populacao: 0,
+        criticos: 0,
+        pendencias: 0,
+        atendimentos: 0,
+        buscaAtiva: 0,
+        taxaCriticos: 0,
+        taxaPendencias: 0,
+        status: "🟢 Adequado",
+        metaMensal: 0,
+        percentualMeta: 0
+    };
+}
+
+function classificarSemaforoEquipeAPS(item) {
+    if (
+        item.taxaCriticos >= 8 ||
+        item.taxaPendencias >= 30
+    ) {
+        return "🔴 Crítico";
+    }
+
+    if (
+        item.taxaCriticos >= 4 ||
+        item.taxaPendencias >= 15
+    ) {
+        return "🟡 Atenção";
+    }
+
+    return "🟢 Adequado";
+}
+
+function identificarPendenciasRelatorioAPS(p) {
+    const pendencias = [];
+
+    if (
+        valorSimRelatorioAPS(p.has) &&
+        (!temValorRelatorioAPS(p.hasPAS) || !temValorRelatorioAPS(p.hasPAD))
+    ) {
+        pendencias.push("HAS sem PA");
+    }
+
+    if (
+        valorSimRelatorioAPS(p.dm) &&
+        !temValorRelatorioAPS(p.dmHbA1c)
+    ) {
+        pendencias.push("DM sem HbA1c");
+    }
+
+    if (
+        valorSimRelatorioAPS(p.gestante) &&
+        diasDesdeRelatorioAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("Gestante sem consulta recente");
+    }
+
+    if (
+        valorSimRelatorioAPS(p.tb) &&
+        diasDesdeRelatorioAPS(p.ultimo_atendimento) > 30
+    ) {
+        pendencias.push("TB sem acompanhamento");
+    }
+
+    if (
+        valorSimRelatorioAPS(p.hansen) &&
+        diasDesdeRelatorioAPS(p.ultimo_atendimento) > 60
+    ) {
+        pendencias.push("Hanseníase sem avaliação");
+    }
+
+    if (Number(p.prazo) === 0) {
+        pendencias.push("Retorno vencido");
+    }
+
+    return pendencias;
+}
+
+function calcularHotspotsTerritoriaisAPS(base) {
+    const grupos = {};
+
+    base.forEach(p => {
+        const chave =
+            p.cep ||
+            p.bairro ||
+            p.ubs ||
+            "Território não informado";
+
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                territorio: chave,
+                total: 0,
+                criticos: 0,
+                pendencias: 0,
+                score: 0
+            };
+        }
+
+        grupos[chave].total++;
+
+        const critico =
+            Number(p.prazo) === 0 ||
+            normalizarRelatorioAPS(p.risco_global).includes("alto") ||
+            Number(p.risco_pontos || 0) >= 6;
+
+        if (critico) {
+            grupos[chave].criticos++;
+            grupos[chave].score += 5;
+        }
+
+        const pendencias =
+            identificarPendenciasRelatorioAPS(p).length;
+
+        grupos[chave].pendencias +=
+            pendencias;
+
+        grupos[chave].score +=
+            pendencias * 2;
+    });
+
+    return Object
+        .values(grupos)
+        .sort((a, b) =>
+            b.score - a.score ||
+            b.criticos - a.criticos ||
+            b.total - a.total
+        )
+        .slice(0, 10);
+}
+
+function calcularPredicaoAPS(base) {
+    return base
+        .map(p => {
+            const pendencias =
+                identificarPendenciasRelatorioAPS(p);
+
+            let score = 0;
+            const fatores = [];
+
+            if (Number(p.prazo) === 0) {
+                score += 4;
+                fatores.push("retorno vencido");
+            }
+
+            if (
+                normalizarRelatorioAPS(p.risco_global).includes("alto") ||
+                Number(p.risco_pontos || 0) >= 6
+            ) {
+                score += 4;
+                fatores.push("alto risco");
+            }
+
+            if (valorSimRelatorioAPS(p.has)) {
+                score += 1;
+                fatores.push("HAS");
+            }
+
+            if (valorSimRelatorioAPS(p.dm)) {
+                score += 1;
+                fatores.push("DM");
+            }
+
+            if (valorSimRelatorioAPS(p.tb)) {
+                score += 3;
+                fatores.push("TB");
+            }
+
+            if (valorSimRelatorioAPS(p.hansen)) {
+                score += 3;
+                fatores.push("Hanseníase");
+            }
+
+            if (pendencias.length) {
+                score += pendencias.length * 2;
+                fatores.push(`${pendencias.length} pendência(s)`);
+            }
+
+            if (diasDesdeRelatorioAPS(p.ultimo_atendimento) > 180) {
+                score += 3;
+                fatores.push("sem atendimento recente");
+            }
+
+            return {
+                ...p,
+                scorePredicao: score,
+                fatoresPredicao: fatores,
+                classePredicao:
+                    score >= 10
+                        ? "Risco de descompensação/internação"
+                        : score >= 6
+                            ? "Risco de abandono/agravamento"
+                            : "Baixo risco preditivo"
+            };
+        })
+        .filter(p => p.scorePredicao >= 6)
+        .sort((a, b) => b.scorePredicao - a.scorePredicao)
+        .slice(0, 30);
+}
+
+function renderizarPainelExecutivoEstrategicoAPS(indicadores) {
+    const exec =
+        indicadores.executivo;
+
+    return `
+        <div class="form-section">
+            <h3 style="margin-top:0;">📈 Painel Executivo Estratégico APS</h3>
+
+            <div class="dashboard-grid">
+                ${cardRelatorioAPS("📊", `${exec.coberturaHAS}%`, "Cobertura HAS", "icon-red")}
+                ${cardRelatorioAPS("📊", `${exec.coberturaDM}%`, "Cobertura DM", "icon-green")}
+                ${cardRelatorioAPS("🤰", `${exec.coberturaGestantes}%`, "Cobertura gestantes", "icon-yellow")}
+                ${cardRelatorioAPS("🚨", `${exec.taxaCriticos}%`, "Taxa de críticos", "icon-red")}
+                ${cardRelatorioAPS("🧭", exec.pendencias.total, "Pendências clínicas", "icon-purple")}
+                ${cardRelatorioAPS("✅", `${exec.efetividadeBusca}%`, "Efetividade busca ativa", "icon-cyan")}
+            </div>
+
+            <h4>🧭 Pendências clínicas estruturantes</h4>
+
+            <div class="dashboard-grid">
+                ${cardRelatorioAPS("❤️", exec.pendencias.hasSemPA, "HAS sem PA", "icon-red")}
+                ${cardRelatorioAPS("🍬", exec.pendencias.dmSemHbA1c, "DM sem HbA1c", "icon-green")}
+                ${cardRelatorioAPS("🤰", exec.pendencias.gestantesAtrasadas, "Gestantes atrasadas", "icon-yellow")}
+                ${cardRelatorioAPS("🫁", exec.pendencias.tbSemAcompanhamento, "TB sem acompanhamento", "icon-purple")}
+                ${cardRelatorioAPS("🖐️", exec.pendencias.hansenSemAvaliacao, "Hanseníase sem avaliação", "icon-cyan")}
+                ${cardRelatorioAPS("⏰", exec.pendencias.retornoVencido, "Retorno vencido", "icon-red")}
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3 style="margin-top:0;">🚦 Semáforo Gerencial por Equipe</h3>
+            ${renderizarSemaforoEquipesAPS(indicadores.semaforoEquipes)}
+        </div>
+
+        <div class="form-section">
+            <h3 style="margin-top:0;">🔥 Hotspots Territoriais</h3>
+            ${renderizarHotspotsAPS(indicadores.hotspots)}
+        </div>
+
+        <div class="form-section">
+            <h3 style="margin-top:0;">🔮 Predição APS por Regras Clínico-Territoriais</h3>
+            ${renderizarPredicaoAPS(indicadores.predicao)}
+        </div>
+    `;
+}
+
+function renderizarSemaforoEquipesAPS(lista) {
+    if (!lista.length) {
+        return `<p style="color:var(--text-muted);">Sem equipes para classificar.</p>`;
+    }
+
+    return `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Equipe</th>
+                    <th>Status</th>
+                    <th>População</th>
+                    <th>Críticos</th>
+                    <th>Pendências</th>
+                    <th>Atendimentos</th>
+                    <th>Meta estimada</th>
+                    <th>% Meta</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${lista.map(e => `
+                    <tr>
+                        <td><strong>${escaparRelatorioAPS(e.equipe)}</strong></td>
+                        <td>${escaparRelatorioAPS(e.status)}</td>
+                        <td>${e.populacao}</td>
+                        <td>${e.criticos} <small>${e.taxaCriticos}%</small></td>
+                        <td>${e.pendencias} <small>${e.taxaPendencias}%</small></td>
+                        <td>${e.atendimentos}</td>
+                        <td>${e.metaMensal}</td>
+                        <td>${e.percentualMeta}%</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderizarHotspotsAPS(lista) {
+    if (!lista.length) {
+        return `<p style="color:var(--text-muted);">Nenhum hotspot territorial identificado.</p>`;
+    }
+
+    return `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Território</th>
+                    <th>Pessoas</th>
+                    <th>Críticos</th>
+                    <th>Pendências</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${lista.map(h => `
+                    <tr>
+                        <td><strong>${escaparRelatorioAPS(h.territorio)}</strong></td>
+                        <td>${h.total}</td>
+                        <td>${h.criticos}</td>
+                        <td>${h.pendencias}</td>
+                        <td>${h.score}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderizarPredicaoAPS(lista) {
+    if (!lista.length) {
+        return `
+            <p style="color:var(--text-muted);">
+                Nenhum paciente atingiu critério preditivo de risco elevado.
+            </p>
+        `;
+    }
+
+    return `
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Equipe</th>
+                    <th>Classe preditiva</th>
+                    <th>Score</th>
+                    <th>Fatores</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${lista.map(p => `
+                    <tr>
+                        <td>
+                            <strong>${escaparRelatorioAPS(p.nome || "Sem nome")}</strong>
+                            <small>CPF: ${escaparRelatorioAPS(p.cpf || "-")}</small>
+                        </td>
+                        <td>
+                            ${escaparRelatorioAPS(p.equipe || "-")}
+                            <small>${escaparRelatorioAPS(p.ubs || "-")}</small>
+                        </td>
+                        <td>${escaparRelatorioAPS(p.classePredicao)}</td>
+                        <td><strong>${p.scorePredicao}</strong></td>
+                        <td>${escaparRelatorioAPS((p.fatoresPredicao || []).join(", "))}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+
 /* ==========================================================
    CÁLCULOS
    ========================================================== */
@@ -726,7 +1334,7 @@ function calcularIndicadoresRelatorioAPS(base, filtros) {
             Number(e.quantidade_minima || 0)
         ).length;
 
-    return {
+    const indicadoresBase = {
         populacao: base.length,
         has: base.filter(p => valorSimRelatorioAPS(p.has)).length,
         dm: base.filter(p => valorSimRelatorioAPS(p.dm)).length,
@@ -766,6 +1374,27 @@ function calcularIndicadoresRelatorioAPS(base, filtros) {
         prioritarios:
             criticos.slice(0, 100)
     };
+
+    indicadoresBase.executivo =
+        calcularIndicadoresExecutivosAPS(
+            base,
+            indicadoresBase
+        );
+
+    indicadoresBase.semaforoEquipes =
+        gerarSemaforoGerencialEquipesAPS(
+            base,
+            atendimentos,
+            interacoes
+        );
+
+    indicadoresBase.hotspots =
+        calcularHotspotsTerritoriaisAPS(base);
+
+    indicadoresBase.predicao =
+        calcularPredicaoAPS(base);
+
+    return indicadoresBase;
 }
 
 function filtrarPorEquipeUBSRelatorioAPS(lista, filtros) {
@@ -1372,6 +2001,41 @@ function valorSimRelatorioAPS(valor) {
     );
 }
 
+
+function temValorRelatorioAPS(valor) {
+    return (
+        valor !== null &&
+        valor !== undefined &&
+        String(valor).trim() !== ""
+    );
+}
+
+function obterPrimeiroValorRelatorioAPS(...valores) {
+    for (const valor of valores) {
+        if (temValorRelatorioAPS(valor)) {
+            return valor;
+        }
+    }
+
+    return null;
+}
+
+function diasDesdeRelatorioAPS(data) {
+    if (!data) return 9999;
+
+    const d =
+        new Date(data);
+
+    if (Number.isNaN(d.getTime())) {
+        return 9999;
+    }
+
+    return Math.floor(
+        (Date.now() - d.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
 function calcularStatusValidadeRelatorioAPS(dataValidade) {
     if (!dataValidade) return "SEM_VALIDADE";
 
@@ -1446,3 +2110,7 @@ window.aplicarFiltrosRelatorioAPS = aplicarFiltrosRelatorioAPS;
 window.exportarRelatorioAPSCSV = exportarRelatorioAPSCSV;
 window.imprimirRelatorioAPS = imprimirRelatorioAPS;
 window.gerarRelatorioPDFProfissionalAPS = gerarRelatorioPDFProfissionalAPS;
+window.calcularIndicadoresExecutivosAPS = calcularIndicadoresExecutivosAPS;
+window.gerarSemaforoGerencialEquipesAPS = gerarSemaforoGerencialEquipesAPS;
+window.calcularHotspotsTerritoriaisAPS = calcularHotspotsTerritoriaisAPS;
+window.calcularPredicaoAPS = calcularPredicaoAPS;
