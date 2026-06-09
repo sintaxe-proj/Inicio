@@ -254,7 +254,7 @@ async function carregarHistoricoSolicitacoes(filtrarPaciente = false) {
     let query = supabaseClient
         .from("solicitacoes_materiais")
         .select("*")
-        .order("data_solicitacao", { ascending: false });
+        .order("criado_em", { ascending: false })
 
     const paciente = getPacienteAtivoMateriais();
 
