@@ -139,6 +139,13 @@ function navigate(view) {
         carregarRelatorioAPS();
     }
 
+    if (
+        view === "georreferenciamento" &&
+        typeof carregarGeorreferenciamentoAPS === "function"
+    ) {
+        carregarGeorreferenciamentoAPS();
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
