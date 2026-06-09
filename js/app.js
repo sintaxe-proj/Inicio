@@ -175,6 +175,14 @@ function navigate(view) {
     }
 
 
+    if (
+        view === "sala-situacao-aps" &&
+        typeof carregarSalaSituacaoAPS === "function"
+    ) {
+        carregarSalaSituacaoAPS();
+    }
+
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
