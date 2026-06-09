@@ -1559,6 +1559,74 @@
     </div>
 </div>
 
+    <div id="modalCadastroEstoque" class="modal">
+    <div class="modal-content" style="max-width:900px;">
+        <div class="section-header">
+            <div>
+                <h2>📦 Cadastro de Item em Estoque</h2>
+                <p>Controle dinâmico de materiais, lote, fabricação, validade e saldo.</p>
+            </div>
+
+            <button
+                class="btn-danger"
+                onclick="fecharModalCadastroEstoque()">
+                ✕ Fechar
+            </button>
+        </div>
+
+        <div class="form-grid">
+            <div>
+                <label>Nome do item</label>
+                <input type="text" id="estoqueNomeItem">
+            </div>
+
+            <div>
+                <label>Marca</label>
+                <input type="text" id="estoqueMarca">
+            </div>
+
+            <div>
+                <label>Referência / Lote</label>
+                <input type="text" id="estoqueLote">
+            </div>
+
+            <div>
+                <label>Data de fabricação</label>
+                <input type="date" id="estoqueFabricacao">
+            </div>
+
+            <div>
+                <label>Data de validade</label>
+                <input type="date" id="estoqueValidade">
+            </div>
+
+            <div>
+                <label>Quantidade atual</label>
+                <input type="number" id="estoqueQuantidadeAtual" min="0">
+            </div>
+
+            <div>
+                <label>Quantidade mínima</label>
+                <input type="number" id="estoqueQuantidadeMinima" min="0">
+            </div>
+        </div>
+
+        <div class="button-row" style="margin-top:20px;">
+            <button
+                class="btn-success"
+                onclick="salvarItemEstoque()">
+                💾 Salvar item
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="limparFormularioEstoque()">
+                🧹 Limpar
+            </button>
+        </div>
+    </div>
+</div>
+
 
     <button class="btn-flutuante-discador" onclick="alternarCentralDiscagem()" title="Abrir Central Operacional de Contatos">📞</button>
 
