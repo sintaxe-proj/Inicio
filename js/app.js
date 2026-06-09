@@ -111,6 +111,13 @@ function navigate(view) {
         }
     }
 
+    if (
+        view === "auditoria-estoque" &&
+        typeof carregarAuditoriaEstoque === "function"
+    ) {
+        carregarAuditoriaEstoque();
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
@@ -306,49 +313,142 @@ async function atualizarDashboardEstoque() {
         return;
     }
 
-    const { data, error } = await supabaseClient
-        .from("solicitacoes_materiais")
-        .select("status");
+    const { data: solicitacoes, error: erroSolicitacoes } =
+        await supabaseClient
+            .from("solicitacoes_materiais")
+            .select("status");
 
-    if (error) {
-        console.error("Erro ao buscar solicitações:", error);
+    if (erroSolicitacoes) {
+        console.error("Erro ao buscar solicitações:", erroSolicitacoes);
         return;
     }
 
-    const banco = data || [];
+    const bancoSolicitacoes =
+        solicitacoes || [];
 
     const pendentes =
-        banco.filter(x => x.status === "PENDENTE").length;
+        bancoSolicitacoes.filter(x => x.status === "PENDENTE").length;
 
     const aprovadas =
-        banco.filter(x =>
+        bancoSolicitacoes.filter(x =>
             x.status === "APROVADO" ||
             x.status === "AUTORIZADO"
         ).length;
 
     const entregues =
-        banco.filter(x =>
+        bancoSolicitacoes.filter(x =>
             x.status === "ENTREGUE"
         ).length;
 
-    const dashPend =
-        document.getElementById(
-            "dashSolicitacoesPendentes"
+    const negadas =
+        bancoSolicitacoes.filter(x =>
+            x.status === "NEGADO"
+        ).length;
+
+    setTextoApp("dashSolicitacoesPendentes", pendentes);
+    setTextoApp("dashSolicitacoesAprovadas", aprovadas);
+    setTextoApp("dashSolicitacoesEntregues", entregues);
+    setTextoApp("dashSolicitacoesNegadas", negadas);
+
+    // Cards inteligentes de estoque, se existirem no HTML.
+    const cardsEstoqueInteligente =
+        document.getElementById("dashItensEstoque") ||
+        document.getElementById("dashEstoqueBaixo") ||
+        document.getElementById("dashItensVencidos") ||
+        document.getElementById("dashItensVencem30");
+
+    if (!cardsEstoqueInteligente) {
+        return;
+    }
+
+    const { data: estoque, error: erroEstoque } =
+        await supabaseClient
+            .from("estoque_itens")
+            .select(`
+                id,
+                quantidade_atual,
+                quantidade_minima,
+                data_validade,
+                status
+            `);
+
+    if (erroEstoque) {
+        console.warn("Erro ao buscar estoque:", erroEstoque);
+        return;
+    }
+
+    const bancoEstoque =
+        estoque || [];
+
+    const itensAtivos =
+        bancoEstoque.filter(x =>
+            (x.status || "ATIVO") === "ATIVO"
+        ).length;
+
+    const estoqueBaixo =
+        bancoEstoque.filter(x =>
+            Number(x.quantidade_atual || 0) <=
+            Number(x.quantidade_minima || 0)
+        ).length;
+
+    const vencidos =
+        bancoEstoque.filter(x =>
+            calcularStatusValidadeApp(x.data_validade) === "VENCIDO"
+        ).length;
+
+    const vencem30 =
+        bancoEstoque.filter(x =>
+            calcularStatusValidadeApp(x.data_validade) === "VENCE_30"
+        ).length;
+
+    setTextoApp("dashItensEstoque", itensAtivos);
+    setTextoApp("dashEstoqueBaixo", estoqueBaixo);
+    setTextoApp("dashItensVencidos", vencidos);
+    setTextoApp("dashItensVencem30", vencem30);
+}
+
+
+
+function setTextoApp(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor;
+    }
+}
+
+function calcularStatusValidadeApp(dataValidade) {
+    if (!dataValidade) {
+        return "SEM_VALIDADE";
+    }
+
+    const hoje =
+        new Date();
+
+    hoje.setHours(0, 0, 0, 0);
+
+    const validade =
+        new Date(dataValidade);
+
+    validade.setHours(0, 0, 0, 0);
+
+    const diffDias =
+        Math.ceil(
+            (validade.getTime() - hoje.getTime()) /
+            (1000 * 60 * 60 * 24)
         );
 
-    const dashAprov =
-        document.getElementById(
-            "dashSolicitacoesAprovadas"
-        );
+    if (diffDias < 0) {
+        return "VENCIDO";
+    }
 
-    const dashEntr =
-        document.getElementById(
-            "dashSolicitacoesEntregues"
-        );
+    if (diffDias <= 30) {
+        return "VENCE_30";
+    }
 
-    if (dashPend) dashPend.innerText = pendentes;
-    if (dashAprov) dashAprov.innerText = aprovadas;
-    if (dashEntr) dashEntr.innerText = entregues;
+    return "VALIDO";
 }
 
 
@@ -426,3 +526,5 @@ window.efetuarLogout = efetuarLogout;
 window.atualizarDashboardEstoque = atualizarDashboardEstoque;
 window.atualizarDadosIniciais = atualizarDadosIniciais;
 window.atualizarVisibilidadeDiscadorApp = atualizarVisibilidadeDiscadorApp;
+window.setTextoApp = setTextoApp;
+window.calcularStatusValidadeApp = calcularStatusValidadeApp;
