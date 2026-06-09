@@ -132,6 +132,13 @@ function navigate(view) {
         carregarCentralAPS();
     }
 
+    if (
+        view === "relatorios" &&
+        typeof carregarRelatorioAPS === "function"
+    ) {
+        carregarRelatorioAPS();
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
