@@ -63,6 +63,10 @@
                     🗺️ Mapa Territorial APS
                 </a>
 
+                <a class="nav-link" onclick="navigate('central-aps')">
+                    🎯 Central Operacional APS
+                </a>
+
                 <a class="nav-link" onclick="abrirPainelEpidemiologico('criticos')">
                     📞 Monitoramento
                 </a>
@@ -1223,6 +1227,150 @@
 
 </div>
 
+
+<div id="view-central-aps" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>🎯 Central Operacional APS</h2>
+            <p>Filas inteligentes para busca ativa, vigilância territorial e acompanhamento longitudinal.</p>
+        </div>
+
+        <div class="button-row">
+            <button
+                class="btn-primary"
+                onclick="carregarCentralAPS()">
+                🔄 Atualizar Central
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="exportarCentralAPSCSV()">
+                📤 Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('CRITICOS')">
+            <div class="dash-icon icon-red">🚨</div>
+            <div>
+                <h3 id="centralTotalCriticos">0</h3>
+                <p>Críticos / alto risco</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('HAS')">
+            <div class="dash-icon icon-red">❤️</div>
+            <div>
+                <h3 id="centralTotalHAS">0</h3>
+                <p>HAS</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('DM')">
+            <div class="dash-icon icon-green">🍬</div>
+            <div>
+                <h3 id="centralTotalDM">0</h3>
+                <p>DM</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('GESTANTES')">
+            <div class="dash-icon icon-yellow">🤰</div>
+            <div>
+                <h3 id="centralTotalGestantes">0</h3>
+                <p>Gestantes</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('TB')">
+            <div class="dash-icon icon-purple">🫁</div>
+            <div>
+                <h3 id="centralTotalTB">0</h3>
+                <p>Tuberculose</p>
+            </div>
+        </div>
+
+        <div class="dash-card" onclick="aplicarFilaCentralAPS('HANSEN')">
+            <div class="dash-icon icon-cyan">🖐️</div>
+            <div>
+                <h3 id="centralTotalHansen">0</h3>
+                <p>Hanseníase</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">🔎 Filtros operacionais</h3>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Fila</label>
+                <select
+                    id="filtroFilaCentralAPS"
+                    onchange="aplicarFilaCentralAPS()">
+                    <option value="CRITICOS">Críticos / Alto risco</option>
+                    <option value="HAS">HAS</option>
+                    <option value="DM">DM</option>
+                    <option value="GESTANTES">Gestantes</option>
+                    <option value="TB">Tuberculose</option>
+                    <option value="HANSEN">Hanseníase</option>
+                    <option value="TODOS">Todos</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Equipe</label>
+                <select
+                    id="filtroCentralEquipe"
+                    onchange="aplicarFilaCentralAPS()">
+                    <option value="TODOS">Todas as equipes</option>
+                </select>
+            </div>
+
+            <div>
+                <label>UBS</label>
+                <select
+                    id="filtroCentralUBS"
+                    onchange="aplicarFilaCentralAPS()">
+                    <option value="TODOS">Todas as UBS</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Buscar</label>
+                <input
+                    type="text"
+                    id="buscaCentralAPS"
+                    oninput="aplicarFilaCentralAPS()"
+                    placeholder="Nome, CPF, CNS, telefone, equipe...">
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="form-section">
+
+        <h3 style="margin-top:0;">📋 Lista operacional</h3>
+
+        <div
+            id="listaCentralAPS"
+            style="overflow-x:auto;">
+            <p style="color:var(--text-muted);">
+                Clique em atualizar para carregar a central.
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
 <div id="view-reuniao" class="view">
     <div class="form-section">
         <h3 style="margin-top:0;">🗓️ Reunião de Equipe</h3>
@@ -1735,6 +1883,86 @@
 
 </div>
 
+
+<!-- ======================================================
+     MODAL — REGISTRO DE INTERAÇÃO CENTRAL APS
+     ====================================================== -->
+
+<div id="modalInteracaoCentralAPS" class="modal">
+
+    <div class="modal-content" style="max-width:760px;">
+
+        <div class="section-header">
+            <div>
+                <h2>📝 Registrar Interação</h2>
+                <p id="interacaoPacienteNome">Paciente</p>
+                <p
+                    id="interacaoPacienteDocumento"
+                    style="color:var(--text-muted);">
+                </p>
+            </div>
+
+            <button
+                class="btn-danger"
+                onclick="fecharModalInteracaoCentralAPS()">
+                ✕ Fechar
+            </button>
+        </div>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Tipo de contato</label>
+                <select id="interacaoTipoContato">
+                    <option>Ligação</option>
+                    <option>WhatsApp</option>
+                    <option>Visita domiciliar</option>
+                    <option>SMS</option>
+                    <option>Outro</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Resultado</label>
+                <select id="interacaoResultado">
+                    <option>Atendido</option>
+                    <option>Não atendeu</option>
+                    <option>Número inválido</option>
+                    <option>Agendado</option>
+                    <option>Resolvido</option>
+                    <option>Necessita nova tentativa</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Observação</label>
+            <textarea
+                id="interacaoObservacao"
+                rows="4"
+                placeholder="Descreva o contato, orientação, pactuação ou pendência..."></textarea>
+        </div>
+
+        <div class="button-row" style="margin-top:20px;">
+            <button
+                class="btn-success"
+                onclick="salvarInteracaoCentralAPS()">
+                💾 Salvar interação
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="fecharModalInteracaoCentralAPS()">
+                Cancelar
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+
 <!-- ==========================================================
      📦 MODAL DE SOLICITAÇÃO DE MATERIAIS / FARMÁCIA
      ========================================================== -->
@@ -2042,6 +2270,7 @@
 <script src="./js/epidemiologico.js"></script>
 <script src="./js/auditoriaEstoque.js"></script>
 <script src="./js/mapaTerritorial.js"></script>
+<script src="./js/centralAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
@@ -2072,6 +2301,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeof carregarAuditoriaEstoque === "function"
             ) {
                 carregarAuditoriaEstoque();
+            }
+        };
+    }
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const originalNavigateCentralAPS =
+        window.navigate;
+
+    if (
+        typeof originalNavigateCentralAPS === "function" &&
+        !window.__centralAPSNavigatePatch
+    ) {
+        window.__centralAPSNavigatePatch = true;
+
+        window.navigate = function(view) {
+            originalNavigateCentralAPS(view);
+
+            if (
+                view === "central-aps" &&
+                typeof carregarCentralAPS === "function"
+            ) {
+                carregarCentralAPS();
             }
         };
     }
