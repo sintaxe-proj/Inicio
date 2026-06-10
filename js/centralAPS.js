@@ -1248,8 +1248,8 @@ function renderizarListaCriticosCentralOperacoesAPS(dados) {
                                         📋 Prontuário
                                     </button>
 
-                                    <button class="btn-table-action btn-ok" onclick="abrirAtendimentoExistente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'); setTimeout(() => carregarLinhaVidaTerritorialPaciente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'), 700);">
-                                        🧬 Vida
+                                    <button class="btn-table-action btn-ok" onclick="abrirLinhaTempoTerritorial?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}')">
+                                        🧬 Linha
                                     </button>
 
                                     <button class="btn-table-action btn-warn" onclick="abrirModuloVisitaDomiciliarAPS?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}', 'ACS')">
@@ -1268,6 +1268,607 @@ function renderizarListaCriticosCentralOperacoesAPS(dados) {
         </div>
     `;
 }
+
+
+/* ==========================================================
+   🎯 CENTRAL OPERACIONAL APS — COMPATIBILIDADE COM TELA ANTIGA
+   Usa:
+   - view-central-aps
+   - listaCentralAPS
+   - filtroFilaCentralAPS
+   - filtroCentralEquipe
+   - filtroCentralUBS
+   - buscaCentralAPS
+   ========================================================== */
+
+let centralAPSListaAtual = [];
+
+async function carregarCentralAPS() {
+    const container =
+        document.getElementById("listaCentralAPS");
+
+    if (!container) {
+        console.warn("Central APS: listaCentralAPS não encontrado.");
+        return null;
+    }
+
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        return null;
+    }
+
+    container.innerHTML =
+        `<p style="color:var(--text-muted);">Carregando Central Operacional APS...</p>`;
+
+    try {
+        const [
+            pacientes,
+            atendimentos,
+            territorio,
+            agenda,
+            inteligencia,
+            interacoes
+        ] = await Promise.all([
+            buscarTabelaCentralOperacoesAPS("pacientes", "*", 15000),
+            buscarTabelaCentralOperacoesAPS("atendimentos", "*", 50000, "data_atendimento"),
+            buscarTabelaCentralOperacoesAPS("territorio_inteligente", "*", 50000, "ultima_atualizacao"),
+            buscarTabelaCentralOperacoesAPS("agenda_aps", "*", 50000, "created_at"),
+            buscarTabelaCentralOperacoesAPS("inteligencia_aps", "*", 10000, "created_at"),
+            buscarTabelaCentralOperacoesAPS("interacoes_busca_ativa", "*", 30000, "criado_em")
+        ]);
+
+        let base =
+            consolidarBaseCentralOperacoesAPS(
+                pacientes || [],
+                atendimentos || []
+            );
+
+        enriquecerCentralOperacoesComTerritorioAPS(
+            base,
+            territorio || []
+        );
+
+        enriquecerCentralOperacoesComAgendaAPS(
+            base,
+            agenda || []
+        );
+
+        const dados =
+            calcularDadosCentralOperacoesAPS(
+                base,
+                agenda || [],
+                inteligencia || [],
+                atendimentos || [],
+                interacoes || []
+            );
+
+        centralOperacoesAPSAtual = {
+            pacientes: pacientes || [],
+            atendimentos: atendimentos || [],
+            territorio: territorio || [],
+            agenda: agenda || [],
+            inteligencia: inteligencia || [],
+            interacoes: interacoes || [],
+            base,
+            dados,
+            ultimaAtualizacao: new Date().toISOString()
+        };
+
+        window.centralOperacoesAPSAtual =
+            centralOperacoesAPSAtual;
+
+        centralAPSListaAtual =
+            base || [];
+
+        window.centralAPSListaAtual =
+            centralAPSListaAtual;
+
+        atualizarIndicadoresCentralAPS(
+            base,
+            dados
+        );
+
+        carregarFiltrosCentralAPS(
+            base
+        );
+
+        aplicarFilaCentralAPS();
+
+        atualizarCopilotoExecutivoCentralOperacoesAPS(
+            dados
+        );
+
+        return centralOperacoesAPSAtual;
+
+    } catch (erro) {
+        console.error("Erro ao carregar Central APS:", erro);
+
+        container.innerHTML =
+            `<p style="color:var(--danger);">
+                Erro ao carregar Central APS: ${escaparCentralOperacoesAPS(erro.message || erro)}
+            </p>`;
+
+        return null;
+    }
+}
+
+function carregarFiltrosCentralAPS(base = []) {
+    carregarSelectCentralAPS(
+        "filtroCentralEquipe",
+        base.map(p => p.equipe || "Não informado"),
+        "Todas as equipes"
+    );
+
+    carregarSelectCentralAPS(
+        "filtroCentralUBS",
+        base.map(p => p.ubs || "Não informado"),
+        "Todas as UBS"
+    );
+}
+
+function carregarSelectCentralAPS(id, valores, rotuloTodos) {
+    const select =
+        document.getElementById(id);
+
+    if (!select) return;
+
+    const valorAtual =
+        select.value || "TODOS";
+
+    const unicos =
+        [...new Set((valores || []).filter(Boolean))]
+            .sort();
+
+    select.innerHTML =
+        `<option value="TODOS">${rotuloTodos}</option>`;
+
+    unicos.forEach(valor => {
+        const option =
+            document.createElement("option");
+
+        option.value =
+            valor;
+
+        option.textContent =
+            valor;
+
+        select.appendChild(option);
+    });
+
+    if (
+        valorAtual === "TODOS" ||
+        unicos.includes(valorAtual)
+    ) {
+        select.value =
+            valorAtual;
+    }
+}
+
+function atualizarIndicadoresCentralAPS(base = [], dados = null) {
+    const totalHAS =
+        base.filter(p => valorSimCentralOperacoesAPS(p.has)).length;
+
+    const totalDM =
+        base.filter(p => valorSimCentralOperacoesAPS(p.dm)).length;
+
+    const totalGestantes =
+        base.filter(p => valorSimCentralOperacoesAPS(p.gestante)).length;
+
+    const totalTB =
+        base.filter(p => valorSimCentralOperacoesAPS(p.tb)).length;
+
+    const totalHansen =
+        base.filter(p => valorSimCentralOperacoesAPS(p.hansen)).length;
+
+    const criticos =
+        base.filter(p =>
+            Number(p.score_territorial_global || 0) >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase().includes("CRIT") ||
+            Number(p.prazo) === 0
+        ).length;
+
+    const pendencias =
+        base.reduce(
+            (total, p) => total + (p.pendencias?.length || 0),
+            0
+        );
+
+    const retornoVencido =
+        base.filter(p => Number(p.prazo) === 0).length;
+
+    setTextoCentralAPS("centralTotalCriticos", criticos);
+    setTextoCentralAPS("centralTotalHAS", totalHAS);
+    setTextoCentralAPS("centralTotalDM", totalDM);
+    setTextoCentralAPS("centralTotalGestantes", totalGestantes);
+    setTextoCentralAPS("centralTotalTB", totalTB);
+    setTextoCentralAPS("centralTotalHansen", totalHansen);
+    setTextoCentralAPS("centralTotalPendencias", pendencias);
+    setTextoCentralAPS("centralTotalRetornoVencido", retornoVencido);
+}
+
+function setTextoCentralAPS(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            valor ?? 0;
+    }
+}
+
+function aplicarFilaCentralAPS(fila = null) {
+    const container =
+        document.getElementById("listaCentralAPS");
+
+    if (!container) {
+        return;
+    }
+
+    if (
+        fila &&
+        document.getElementById("filtroFilaCentralAPS")
+    ) {
+        document.getElementById("filtroFilaCentralAPS").value =
+            fila;
+    }
+
+    const filtroFila =
+        document.getElementById("filtroFilaCentralAPS")?.value || "CRITICOS";
+
+    const filtroEquipe =
+        document.getElementById("filtroCentralEquipe")?.value || "TODOS";
+
+    const filtroUBS =
+        document.getElementById("filtroCentralUBS")?.value || "TODOS";
+
+    const termo =
+        normalizarCentralOperacoesAPS(
+            document.getElementById("buscaCentralAPS")?.value || ""
+        );
+
+    let base =
+        [...(centralAPSListaAtual || window.centralAPSListaAtual || [])];
+
+    if (!base.length) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">
+                Clique em atualizar para carregar a central.
+            </p>`;
+        return;
+    }
+
+    base =
+        filtrarFilaCentralAPS(
+            base,
+            filtroFila
+        );
+
+    if (filtroEquipe !== "TODOS") {
+        base =
+            base.filter(p =>
+                String(p.equipe || "Não informado") === filtroEquipe
+            );
+    }
+
+    if (filtroUBS !== "TODOS") {
+        base =
+            base.filter(p =>
+                String(p.ubs || "Não informado") === filtroUBS
+            );
+    }
+
+    if (termo) {
+        base =
+            base.filter(p => {
+                const alvo =
+                    normalizarCentralOperacoesAPS(`
+                        ${p.nome}
+                        ${p.cpf}
+                        ${p.cns}
+                        ${p.telefone}
+                        ${p.equipe}
+                        ${p.ubs}
+                        ${(p.pendencias || []).join(" ")}
+                        ${p.acao_recomendada || ""}
+                    `);
+
+                return alvo.includes(termo);
+            });
+    }
+
+    base =
+        base.sort((a, b) =>
+            Number(b.score_territorial_global || 0) -
+            Number(a.score_territorial_global || 0) ||
+            (b.pendencias?.length || 0) -
+            (a.pendencias?.length || 0)
+        );
+
+    renderizarListaCentralAPS(
+        base,
+        filtroFila
+    );
+}
+
+function filtrarFilaCentralAPS(base, fila) {
+    if (fila === "TODOS") return base;
+
+    if (fila === "CRITICOS") {
+        return base.filter(p =>
+            Number(p.score_territorial_global || 0) >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase().includes("CRIT") ||
+            Number(p.prazo) === 0
+        );
+    }
+
+    if (fila === "PENDENCIAS") {
+        return base.filter(p =>
+            (p.pendencias?.length || 0) > 0
+        );
+    }
+
+    if (fila === "HAS") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.has)
+        );
+    }
+
+    if (fila === "HAS_SEM_PA") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.has) &&
+            (!temValorCentralOperacoesAPS(p.hasPAS) || !temValorCentralOperacoesAPS(p.hasPAD))
+        );
+    }
+
+    if (fila === "DM") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.dm)
+        );
+    }
+
+    if (fila === "DM_SEM_HBA1C") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.dm) &&
+            !temValorCentralOperacoesAPS(p.dmHbA1c)
+        );
+    }
+
+    if (fila === "GESTANTES" || fila === "GESTANTE") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.gestante)
+        );
+    }
+
+    if (fila === "GESTANTE_ATRASADA") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.gestante) &&
+            diasDesdeCentralOperacoesAPS(p.ultimo_atendimento) > 30
+        );
+    }
+
+    if (fila === "TB") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.tb)
+        );
+    }
+
+    if (fila === "TB_SEM_ACOMPANHAMENTO") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.tb) &&
+            diasDesdeCentralOperacoesAPS(p.ultimo_atendimento) > 30
+        );
+    }
+
+    if (fila === "HANSEN") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.hansen)
+        );
+    }
+
+    if (fila === "HANSEN_SEM_AVALIACAO") {
+        return base.filter(p =>
+            valorSimCentralOperacoesAPS(p.hansen) &&
+            diasDesdeCentralOperacoesAPS(p.ultimo_atendimento) > 60
+        );
+    }
+
+    if (fila === "RETORNO_VENCIDO") {
+        return base.filter(p =>
+            Number(p.prazo) === 0
+        );
+    }
+
+    return base;
+}
+
+function renderizarListaCentralAPS(lista, fila = "") {
+    const container =
+        document.getElementById("listaCentralAPS");
+
+    if (!container) return;
+
+    if (!lista.length) {
+        container.innerHTML =
+            `<p style="color:var(--text-muted);">
+                Nenhum cidadão encontrado para esta fila.
+            </p>`;
+        return;
+    }
+
+    const registros =
+        lista.slice(0, 1000);
+
+    container.innerHTML =
+        `
+        <div style="margin-bottom:10px; color:var(--text-muted);">
+            Exibindo <strong>${registros.length}</strong> de <strong>${lista.length}</strong> registro(s) da fila <strong>${escaparCentralOperacoesAPS(fila || "TODOS")}</strong>.
+        </div>
+
+        <table class="table-sintaxe">
+            <thead>
+                <tr>
+                    <th>Cidadão</th>
+                    <th>Equipe / UBS</th>
+                    <th>Linhas</th>
+                    <th>Score</th>
+                    <th>Prioridade</th>
+                    <th>Pendências</th>
+                    <th>Ação recomendada</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${registros.map(p => `
+                    <tr>
+                        <td>
+                            <strong>${escaparCentralOperacoesAPS(p.nome || "Sem nome")}</strong>
+                            <small>CPF: ${escaparCentralOperacoesAPS(p.cpf || "-")} | CNS: ${escaparCentralOperacoesAPS(p.cns || "-")}</small>
+                            <small>${escaparCentralOperacoesAPS(p.telefone || "")}</small>
+                        </td>
+
+                        <td>
+                            ${escaparCentralOperacoesAPS(p.equipe || "-")}
+                            <small>${escaparCentralOperacoesAPS(p.ubs || "-")}</small>
+                        </td>
+
+                        <td>
+                            ${renderizarLinhasCentralAPS(p)}
+                        </td>
+
+                        <td>
+                            <strong>${Number(p.score_territorial_global || 0)}</strong>
+                            <small>EVFAM ${Number(p.evfam_total || 0)}</small>
+                        </td>
+
+                        <td>
+                            ${badgePrioridadeCentralOperacoesAPS(p.nivel_prioridade)}
+                        </td>
+
+                        <td>
+                            ${
+                                p.pendencias?.length
+                                    ? p.pendencias.slice(0, 4).map(item =>
+                                        `<span class="status-badge status-warning">${escaparCentralOperacoesAPS(item)}</span>`
+                                    ).join(" ")
+                                    : `<span style="color:var(--text-muted);">-</span>`
+                            }
+                        </td>
+
+                        <td>
+                            <small>${escaparCentralOperacoesAPS(p.acao_recomendada || "Reavaliar caso pela equipe.")}</small>
+                        </td>
+
+                        <td>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button
+                                    class="btn-table-action btn-edit"
+                                    onclick="abrirAtendimentoExistente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}')">
+                                    📋 Prontuário
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-ok"
+                                    onclick="abrirAtendimentoExistente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'); setTimeout(() => carregarLinhaVidaTerritorialPaciente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'), 700);">
+                                    🧬 Vida
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-warn"
+                                    onclick="abrirModuloVisitaDomiciliarAPS?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}', 'ACS')">
+                                    🏠 Visita
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-info"
+                                    onclick="abrirCopilotoAPS?.()">
+                                    🧠 IA
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+        `;
+}
+
+function renderizarLinhasCentralAPS(p) {
+    const linhas = [];
+
+    if (valorSimCentralOperacoesAPS(p.has)) linhas.push("HAS");
+    if (valorSimCentralOperacoesAPS(p.dm)) linhas.push("DM");
+    if (valorSimCentralOperacoesAPS(p.gestante)) linhas.push("Gestante");
+    if (valorSimCentralOperacoesAPS(p.tb)) linhas.push("TB");
+    if (valorSimCentralOperacoesAPS(p.hansen)) linhas.push("Hanseníase");
+
+    if (!linhas.length) {
+        return `<span style="color:var(--text-muted);">-</span>`;
+    }
+
+    return linhas
+        .map(l =>
+            `<span class="status-badge status-info">${escaparCentralOperacoesAPS(l)}</span>`
+        )
+        .join(" ");
+}
+
+function exportarCentralAPSCSV() {
+    const base =
+        centralAPSListaAtual || window.centralAPSListaAtual || [];
+
+    if (!base.length) {
+        mostrarToast?.("Nenhum dado da Central APS para exportar.");
+        return;
+    }
+
+    const linhas = [
+        [
+            "nome",
+            "cpf",
+            "cns",
+            "telefone",
+            "ubs",
+            "equipe",
+            "score_territorial_global",
+            "nivel_prioridade",
+            "acao_recomendada",
+            "has",
+            "dm",
+            "gestante",
+            "tb",
+            "hansen",
+            "pendencias"
+        ]
+    ];
+
+    base.forEach(p => {
+        linhas.push([
+            p.nome,
+            p.cpf,
+            p.cns,
+            p.telefone,
+            p.ubs,
+            p.equipe,
+            p.score_territorial_global || 0,
+            p.nivel_prioridade || "",
+            p.acao_recomendada || "",
+            p.has,
+            p.dm,
+            p.gestante,
+            p.tb,
+            p.hansen,
+            (p.pendencias || []).join(" | ")
+        ]);
+    });
+
+    baixarCSVCentralOperacoesAPS(
+        linhas,
+        `central_operacional_aps_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+}
+
 
 /* ==========================================================
    EXPORTAÇÃO / RESUMO
@@ -1564,14 +2165,11 @@ function escaparCentralOperacoesAPS(valor) {
 
 window.carregarCentralOperacoesAPS = carregarCentralOperacoesAPS;
 
-/* Compatibilidade com botões e módulos antigos */
-window.carregarCentralAPS = carregarCentralOperacoesAPS;
-
-window.aplicarFilaCentralAPS = window.aplicarFilaCentralAPS || function () {
-    return carregarCentralOperacoesAPS();
-};
-
-window.buscarBaseCentralAPSSupabase = window.buscarBaseCentralAPSSupabase || null;
+/* Compatibilidade real com a tela Central Operacional antiga */
+window.carregarCentralAPS = carregarCentralAPS;
+window.aplicarFilaCentralAPS = aplicarFilaCentralAPS;
+window.exportarCentralAPSCSV = exportarCentralAPSCSV;
+window.centralAPSListaAtual = centralAPSListaAtual;
 
 window.centralOperacoesAPSAtual = centralOperacoesAPSAtual;
 window.gerarBomDiaCopilotoExecutivoAPS = gerarBomDiaCopilotoExecutivoAPS;
@@ -1579,4 +2177,4 @@ window.atualizarCopilotoExecutivoCentralOperacoesAPS = atualizarCopilotoExecutiv
 window.copiarResumoCentralOperacoesAPS = copiarResumoCentralOperacoesAPS;
 window.exportarCentralOperacoesAPSCSV = exportarCentralOperacoesAPSCSV;
 
-console.log("✅ Central de Operações APS 4.0 carregada com compatibilidade.");
+console.log("✅ Central APS + Central de Operações APS 4.0 carregadas.");
