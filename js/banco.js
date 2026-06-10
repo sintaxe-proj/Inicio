@@ -82,7 +82,6 @@ async function carregarTabelaBanco() {
                     risco_pontos,
                     reavaliacaoDias,
                     retorno_dias,
-                    ciapSelecionado,
                     inputBuscaCIAPS,
                     data_atendimento,
                     criado_em,
