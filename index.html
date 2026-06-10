@@ -168,6 +168,19 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+
+<style id="cssTorreControleAPS2">
+#view-torre-controle-aps .table-sintaxe small {
+    display:block;
+    color:var(--text-muted);
+    margin-top:3px;
+}
+
+#view-torre-controle-aps .dash-card {
+    cursor:default;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -263,7 +276,7 @@ body.login-ativo #painelDiscagemContainer {
                     <span class="nav-emoji">🚨</span><span class="nav-text">Central de Prioridades</span>
                 </a>
                 <a class="nav-link" onclick="navigate('torre-controle-aps')">
-                    <span class="nav-emoji">🧠</span><span class="nav-text">Torre APS</span>
+                    <span class="nav-emoji">🏢</span><span class="nav-text">Torre APS 2.0</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('sala-situacao-aps')">
@@ -633,11 +646,11 @@ body.login-ativo #painelDiscagemContainer {
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-dark" onclick="navigate('sala-situacao-aps')">
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('torre-controle-aps')">
                         <div style="font-size:24px;">🏢</div>
                         <div>
-                            <strong>Sala APS</strong>
-                            <small>Centro de situação</small>
+                            <strong>Torre APS</strong>
+                            <small>Centro de comando</small>
                         </div>
                     </div>
 
@@ -2923,23 +2936,23 @@ body.login-ativo #painelDiscagemContainer {
 
     <div class="page-header">
         <div>
-            <h2>🧠 Torre de Controle APS</h2>
+            <h2>🏢 Torre de Controle APS 2.0</h2>
             <p>
-                Visão executiva integrada de território, risco, busca ativa,
-                produção, linha do tempo, estoque e predição APS.
+                Centro de comando executivo: risco territorial, prioridades, produção,
+                busca ativa, estoque, agenda inteligente e recomendações IA.
             </p>
         </div>
 
         <div class="button-row">
-            <button
-                class="btn-primary"
-                onclick="carregarTorreControleAPS()">
+            <button class="btn-primary" onclick="carregarTorreControleAPS()">
                 🔄 Atualizar Torre
             </button>
 
-            <button
-                class="btn-secondary"
-                onclick="exportarTorreControleAPSCSV()">
+            <button class="btn-info" onclick="copiarResumoExecutivoTorreAPS()">
+                🧠 Resumo IA
+            </button>
+
+            <button class="btn-secondary" onclick="exportarTorreControleAPSCSV()">
                 📤 Exportar CSV
             </button>
         </div>
@@ -2951,7 +2964,7 @@ body.login-ativo #painelDiscagemContainer {
             <div class="dash-icon icon-blue">👥</div>
             <div>
                 <h3 id="torreTotalPopulacao">0</h3>
-                <p>População</p>
+                <p>População filtrada</p>
             </div>
         </div>
 
@@ -2983,7 +2996,7 @@ body.login-ativo #painelDiscagemContainer {
             <div class="dash-icon icon-cyan">📞</div>
             <div>
                 <h3 id="torreTotalBuscaAtiva">0</h3>
-                <p>Busca Ativa</p>
+                <p>Busca ativa</p>
             </div>
         </div>
 
@@ -2999,7 +3012,7 @@ body.login-ativo #painelDiscagemContainer {
 
     <div class="form-section">
 
-        <h3 style="margin-top:0;">🔎 Filtros da Torre</h3>
+        <h3 style="margin-top:0;">🔎 Filtros executivos</h3>
 
         <div class="form-grid">
 
@@ -3057,7 +3070,7 @@ body.login-ativo #painelDiscagemContainer {
                     id="torreFiltroRisco"
                     onchange="renderizarTorreControleAPS()">
                     <option value="TODOS">Todos</option>
-                    <option value="CRITICO">Crítico / Muito Alto</option>
+                    <option value="CRITICO">Crítico</option>
                     <option value="MODERADO">Moderado</option>
                     <option value="BAIXO">Baixo</option>
                 </select>
@@ -3067,17 +3080,13 @@ body.login-ativo #painelDiscagemContainer {
 
     </div>
 
-    <div
-        id="conteudoTorreControleAPS"
-        style="margin-top:20px;">
+    <div id="conteudoTorreControleAPS">
         <p style="color:var(--text-muted);">
-            Clique em atualizar Torre para carregar a visão integrada.
+            Clique em atualizar Torre para carregar o centro de comando APS.
         </p>
     </div>
 
 </div>
-
-
 
 
 <div id="view-motor-predicao-aps" class="view">
