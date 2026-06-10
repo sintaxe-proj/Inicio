@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS
 // ======================================================
 
 
@@ -227,6 +227,19 @@ function navigate(view) {
     }
 
     if (
+        view === "visita-domiciliar-aps" &&
+        typeof alternarTipoVisitaDomiciliarAPS === "function"
+    ) {
+        alternarTipoVisitaDomiciliarAPS();
+
+        if (
+            typeof carregarHistoricoVisitasDomiciliaresAPS === "function"
+        ) {
+            carregarHistoricoVisitasDomiciliaresAPS();
+        }
+    }
+
+    if (
         view === "torre-controle-aps" &&
         typeof carregarTorreControleAPS === "function"
     ) {
@@ -306,6 +319,38 @@ function abrirLinhaTempoPacienteAtualApp() {
         typeof navigate === "function"
     ) {
         navigate("linha-tempo-territorial");
+    }
+}
+
+
+// ======================================================
+// VISITA DOMICILIAR APS — ATALHO DO PACIENTE ATUAL
+// ======================================================
+
+function abrirVisitaDomiciliarPacienteAtualApp(modo = "ACS") {
+    const cpf =
+        document.getElementById("cpfPaciente")?.value ||
+        window.pacienteAtual?.cpf ||
+        window.pacienteSelecionado?.cpf ||
+        "";
+
+    const cns =
+        document.getElementById("cnsPaciente")?.value ||
+        window.pacienteAtual?.cns ||
+        window.pacienteSelecionado?.cns ||
+        "";
+
+    if (
+        typeof abrirModuloVisitaDomiciliarAPS === "function"
+    ) {
+        abrirModuloVisitaDomiciliarAPS(cpf, cns, modo);
+        return;
+    }
+
+    if (
+        typeof navigate === "function"
+    ) {
+        navigate("visita-domiciliar-aps");
     }
 }
 
@@ -570,7 +615,14 @@ function atualizarDadosIniciais() {
     ) {
         carregarResumoTerritorioInteligente()
             .then(resumo => {
-                console.log("🧠 Território Inteligente pronto:", resumo?.total || 0);
+                console.log("🧠 Território Inteligente/EVFAM pronto:", resumo?.total || 0);
+
+                if (
+                    typeof setTextoApp === "function" &&
+                    resumo
+                ) {
+                    setTextoApp("dashInicialCriticos", resumo?.criticos ?? 0);
+                }
             })
             .catch(console.warn);
     }
@@ -853,3 +905,4 @@ window.atualizarResumoIADashboardInicial = atualizarResumoIADashboardInicial;
 window.abrirLinhaTempoPacienteAtualApp = abrirLinhaTempoPacienteAtualApp;
 window.atualizarResumoTorreDashboardInicial = atualizarResumoTorreDashboardInicial;
 window.abrirTorreControleAPSApp = abrirTorreControleAPSApp;
+window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
