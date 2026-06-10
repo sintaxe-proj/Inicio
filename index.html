@@ -364,6 +364,41 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+
+<style id="cssLinhaVidaTerritorialProntuario">
+/* ==========================================================
+   LINHA DA VIDA TERRITORIAL — DENTRO DO PRONTUÁRIO
+   ========================================================== */
+#blocoLinhaVidaTerritorialProntuario {
+    border-left: 6px solid var(--primary);
+}
+
+#linhaVidaTerritorialPaciente .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#linhaVidaTerritorialPaciente .timeline-item {
+    position: relative;
+}
+
+#linhaVidaTerritorialPaciente .timeline-body {
+    background: rgba(17, 28, 46, .78);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+#linhaVidaTerritorialPaciente select {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -433,10 +468,6 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="navigate('prontuario')">
                     <span class="nav-emoji">🩺</span><span class="nav-text">Prontuário SOAP</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('linha-tempo-territorial')">
-                    <span class="nav-emoji">🧬</span><span class="nav-text">Linha do Tempo</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('pendencias-clinicas')">
@@ -1637,7 +1668,18 @@ body.login-ativo #painelDiscagemContainer {
         placeholder="Ex: paciente solicita contato após 18h; dificuldade de locomoção; familiar responsável..."
     ></textarea>
 </div>
-                    <div id="linhaTempoEvolucoes" style="margin-bottom:20px;"></div>
+                    <div class="form-section" id="blocoLinhaVidaTerritorialProntuario" style="margin-top:20px;">
+    <h3 style="margin-top:0;">🧬 Linha da Vida Territorial</h3>
+    <p style="color:var(--text-muted); margin-top:-4px;">
+        Histórico longitudinal integrado do cidadão: SOAP, CIAP, CIPE, Gordon, visitas, agenda, busca ativa, materiais, IA e predição APS.
+    </p>
+
+    <div id="linhaVidaTerritorialPaciente">
+        <p style="color:var(--text-muted);">
+            Abra ou salve um paciente para carregar a Linha da Vida Territorial.
+        </p>
+    </div>
+</div>
 
                     <div style="display:flex; gap:10px; border-top:1px solid var(--border); padding-top:15px;">
                         <button class="btn-success" onclick="salvarProntuario()">💾 Gravar Atendimento</button>
@@ -3963,107 +4005,7 @@ body.login-ativo #painelDiscagemContainer {
 
     </div>
 
-</div>
-
-
-<div id="view-linha-tempo-territorial" class="view">
-
-    <div class="page-header">
-        <div>
-            <h2>🧬 Linha do Tempo Territorial</h2>
-            <p>
-                Histórico longitudinal integrado do cidadão:
-                cadastro, SOAP, busca ativa, reuniões, materiais e IA territorial.
-            </p>
-        </div>
-
-        <div class="button-row">
-            <button
-                class="btn-primary"
-                onclick="carregarLinhaTempoTerritorialAPS()">
-                🔄 Carregar Linha do Tempo
-            </button>
-
-            <button
-                class="btn-secondary"
-                onclick="exportarLinhaTempoTerritorialCSV()">
-                📤 Exportar CSV
-            </button>
-        </div>
-    </div>
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">🔎 Buscar cidadão</h3>
-
-        <div class="form-grid">
-
-            <div>
-                <label>CPF</label>
-                <input
-                    type="text"
-                    id="linhaTempoCPF"
-                    placeholder="000.000.000-00"
-                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
-            </div>
-
-            <div>
-                <label>CNS</label>
-                <input
-                    type="text"
-                    id="linhaTempoCNS"
-                    placeholder="Cartão Nacional de Saúde"
-                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
-            </div>
-
-            <div>
-                <label>Busca livre por nome, CPF ou CNS</label>
-                <input
-                    type="text"
-                    id="buscaLinhaTempoTerritorial"
-                    placeholder="Digite nome, CPF ou CNS..."
-                    onkeydown="if(event.key === 'Enter') carregarLinhaTempoTerritorialAPS()">
-            </div>
-
-            <div>
-                <label>Tipo de evento</label>
-                <select
-                    id="filtroTipoEventoLinhaTempo"
-                    onchange="renderizarLinhaTempoTerritorial(null, linhaTempoTerritorialAtual)">
-                    <option value="TODOS">Todos os eventos</option>
-                    <option value="CADASTRO">Cadastro</option>
-                    <option value="ATENDIMENTO">Atendimentos SOAP</option>
-                    <option value="BUSCA_ATIVA">Busca ativa</option>
-                    <option value="REUNIAO">Reunião de equipe</option>
-                    <option value="MATERIAL">Materiais</option>
-                    <option value="IA">Território Inteligente</option>
-                </select>
-            </div>
-
-        </div>
-
-    </div>
-
-    <div id="cabecalhoLinhaTempoTerritorial"></div>
-
-    <div class="form-section">
-        <h3 style="margin-top:0;">📍 Eventos territoriais</h3>
-
-        <div id="conteudoLinhaTempoTerritorial">
-            <p style="color:var(--text-muted);">
-                Informe um cidadão para carregar a linha do tempo.
-            </p>
-        </div>
-    </div>
-
-</div>
-
-
-
-
-
-
-<div id="view-motor-regras-aps" class="view">
+</div><div id="view-motor-regras-aps" class="view">
 
     <div class="page-header">
         <div>
@@ -5179,7 +5121,7 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/relatorios.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="./js/georreferenciamento.js"></script>
-<script src="./js/linhaTempoTerritorial.js"></script>
+<script src="./js/linhaVidaTerritorial.js"></script>
 <script src="./js/dashboardInicial.js"></script>
 <script src="./js/territorioInteligente.js"></script>
 <script src="./js/torreControleAPS.js"></script>
