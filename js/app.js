@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS
 // ======================================================
 
 
@@ -255,6 +255,21 @@ function navigate(view) {
 
 
     if (
+        (view === "agenda-inteligente-aps" || view === "agenda-aps") &&
+        typeof carregarAgendaInteligenteAPS === "function"
+    ) {
+        Promise
+            .resolve(carregarAgendaInteligenteAPS())
+            .then(() => {
+                if (typeof atualizarResumoAgendaDashboardInicial === "function") {
+                    atualizarResumoAgendaDashboardInicial();
+                }
+            })
+            .catch(console.warn);
+    }
+
+
+    if (
         view === "sala-situacao-aps" &&
         typeof carregarSalaSituacaoAPS === "function"
     ) {
@@ -427,7 +442,8 @@ function atualizarResumoTorreDashboardInicial() {
 
     const criticos =
         base.filter(p =>
-            Number(p.score_ia || 0) >= 80 ||
+            Number(p.score_territorial_global || p.score_ia || 0) >= 85 ||
+            p.nivel_prioridade === "CRITICO" ||
             p.prioridade_ia === "Crítica" ||
             Number(p.predicao?.score || 0) >= 10 ||
             Number(p.prazo) === 0
@@ -470,6 +486,144 @@ function atualizarResumoTorreDashboardInicial() {
 function abrirTorreControleAPSApp() {
     if (typeof navigate === "function") {
         navigate("torre-controle-aps");
+    }
+}
+
+
+// ======================================================
+// AGENDA INTELIGENTE APS — RESUMO NO DASHBOARD INICIAL
+// ======================================================
+
+async function atualizarResumoAgendaDashboardInicial() {
+    const hoje =
+        new Date().toISOString().slice(0, 10);
+
+    let agenda = [];
+
+    const estadoAgenda =
+        window.agendaInteligenteAPSAtual || {};
+
+    if (Array.isArray(estadoAgenda.agenda)) {
+        agenda = estadoAgenda.agenda;
+    } else if (Array.isArray(estadoAgenda.lista)) {
+        agenda = estadoAgenda.lista;
+    } else if (Array.isArray(estadoAgenda.itens)) {
+        agenda = estadoAgenda.itens;
+    }
+
+    if (
+        !agenda.length &&
+        typeof supabaseClient !== "undefined"
+    ) {
+        try {
+            const { data, error } =
+                await supabaseClient
+                    .from("agenda_aps")
+                    .select("*")
+                    .eq("data_sugerida", hoje)
+                    .order("prioridade", { ascending: true })
+                    .limit(5000);
+
+            if (!error) {
+                agenda = data || [];
+            }
+        } catch (erro) {
+            console.warn("Não foi possível carregar resumo da Agenda APS:", erro);
+        }
+    }
+
+    const normalizar =
+        typeof normalizarTorreAPS === "function"
+            ? normalizarTorreAPS
+            : (valor) => String(valor || "")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[̀-ͯ]/g, "")
+                .trim();
+
+    const porTipo = (tipo) =>
+        agenda.filter(item =>
+            normalizar(item.tipo) === normalizar(tipo)
+        ).length;
+
+    const criticos =
+        agenda.filter(item =>
+            normalizar(item.prioridade).includes("crit") ||
+            Number(item.score_territorial_global || 0) >= 85
+        ).length;
+
+    const buscaAtiva =
+        porTipo("BUSCA_ATIVA") +
+        porTipo("Busca ativa");
+
+    const visitas =
+        porTipo("VISITA_DOMICILIAR") +
+        porTipo("Visita domiciliar");
+
+    const consultas =
+        porTipo("CONSULTA") +
+        porTipo("Consulta");
+
+    const gestantes =
+        porTipo("PRE_NATAL") +
+        porTipo("Pré-natal") +
+        porTipo("PRENATAL");
+
+    const vacinacao =
+        porTipo("VACINACAO") +
+        porTipo("Vacinação");
+
+    const material =
+        porTipo("ENTREGA_MATERIAL") +
+        porTipo("Entrega de material");
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialAgendaAPS", agenda.length);
+        setTextoApp("dashInicialAgendaCriticos", criticos);
+        setTextoApp("dashInicialBuscaAtiva", buscaAtiva);
+        setTextoApp("dashInicialVisitas", visitas);
+        setTextoApp("dashInicialConsultasPrioritarias", consultas);
+        setTextoApp("dashInicialGestantes", gestantes);
+        setTextoApp("dashInicialVacinacao", vacinacao);
+        setTextoApp("dashInicialMateriais", material);
+    }
+
+    const copilotoBox =
+        document.getElementById("dashInicialCopilotoAPS") ||
+        document.getElementById("dashInicialResumoCopiloto") ||
+        document.getElementById("dashCopilotoAgendaAPS");
+
+    if (copilotoBox) {
+        copilotoBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>🧠 Bom dia.</strong>
+                        <small>Existem ${criticos} pacientes críticos, ${buscaAtiva} buscas ativas, ${visitas} visitas domiciliares prioritárias e ${gestantes} gestantes em acompanhamento prioritário.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirAgendaInteligenteAPSApp()">
+                        🗓 Agenda APS
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    return {
+        total: agenda.length,
+        criticos,
+        buscaAtiva,
+        visitas,
+        consultas,
+        gestantes,
+        vacinacao,
+        material,
+        agenda
+    };
+}
+
+function abrirAgendaInteligenteAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("agenda-inteligente-aps");
     }
 }
 
@@ -631,6 +785,12 @@ function atualizarDadosIniciais() {
         typeof atualizarResumoTorreDashboardInicial === "function"
     ) {
         atualizarResumoTorreDashboardInicial();
+    }
+
+    if (
+        typeof atualizarResumoAgendaDashboardInicial === "function"
+    ) {
+        atualizarResumoAgendaDashboardInicial();
     }
 }
 
@@ -905,4 +1065,6 @@ window.atualizarResumoIADashboardInicial = atualizarResumoIADashboardInicial;
 window.abrirLinhaTempoPacienteAtualApp = abrirLinhaTempoPacienteAtualApp;
 window.atualizarResumoTorreDashboardInicial = atualizarResumoTorreDashboardInicial;
 window.abrirTorreControleAPSApp = abrirTorreControleAPSApp;
+window.atualizarResumoAgendaDashboardInicial = atualizarResumoAgendaDashboardInicial;
+window.abrirAgendaInteligenteAPSApp = abrirAgendaInteligenteAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
