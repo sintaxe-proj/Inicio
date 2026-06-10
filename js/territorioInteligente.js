@@ -8,7 +8,7 @@
    ATUALIZAÇÃO PRINCIPAL
    ========================================================== */
 
-async function atualizarTerritorioInteligente(cpfOuCns) {
+async function atualizarTerritorioInteligente(cpfOuCns, opcoes = {}) {
     if (typeof supabaseClient === "undefined") {
         console.warn("Supabase não carregado para Território Inteligente.");
         return null;
@@ -17,8 +17,21 @@ async function atualizarTerritorioInteligente(cpfOuCns) {
     const identificador =
         limparDocumentoTerritorioInteligente(cpfOuCns || "");
 
+    /*
+       IMPORTANTE:
+       - atualizarTerritorioInteligente(id) atualiza UM paciente.
+       - atualizarTerritorioInteligente() sem id não deve tentar salvar paciente.
+       - Para atualizar todos, use atualizarTodosTerritoriosInteligentes().
+    */
     if (!identificador) {
-        console.warn("Território Inteligente: CPF/CNS não informado.");
+        if (opcoes.atualizarTodos === true) {
+            return atualizarTodosTerritoriosInteligentes(opcoes.limite || 5000);
+        }
+
+        if (opcoes.somenteResumo === true) {
+            return carregarResumoTerritorioInteligente();
+        }
+
         return null;
     }
 
@@ -51,37 +64,47 @@ async function atualizarTodosTerritoriosInteligentes(limite = 5000) {
         return [];
     }
 
-    const { data, error } =
-        await supabaseClient
-            .from("pacientes")
-            .select("cpf,cns")
-            .limit(limite);
+    try {
+        const { data, error } =
+            await supabaseClient
+                .from("pacientes")
+                .select("cpf,cns")
+                .limit(limite);
 
-    if (error) {
-        console.error("Erro ao carregar pacientes para atualização territorial:", error);
+        if (error) {
+            console.error("Erro ao carregar pacientes para atualização territorial:", error);
+            return [];
+        }
+
+        const resultados = [];
+
+        for (const p of data || []) {
+            const id =
+                p.cpf ||
+                p.cns;
+
+            if (!id) continue;
+
+            try {
+                const resultado =
+                    await atualizarTerritorioInteligente(id);
+
+                if (resultado) {
+                    resultados.push(resultado);
+                }
+            } catch (erroPaciente) {
+                console.warn("Falha ao atualizar paciente no Território Inteligente:", id, erroPaciente);
+            }
+        }
+
+        mostrarToast?.(`🧠 Território Inteligente atualizado: ${resultados.length} registros.`);
+
+        return resultados;
+
+    } catch (erro) {
+        console.error("Erro geral em atualizarTodosTerritoriosInteligentes:", erro);
         return [];
     }
-
-    const resultados = [];
-
-    for (const p of data || []) {
-        const id =
-            p.cpf ||
-            p.cns;
-
-        if (!id) continue;
-
-        const resultado =
-            await atualizarTerritorioInteligente(id);
-
-        if (resultado) {
-            resultados.push(resultado);
-        }
-    }
-
-    mostrarToast?.(`🧠 Território Inteligente atualizado: ${resultados.length} registros.`);
-
-    return resultados;
 }
 
 
@@ -1542,11 +1565,46 @@ async function salvarTerritorioInteligente(registro) {
     return data;
 }
 
+
+/* ==========================================================
+   CARREGAMENTO GERAL PARA TELAS / DASHBOARD
+   ========================================================== */
+
+async function carregarTerritorioInteligente(limite = 5000) {
+    return listarPrioridadesTerritorioInteligente(limite);
+}
+
+async function carregarTerritorioInteligenteSeguro(limite = 5000) {
+    try {
+        return await listarPrioridadesTerritorioInteligente(limite);
+    } catch (erro) {
+        console.warn("Território Inteligente: carregamento seguro retornou lista vazia.", erro);
+        return [];
+    }
+}
+
+async function atualizarOuCarregarTerritorioInteligente(cpfOuCns = null) {
+    const identificador =
+        limparDocumentoTerritorioInteligente(cpfOuCns || "");
+
+    if (identificador) {
+        return atualizarTerritorioInteligente(identificador);
+    }
+
+    return carregarResumoTerritorioInteligente();
+}
+
+
 /* ==========================================================
    CONSULTAS PARA OUTROS MÓDULOS
    ========================================================== */
 
 async function listarPrioridadesTerritorioInteligente(limite = 100) {
+    if (typeof supabaseClient === "undefined") {
+        console.warn("Supabase não carregado para listar Território Inteligente.");
+        return [];
+    }
+
     const { data, error } =
         await supabaseClient
             .from("territorio_inteligente")
@@ -1555,7 +1613,15 @@ async function listarPrioridadesTerritorioInteligente(limite = 100) {
             .limit(limite);
 
     if (error) {
-        console.error("Erro ao listar prioridades:", error);
+        console.error("Erro ao listar prioridades do Território Inteligente:", error);
+
+        if (
+            error.code === "42501" ||
+            String(error.message || "").includes("permission denied")
+        ) {
+            mostrarToast?.("⚠️ Sem permissão na tabela territorio_inteligente. Ajuste GRANT/RLS no Supabase.");
+        }
+
         return [];
     }
 
@@ -1940,6 +2006,9 @@ function limparDocumentoTerritorioInteligente(valor) {
 
 window.atualizarTerritorioInteligente = atualizarTerritorioInteligente;
 window.atualizarTodosTerritoriosInteligentes = atualizarTodosTerritoriosInteligentes;
+window.carregarTerritorioInteligente = carregarTerritorioInteligente;
+window.carregarTerritorioInteligenteSeguro = carregarTerritorioInteligenteSeguro;
+window.atualizarOuCarregarTerritorioInteligente = atualizarOuCarregarTerritorioInteligente;
 window.calcularTerritorioInteligente = calcularTerritorioInteligente;
 window.listarPrioridadesTerritorioInteligente = listarPrioridadesTerritorioInteligente;
 window.carregarResumoTerritorioInteligente = carregarResumoTerritorioInteligente;
@@ -1958,3 +2027,6 @@ window.salvarAgendaInteligenteAPS = salvarAgendaInteligenteAPS;
 window.gerarESalvarAgendaInteligenteAPS = gerarESalvarAgendaInteligenteAPS;
 window.carregarResumoCopilotoTerritorialAPS = carregarResumoCopilotoTerritorialAPS;
 window.renderizarCardsAgendaInteligenteAPS = renderizarCardsAgendaInteligenteAPS;
+
+
+console.log("✅ Território Inteligente carregado com segurança.");
