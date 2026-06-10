@@ -542,6 +542,9 @@ function aplicarFiltrosBaseTerritorial() {
     const filtroEVFAM =
         document.getElementById("filtroPontuacaoEVFAMBase")?.value || "TODOS";
 
+    const tipoPendencia =
+        document.getElementById("filtroTipoPendenciaBase")?.value || "TODOS";
+
     const termoNormalizado =
         normalizarTextoBase(termo);
 
@@ -626,6 +629,12 @@ function aplicarFiltrosBaseTerritorial() {
         filtrarPontuacaoEVFAMBaseTerritorial(
             base,
             filtroEVFAM
+        );
+
+    base =
+        filtrarTipoPendenciaBaseTerritorial(
+            base,
+            tipoPendencia
         );
 
     atualizarIndicadoresBaseTerritorial(base);
@@ -801,6 +810,118 @@ function filtrarPontuacaoEVFAMBaseTerritorial(base, filtro) {
 }
 
 
+
+function filtrarTipoPendenciaBaseTerritorial(base, tipo) {
+    if (tipo === "TODOS") {
+        return base;
+    }
+
+    return (base || []).filter(p => {
+        const pendencias =
+            p.pendencias?.length
+                ? p.pendencias
+                : identificarPendenciasBaseTerritorial(p);
+
+        const texto =
+            normalizarTextoBase(pendencias.join(" | "));
+
+        if (tipo === "HAS_SEM_PA") {
+            return texto.includes("has sem pa");
+        }
+
+        if (tipo === "DM_SEM_HBA1C") {
+            return texto.includes("dm sem hba1c") ||
+                   texto.includes("diabetes sem hba1c");
+        }
+
+        if (tipo === "GESTANTE_SEM_CONSULTA") {
+            return texto.includes("gestante sem consulta") ||
+                   texto.includes("pre natal");
+        }
+
+        if (tipo === "TB_SEM_ACOMPANHAMENTO") {
+            return texto.includes("tb sem acompanhamento") ||
+                   texto.includes("tuberculose");
+        }
+
+        if (tipo === "HANSEN_SEM_AVALIACAO") {
+            return texto.includes("hanseniase") ||
+                   texto.includes("hansen");
+        }
+
+        if (tipo === "RETORNO_VENCIDO") {
+            return texto.includes("retorno vencido") ||
+                   Number(p.prazo) === 0;
+        }
+
+        if (tipo === "SEM_ATENDIMENTO_180") {
+            return texto.includes("sem atendimento") ||
+                   diasDesdeBase(p.ultimo_atendimento) > 180;
+        }
+
+        if (tipo === "EVFAM_ALTO") {
+            return Number(p.evfam_total || 0) >= 15 ||
+                   normalizarTextoBase(p.evfam_classificacao).includes("alto");
+        }
+
+        if (tipo === "TODAS_PENDENCIAS") {
+            return pendencias.length > 0;
+        }
+
+        return true;
+    });
+}
+
+function abrirWhatsAppBaseTerritorial(telefone, nome, cpf, cns) {
+    const numero =
+        String(telefone || "")
+            .replace(/\D/g, "");
+
+    if (!numero) {
+        mostrarToast?.("Paciente sem telefone cadastrado.");
+        alert("Paciente sem telefone cadastrado.");
+        return;
+    }
+
+    const numeroBrasil =
+        numero.startsWith("55")
+            ? numero
+            : `55${numero}`;
+
+    const mensagem =
+        encodeURIComponent(
+            `Olá, ${nome || "paciente"}. Aqui é a equipe da APS. Identificamos uma necessidade de acompanhamento na sua base territorial e gostaríamos de organizar seu cuidado. Podemos falar?`
+        );
+
+    window.open(
+        `https://wa.me/${numeroBrasil}?text=${mensagem}`,
+        "_blank"
+    );
+
+    // Registra tentativa operacional, quando possível.
+    if (typeof supabaseClient !== "undefined") {
+        supabaseClient
+            .from("interacoes_busca_ativa")
+            .insert({
+                paciente_cpf: limparDocumentoBase(cpf || ""),
+                paciente_cns: cns || "",
+                paciente_nome: nome || "",
+                telefone: telefone || "",
+                tipo_contato: "WHATSAPP",
+                resultado: "WHATSAPP_ABERTO",
+                observacao: "Contato iniciado pela Base Territorial Operacional.",
+                origem: "base_territorial",
+                criado_em: new Date().toISOString()
+            })
+            .then(({ error }) => {
+                if (error) {
+                    console.warn("WhatsApp aberto, mas registro completo falhou:", error.message || error);
+                }
+            });
+    }
+}
+
+
 /* ==========================================================================
    INDICADORES
    ========================================================================== */
@@ -812,7 +933,28 @@ function atualizarIndicadoresBaseTerritorial(base) {
     setTextoBase("baseGestantes", base.filter(p => valorSimBase(p.gestante)).length);
     setTextoBase("baseTB", base.filter(p => valorSimBase(p.tb)).length);
     setTextoBase("baseHansen", base.filter(p => valorSimBase(p.hansen)).length);
-    setTextoBase("baseCriticos", base.filter(p => Number(p.prazo) === 0).length);
+    setTextoBase(
+        "baseCriticos",
+        base.filter(p =>
+            Number(p.prazo) === 0 ||
+            Number(p.score_territorial_global || 0) >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase().includes("CRIT")
+        ).length
+    );
+
+    setTextoBase(
+        "basePendencias",
+        base.reduce(
+            (total, p) =>
+                total +
+                (
+                    p.pendencias?.length
+                        ? p.pendencias.length
+                        : identificarPendenciasBaseTerritorial(p).length
+                ),
+            0
+        )
+    );
 }
 
 function setTextoBase(id, valor) {
@@ -926,8 +1068,8 @@ function renderizarTabelaBaseTerritorial(base) {
 
                                 <button
                                     class="btn-table-action btn-ok"
-                                    onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || aplicarFiltrosBaseTerritorial()">
-                                    🧭 Pendências
+                                    onclick="abrirWhatsAppBaseTerritorial('${escaparBase(p.telefone || "")}', '${escaparBase(p.nome || "")}', '${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}')">
+                                    💬 WhatsApp
                                 </button>
                             </div>
                         </td>
@@ -1336,6 +1478,8 @@ window.limparBuscaBaseTerritorial = limparBuscaBaseTerritorial;
 window.aplicarFiltrosBaseTerritorial = aplicarFiltrosBaseTerritorial;
 window.filtrarFilaOperacionalAPS = filtrarFilaOperacionalAPS;
 window.filtrarPontuacaoEVFAMBaseTerritorial = filtrarPontuacaoEVFAMBaseTerritorial;
+window.filtrarTipoPendenciaBaseTerritorial = filtrarTipoPendenciaBaseTerritorial;
+window.abrirWhatsAppBaseTerritorial = abrirWhatsAppBaseTerritorial;
 window.carregarFiltrosBaseTerritorial = carregarFiltrosBaseTerritorial;
 window.exportarBaseTerritorialCSV = exportarBaseTerritorialCSV;
 window.abrirFallbackTentativaLigacaoBase = abrirFallbackTentativaLigacaoBase;
