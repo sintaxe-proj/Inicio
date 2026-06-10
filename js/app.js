@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS + Motor Cognitivo APS + Central de Operações APS 4.0
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS + Motor Cognitivo APS + Central de Operações APS 4.0 + Motor de Regras APS
 // ======================================================
 
 
@@ -172,6 +172,26 @@ function navigate(view) {
             .then(() => {
                 if (typeof atualizarResumoCentralOperacoesDashboardInicial === "function") {
                     atualizarResumoCentralOperacoesDashboardInicial();
+                }
+            })
+            .catch(console.warn);
+    }
+
+
+
+    if (
+        view === "motor-regras-aps" &&
+        typeof executarMotorRegrasAPS === "function"
+    ) {
+        Promise
+            .resolve(executarMotorRegrasAPS())
+            .then(() => {
+                if (typeof atualizarResumoMotorRegrasDashboardInicial === "function") {
+                    atualizarResumoMotorRegrasDashboardInicial();
+                }
+
+                if (typeof atualizarResumoAgendaDashboardInicial === "function") {
+                    atualizarResumoAgendaDashboardInicial();
                 }
             })
             .catch(console.warn);
@@ -949,6 +969,61 @@ function abrirCentralOperacoesAPSApp() {
     }
 }
 
+
+
+// ======================================================
+// MOTOR DE REGRAS APS — RESUMO NO DASHBOARD INICIAL
+// ======================================================
+
+async function atualizarResumoMotorRegrasDashboardInicial() {
+    const motor =
+        window.motorRegrasAPSAtual || {};
+
+    const resumo =
+        motor.resumo || null;
+
+    if (!resumo) {
+        return null;
+    }
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialMotorRegras", resumo.acoesGeradas ?? 0);
+        setTextoApp("dashInicialMotorRegrasCriticas", resumo.criticas ?? 0);
+        setTextoApp("dashInicialMotorRegrasAltas", resumo.altas ?? 0);
+        setTextoApp("dashInicialMotorRegrasBuscas", resumo.buscaAtiva ?? 0);
+        setTextoApp("dashInicialMotorRegrasVisitas", resumo.visitas ?? 0);
+        setTextoApp("dashInicialMotorRegrasConsultas", resumo.consultas ?? 0);
+    }
+
+    const box =
+        document.getElementById("dashInicialMotorRegrasAPS") ||
+        document.getElementById("dashInicialRegrasAPS") ||
+        document.getElementById("dashMotorRegrasAPS");
+
+    if (box) {
+        box.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>🧠 Motor de Regras APS</strong>
+                        <small>${resumo.acoesGeradas || 0} ação(ões) gerada(s), ${resumo.criticas || 0} crítica(s), ${resumo.buscaAtiva || 0} busca(s), ${resumo.visitas || 0} visita(s).</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirMotorRegrasAPSApp()">
+                        Abrir regras
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    return resumo;
+}
+
+function abrirMotorRegrasAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("motor-regras-aps");
+    }
+}
+
 // ======================================================
 // LOGIN AUTOMÁTICO / RESTAURAÇÃO DE SESSÃO
 // ======================================================
@@ -1087,6 +1162,22 @@ function atualizarDadosIniciais() {
     }
 
     if (
+        typeof atualizarEcossistemaAPS === "function"
+    ) {
+        atualizarEcossistemaAPS()
+            .then(() => {
+                if (typeof atualizarResumoMotorRegrasDashboardInicial === "function") {
+                    atualizarResumoMotorRegrasDashboardInicial();
+                }
+
+                if (typeof atualizarResumoCentralOperacoesDashboardInicial === "function") {
+                    atualizarResumoCentralOperacoesDashboardInicial();
+                }
+            })
+            .catch(console.warn);
+    }
+
+    if (
         typeof carregarResumoTerritorioInteligente === "function"
     ) {
         carregarResumoTerritorioInteligente()
@@ -1125,6 +1216,18 @@ function atualizarDadosIniciais() {
         typeof atualizarResumoSalaSituacaoDashboardInicial === "function"
     ) {
         atualizarResumoSalaSituacaoDashboardInicial();
+    }
+
+    if (
+        typeof atualizarResumoCentralOperacoesDashboardInicial === "function"
+    ) {
+        atualizarResumoCentralOperacoesDashboardInicial();
+    }
+
+    if (
+        typeof atualizarResumoMotorRegrasDashboardInicial === "function"
+    ) {
+        atualizarResumoMotorRegrasDashboardInicial();
     }
 }
 
@@ -1408,3 +1511,15 @@ window.abrirSalaSituacaoAPSApp = abrirSalaSituacaoAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
 window.atualizarResumoCentralOperacoesDashboardInicial = atualizarResumoCentralOperacoesDashboardInicial;
 window.abrirCentralOperacoesAPSApp = abrirCentralOperacoesAPSApp;
+
+
+window.atualizarResumoMotorRegrasDashboardInicial = atualizarResumoMotorRegrasDashboardInicial;
+window.abrirMotorRegrasAPSApp = abrirMotorRegrasAPSApp;
+
+if (typeof atualizarEcossistemaAPS === "function") {
+    window.atualizarEcossistemaAPS = atualizarEcossistemaAPS;
+}
+
+if (typeof executarMotorRegrasAPS === "function") {
+    window.executarMotorRegrasAPS = executarMotorRegrasAPS;
+}
