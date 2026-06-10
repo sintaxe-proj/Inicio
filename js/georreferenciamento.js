@@ -44,60 +44,27 @@ async function carregarGeorreferenciamentoAPS() {
         const { data: pacientes, error: erroPacientes } =
             await supabaseClient
                 .from("pacientes")
-                .select(`
-                    id,
-                    nome,
-                    cpf,
-                    cns,
-                    telefone,
-                    cep,
-                    endereco,
-                    bairro,
-                    cidade,
-                    ubs,
-                    equipe,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
+                .select("*")
                 .limit(10000);
 
         if (erroPacientes) {
             console.error("Erro ao carregar pacientes geo:", erroPacientes);
             tabelaContainer.innerHTML =
-                `<p style="color:var(--danger);">Erro ao carregar pacientes.</p>`;
+                `<p style="color:var(--danger);">Erro ao carregar pacientes: ${erroPacientes.message || "verifique colunas/permissões"}.</p>`;
             return;
         }
 
         const { data: atendimentos, error: erroAtendimentos } =
             await supabaseClient
                 .from("atendimentos")
-                .select(`
-                    id,
-                    paciente_cpf,
-                    cpf,
-                    cns,
-                    nome_paciente,
-                    has,
-                    dm,
-                    gestante,
-                    tb,
-                    hansen,
-                    risco_global,
-                    risco_pontos,
-                    reavaliacaoDias,
-                    retorno_dias,
-                    data_atendimento,
-                    criado_em,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
-                .order("data_atendimento", { ascending: false })
+                .select("*")
+                .order("data_atendimento", { ascending: false, nullsFirst: false })
                 .limit(20000);
 
         if (erroAtendimentos) {
             console.error("Erro ao carregar atendimentos geo:", erroAtendimentos);
             tabelaContainer.innerHTML =
-                `<p style="color:var(--danger);">Erro ao carregar atendimentos.</p>`;
+                `<p style="color:var(--danger);">Erro ao carregar atendimentos: ${erroAtendimentos.message || "verifique colunas/permissões"}.</p>`;
             return;
         }
 
@@ -127,8 +94,8 @@ function consolidarBaseGeorreferenciamentoAPS(pacientes, atendimentos) {
 
     pacientes.forEach(p => {
         const chave =
-            p.cpf ||
-            p.cns ||
+            limparDocumentoGeoAPS(p.cpf || "") ||
+            String(p.cns || "").trim() ||
             p.id;
 
         if (!chave) return;
@@ -143,8 +110,9 @@ function consolidarBaseGeorreferenciamentoAPS(pacientes, atendimentos) {
             endereco: p.endereco || "",
             bairro: p.bairro || "Bairro não informado",
             cidade: p.cidade || "",
-            ubs: p.ubs_vinculacao || p.ubs || "UBS não informada",
+            ubs: p.ubs_vinculacao || p.unidade || p.ubs || "UBS não informada",
             equipe: p.equipe_esf || p.equipe || "Equipe não informada",
+            microarea: p.microarea || p.micro_area || p.area || p.ma || "Microárea não informada",
 
             has: "Não",
             dm: "Não",
@@ -161,9 +129,8 @@ function consolidarBaseGeorreferenciamentoAPS(pacientes, atendimentos) {
 
     atendimentos.forEach(a => {
         const chave =
-            a.paciente_cpf ||
-            a.cpf ||
-            a.cns;
+            limparDocumentoGeoAPS(a.paciente_cpf || a.cpf || "") ||
+            String(a.cns || "").trim();
 
         if (!chave) return;
 
@@ -178,8 +145,9 @@ function consolidarBaseGeorreferenciamentoAPS(pacientes, atendimentos) {
                 endereco: "",
                 bairro: "Bairro não informado",
                 cidade: "",
-                ubs: a.ubs_vinculacao || "UBS não informada",
-                equipe: a.equipe_esf || "Equipe não informada",
+                ubs: a.ubs_vinculacao || a.unidade || a.ubs || "UBS não informada",
+                equipe: a.equipe_esf || a.equipe || "Equipe não informada",
+                microarea: a.microarea || a.micro_area || a.area || a.ma || "Microárea não informada",
 
                 has: "Não",
                 dm: "Não",
@@ -229,8 +197,9 @@ function consolidarBaseGeorreferenciamentoAPS(pacientes, atendimentos) {
             a.criado_em ||
             atual.ultimo_atendimento;
 
-        if (a.ubs_vinculacao) atual.ubs = a.ubs_vinculacao;
-        if (a.equipe_esf) atual.equipe = a.equipe_esf;
+        if (a.ubs_vinculacao || a.unidade || a.ubs) atual.ubs = a.ubs_vinculacao || a.unidade || a.ubs;
+        if (a.equipe_esf || a.equipe) atual.equipe = a.equipe_esf || a.equipe;
+        if (a.microarea || a.micro_area || a.area || a.ma) atual.microarea = a.microarea || a.micro_area || a.area || a.ma;
 
         mapa.set(chave, atual);
     });
@@ -259,6 +228,12 @@ function carregarFiltrosGeorreferenciamentoAPS(base) {
         "geoFiltroBairro",
         base.map(p => p.bairro || "Bairro não informado"),
         "Todos os bairros"
+    );
+
+    carregarSelectGeoAPS(
+        "geoFiltroMicroarea",
+        base.map(p => p.microarea || "Microárea não informada"),
+        "Todas as microáreas"
     );
 }
 
@@ -307,6 +282,9 @@ function aplicarFiltrosGeorreferenciamentoAPS() {
     const bairro =
         document.getElementById("geoFiltroBairro")?.value || "TODOS";
 
+    const microarea =
+        document.getElementById("geoFiltroMicroarea")?.value || "TODOS";
+
     const linha =
         document.getElementById("geoFiltroLinha")?.value || "TODAS";
 
@@ -332,6 +310,11 @@ function aplicarFiltrosGeorreferenciamentoAPS() {
     if (bairro !== "TODOS") {
         base =
             base.filter(p => String(p.bairro || "") === bairro);
+    }
+
+    if (microarea !== "TODOS") {
+        base =
+            base.filter(p => String(p.microarea || "") === microarea);
     }
 
     if (linha !== "TODAS") {
@@ -388,6 +371,7 @@ function aplicarFiltrosGeorreferenciamentoAPS() {
                     ${p.bairro}
                     ${p.equipe}
                     ${p.ubs}
+                    ${p.microarea}
                 `).includes(t)
             );
     }
@@ -936,6 +920,11 @@ function normalizarGeoAPS(valor) {
         .trim();
 }
 
+function limparDocumentoGeoAPS(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
+}
+
 function limparCEPGeoAPS(valor) {
     return String(valor || "")
         .replace(/\D/g, "")
@@ -987,3 +976,6 @@ window.carregarGeorreferenciamentoAPS = carregarGeorreferenciamentoAPS;
 window.aplicarFiltrosGeorreferenciamentoAPS = aplicarFiltrosGeorreferenciamentoAPS;
 window.exportarGeorreferenciamentoCSV = exportarGeorreferenciamentoCSV;
 
+
+
+console.log("✅ Georreferenciamento APS carregado com segurança.");
