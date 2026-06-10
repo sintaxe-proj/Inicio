@@ -604,6 +604,73 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 }
 </style>
 
+
+<style id="cssSinteseInteligenteAPS">
+/* ==========================================================
+   SÍNTESE INTELIGENTE APS — Predição + Torre + Sala
+   ========================================================== */
+.sintese-ia-aps-grid {
+    display: grid;
+    grid-template-columns: 1.25fr .9fr;
+    gap: 16px;
+}
+
+.sintese-ia-aps-hero {
+    border-left: 6px solid var(--primary);
+    background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(37,99,235,.08));
+}
+
+.sintese-ia-aps-texto {
+    white-space: pre-line;
+    line-height: 1.55;
+    color: var(--text-main);
+}
+
+.sintese-ia-aps-mini {
+    display: grid;
+    gap: 10px;
+}
+
+.sintese-ia-aps-mini-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(17, 28, 46, .78);
+}
+
+.sintese-ia-aps-mini-card strong {
+    display: block;
+    font-size: 22px;
+    color: var(--text-main);
+}
+
+.sintese-ia-aps-mini-card small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.sintese-ia-aps-acoes {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.sintese-ia-aps-acao {
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--warning);
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(15,23,42,.48);
+}
+
+@media (max-width: 980px) {
+    .sintese-ia-aps-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -666,10 +733,10 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                 <div class="sidebar-section-title">Inteligência APS</div>
 
                 <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-predicao-aps')">
-                    <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
+                    <span class="nav-emoji">🔮</span><span class="nav-text">IA Integrada APS</span>
                 </a>
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('torre-controle-aps')">
-                    <span class="nav-emoji">🏢</span><span class="nav-text">Torre APS 2.0</span>
+                    <span class="nav-emoji">🏢</span><span class="nav-text">Torre APS</span>
                 </a>
 
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('sala-situacao-aps')">
@@ -1061,7 +1128,69 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 
                 </div>
 
-                <div class="dashboard-home-layout">
+                
+<div class="panel-card dashboard-panel-large sintese-ia-aps-hero" id="painelSinteseInteligenteAPS">
+    <div class="panel-header-row">
+        <div>
+            <h3>🧠 Síntese Inteligente APS</h3>
+            <p>Predição + Torre APS + Sala de Situação organizadas em uma decisão executiva única.</p>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary btn-sm" onclick="executarEcossistemaIAAPS?.() || carregarMotorIAOperacionalAPS?.()">
+                🔄 Atualizar IA
+            </button>
+
+            <button class="btn-secondary btn-sm" onclick="abrirDecisaoExecutivaIAAPS?.()">
+                Ver decisão
+            </button>
+        </div>
+    </div>
+
+    <div class="sintese-ia-aps-grid">
+        <div>
+            <h4 style="margin:0 0 8px 0;">Decisão executiva</h4>
+            <div id="sinteseIAAPSDecisao" class="sintese-ia-aps-texto">
+                Carregando decisão executiva integrada...
+            </div>
+
+            <div id="sinteseIAAPSAcoes" class="sintese-ia-aps-acoes">
+                <div class="sintese-ia-aps-acao">
+                    Atualize o Ecossistema IA APS para visualizar ações recomendadas.
+                </div>
+            </div>
+        </div>
+
+        <div class="sintese-ia-aps-mini">
+            <div class="sintese-ia-aps-mini-card" onclick="abrirBaseTerritorialOperacionalApp?.('CRITICOS') || navigate('banco')">
+                <span class="card-label">Prioridade crítica/alta</span>
+                <strong id="sinteseIAAPSPrioridade">0</strong>
+                <small>Pacientes que exigem ação da equipe</small>
+            </div>
+
+            <div class="sintese-ia-aps-mini-card" onclick="abrirBaseTerritorialOperacionalApp?.('VISITA') || navigate('banco')">
+                <span class="card-label">Visitas indicadas</span>
+                <strong id="sinteseIAAPSVisitas">0</strong>
+                <small>Demanda domiciliar priorizada</small>
+            </div>
+
+            <div class="sintese-ia-aps-mini-card" onclick="abrirBaseTerritorialOperacionalApp?.('BUSCA_ATIVA') || navigate('banco')">
+                <span class="card-label">Risco de abandono</span>
+                <strong id="sinteseIAAPSRiscoAbandono">0</strong>
+                <small>Predição de perda de seguimento</small>
+            </div>
+
+            <div class="sintese-ia-aps-mini-card" onclick="navigate('banco')">
+                <span class="card-label">Território prioritário</span>
+                <strong id="sinteseIAAPSTerritorio">-</strong>
+                <small id="sinteseIAAPSEquipe">Microárea/equipe com maior pressão</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="dashboard-home-layout">
 
                     <div class="panel-card dashboard-panel-large">
                         <div class="panel-header-row">
@@ -1084,62 +1213,14 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                         </div>
                     </div>
 
-                    <div class="panel-card">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>🧠 Recomendações da IA APS</h3>
-                                <p>Alertas proativos do motor preditivo.</p>
-                            </div>
+                    
 
-                            <button class="btn-secondary btn-sm" onclick="navigate('motor-predicao-aps')">
-                                Ver IA
-                            </button>
-                        </div>
 
-                        <div id="dashInicialRecomendacoesIA">
-                            <p style="color:var(--text-muted);">
-                                Abra o Motor de Predição APS para gerar recomendações.
-                            </p>
-                        </div>
-                    </div>
+                    
 
-                    <div class="panel-card">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>🧠 Motor Cognitivo APS</h3>
-                                <p>Resumo explicável do território e perguntas ao Copiloto contextual.</p>
-                            </div>
 
-                            <button class="btn-secondary btn-sm" onclick="navigate('motor-cognitivo-aps')">
-                                Abrir motor
-                            </button>
-                        </div>
+                    
 
-                        <div id="dashInicialMotorCognitivoAPS">
-                            <p style="color:var(--text-muted);">
-                                Carregue o Motor Cognitivo APS para visualizar o resumo inteligente.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="panel-card">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>🧠 Copiloto Executivo APS</h3>
-                                <p>Resumo operacional automático do território.</p>
-                            </div>
-
-                            <button class="btn-secondary btn-sm" onclick="abrirCopilotoAPS()">
-                                Perguntar
-                            </button>
-                        </div>
-
-                        <div id="dashInicialCopilotoAPS">
-                            <p style="color:var(--text-muted);">
-                                Carregando resumo executivo do Copiloto APS...
-                            </p>
-                        </div>
-                    </div>
 
                     <div class="panel-card">
                         <div class="panel-header-row">
@@ -1201,23 +1282,8 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                         </div>
                     </div>
 
-                    <div class="panel-card">
-                        <div class="panel-header-row">
-                            <div>
-                                <h3>🌎 Gêmeo digital territorial</h3>
-                                <p>Pressão assistencial simulada por território.</p>
-                            </div>
-                            <button class="btn-secondary btn-sm" onclick="navigate('motor-predicao-aps')">
-                                Simular
-                            </button>
-                        </div>
+                    
 
-                        <div id="dashInicialGemeoDigital">
-                            <p style="color:var(--text-muted);">
-                                Atualize o Motor de Predição APS para visualizar a simulação territorial.
-                            </p>
-                        </div>
-                    </div>
 
                 </div>
 
@@ -5012,6 +5078,7 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/agendaInteligenteAps.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
+<script src="./js/motorIAOperacionalAPS.js"></script>
 <script src="./js/motorCognitivoAPS.js"></script>
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
@@ -7036,6 +7103,165 @@ function irParaBasePorPendenciaAPS(tipo) {
 window.abrirCentralPendenciasAPS = abrirCentralPendenciasAPS;
 window.fecharCentralPendenciasAPS = fecharCentralPendenciasAPS;
 window.irParaBasePorPendenciaAPS = irParaBasePorPendenciaAPS;
+</script>
+
+
+<script id="sinteseInteligenteAPSIndex">
+function atualizarSinteseInteligenteAPS() {
+    const ctx =
+        window.ecossistemaIAAPSAtual ||
+        {};
+
+    const motor =
+        ctx.motorIA ||
+        window.motorIAOperacionalAPSAtual ||
+        {};
+
+    const resumo =
+        motor.resumo ||
+        {};
+
+    const decisao =
+        ctx.decisaoExecutiva ||
+        {};
+
+    const predicao =
+        decisao.predicao ||
+        ctx.predicao?.resultado ||
+        {};
+
+    const torre =
+        decisao.torre ||
+        ctx.torre?.resultado ||
+        ctx.torre?.resumo ||
+        {};
+
+    const texto =
+        decisao.texto ||
+        window.resumoExecutivoMotorIAAPS ||
+        resumo.texto ||
+        "Aguardando execução do Ecossistema IA APS...";
+
+    const campoTexto =
+        document.getElementById("sinteseIAAPSDecisao");
+
+    if (campoTexto) {
+        campoTexto.innerText =
+            texto;
+    }
+
+    const prioridade =
+        Number(resumo.criticos || 0) +
+        Number(resumo.alta || 0);
+
+    setTextoSinteseIAAPS(
+        "sinteseIAAPSPrioridade",
+        prioridade
+    );
+
+    setTextoSinteseIAAPS(
+        "sinteseIAAPSVisitas",
+        resumo.visitas || 0
+    );
+
+    setTextoSinteseIAAPS(
+        "sinteseIAAPSRiscoAbandono",
+        predicao.abandono ||
+        predicao.riscoAbandono ||
+        predicao.perdaSeguimento ||
+        0
+    );
+
+    const topMicroarea =
+        decisao.topMicroarea ||
+        torre.topMicroarea ||
+        torre.microareas?.[0] ||
+        null;
+
+    const topEquipe =
+        decisao.topEquipe ||
+        torre.topEquipe ||
+        torre.equipes?.[0] ||
+        null;
+
+    const territorio =
+        document.getElementById("sinteseIAAPSTerritorio");
+
+    if (territorio) {
+        territorio.innerText =
+            topMicroarea?.nome ||
+            topEquipe?.nome ||
+            "Não informado";
+    }
+
+    const equipe =
+        document.getElementById("sinteseIAAPSEquipe");
+
+    if (equipe) {
+        equipe.innerText =
+            topEquipe?.nome
+                ? `Equipe prioritária: ${topEquipe.nome}`
+                : "Microárea/equipe com maior pressão";
+    }
+
+    const acoes =
+        decisao.recomendacoes ||
+        ctx.sala?.resultado?.recomendacoes ||
+        ctx.sala?.resumo?.recomendacoes ||
+        [];
+
+    const boxAcoes =
+        document.getElementById("sinteseIAAPSAcoes");
+
+    if (boxAcoes) {
+        if (Array.isArray(acoes) && acoes.length) {
+            boxAcoes.innerHTML =
+                acoes
+                    .slice(0, 5)
+                    .map((acao, index) => `
+                        <div class="sintese-ia-aps-acao">
+                            <strong>${index + 1}. Ação recomendada</strong>
+                            <small>${escaparSinteseIAAPS(acao)}</small>
+                        </div>
+                    `)
+                    .join("");
+        } else {
+            boxAcoes.innerHTML =
+                `<div class="sintese-ia-aps-acao">
+                    Atualize o Ecossistema IA APS para visualizar ações recomendadas.
+                </div>`;
+        }
+    }
+}
+
+function setTextoSinteseIAAPS(id, valor) {
+    const el =
+        document.getElementById(id);
+
+    if (el) {
+        el.innerText =
+            Number(valor || 0).toLocaleString("pt-BR");
+    }
+}
+
+function escaparSinteseIAAPS(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(atualizarSinteseInteligenteAPS, 2500);
+    setTimeout(atualizarSinteseInteligenteAPS, 5000);
+
+    setInterval(atualizarSinteseInteligenteAPS, 30000);
+});
+
+window.atualizarSinteseInteligenteAPS =
+    atualizarSinteseInteligenteAPS;
 </script>
 
 </body>
