@@ -24,60 +24,27 @@ async function carregarMapaTerritorialAPS() {
     const { data: pacientes, error: erroPacientes } =
         await supabaseClient
             .from("pacientes")
-            .select(`
-                id,
-                nome,
-                cpf,
-                cns,
-                telefone,
-                cep,
-                endereco,
-                bairro,
-                cidade,
-                ubs,
-                equipe,
-                ubs_vinculacao,
-                equipe_esf
-            `)
+            .select("*")
             .limit(5000);
 
     if (erroPacientes) {
         console.error("Erro ao carregar pacientes:", erroPacientes);
         container.innerHTML =
-            `<p style="color:var(--danger);">Erro ao carregar pacientes.</p>`;
+            `<p style="color:var(--danger);">Erro ao carregar pacientes: ${erroPacientes.message || "verifique colunas/permissões"}.</p>`;
         return;
     }
 
     const { data: atendimentos, error: erroAtendimentos } =
         await supabaseClient
             .from("atendimentos")
-            .select(`
-                id,
-                paciente_cpf,
-                cpf,
-                cns,
-                nome_paciente,
-                has,
-                dm,
-                gestante,
-                tb,
-                hansen,
-                risco_global,
-                risco_pontos,
-                reavaliacaoDias,
-                retorno_dias,
-                data_atendimento,
-                criado_em,
-                ubs_vinculacao,
-                equipe_esf
-            `)
-            .order("data_atendimento", { ascending: false })
+            .select("*")
+            .order("data_atendimento", { ascending: false, nullsFirst: false })
             .limit(10000);
 
     if (erroAtendimentos) {
         console.error("Erro ao carregar atendimentos:", erroAtendimentos);
         container.innerHTML =
-            `<p style="color:var(--danger);">Erro ao carregar atendimentos.</p>`;
+            `<p style="color:var(--danger);">Erro ao carregar atendimentos: ${erroAtendimentos.message || "verifique colunas/permissões"}.</p>`;
         return;
     }
 
@@ -97,8 +64,8 @@ function consolidarMapaTerritorial(pacientes, atendimentos) {
 
     pacientes.forEach(p => {
         const chave =
-            p.cpf ||
-            p.cns ||
+            limparDocumentoMapa(p.cpf || "") ||
+            String(p.cns || "").trim() ||
             p.id;
 
         if (!chave) return;
@@ -110,10 +77,10 @@ function consolidarMapaTerritorial(pacientes, atendimentos) {
             cns: p.cns || "",
             telefone: p.telefone || "",
             cep: p.cep || "Sem CEP",
-            endereco: p.endereco || "",
+            endereco: p.endereco || p.logradouro || "",
             bairro: p.bairro || "",
             cidade: p.cidade || "",
-            ubs: p.ubs_vinculacao || p.ubs || "Não informado",
+            ubs: p.ubs_vinculacao || p.unidade || p.ubs || "Não informado",
             equipe: p.equipe_esf || p.equipe || "Não informado",
 
             has: "Não",
@@ -131,9 +98,8 @@ function consolidarMapaTerritorial(pacientes, atendimentos) {
 
     atendimentos.forEach(a => {
         const chave =
-            a.paciente_cpf ||
-            a.cpf ||
-            a.cns;
+            limparDocumentoMapa(a.paciente_cpf || a.cpf || "") ||
+            String(a.cns || "").trim();
 
         if (!chave) return;
 
@@ -148,8 +114,8 @@ function consolidarMapaTerritorial(pacientes, atendimentos) {
                 endereco: "",
                 bairro: "",
                 cidade: "",
-                ubs: a.ubs_vinculacao || "Não informado",
-                equipe: a.equipe_esf || "Não informado",
+                ubs: a.ubs_vinculacao || a.unidade || a.ubs || "Não informado",
+                equipe: a.equipe_esf || a.equipe || "Não informado",
 
                 has: "Não",
                 dm: "Não",
@@ -189,8 +155,8 @@ function consolidarMapaTerritorial(pacientes, atendimentos) {
             a.criado_em ||
             atual.ultimo_atendimento;
 
-        if (a.ubs_vinculacao) atual.ubs = a.ubs_vinculacao;
-        if (a.equipe_esf) atual.equipe = a.equipe_esf;
+        if (a.ubs_vinculacao || a.unidade || a.ubs) atual.ubs = a.ubs_vinculacao || a.unidade || a.ubs;
+        if (a.equipe_esf || a.equipe) atual.equipe = a.equipe_esf || a.equipe;
 
         mapa.set(chave, atual);
     });
@@ -606,6 +572,12 @@ function exportarMapaTerritorialCSV() {
     URL.revokeObjectURL(url);
 }
 
+
+function limparDocumentoMapa(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
+}
+
 function valorSimMapa(valor) {
     const v =
         String(valor || "")
@@ -725,3 +697,6 @@ window.carregarMapaTerritorialAPS = carregarMapaTerritorialAPS;
 window.aplicarFiltrosMapaTerritorial = aplicarFiltrosMapaTerritorial;
 window.exportarMapaTerritorialCSV = exportarMapaTerritorialCSV;
 window.filtrarCriticosPorTerritorio = filtrarCriticosPorTerritorio;
+
+
+console.log("✅ Mapa Territorial APS carregado com segurança.");
