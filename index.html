@@ -294,6 +294,76 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+
+<style id="cssCuidaSOAPIntegrado">
+/* ==========================================================
+   SOAP + CUIDA — HISTÓRICO, MEDICAMENTOS, EVENTOS E GORDON
+   ========================================================== */
+.cuida-soap-bloco {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin: 16px 0;
+    background: rgba(17, 28, 46, .72);
+}
+
+.cuida-soap-bloco h4,
+.cuida-soap-bloco h5 {
+    margin-top: 0;
+    color: var(--primary-neon);
+}
+
+.cuida-soap-bloco small {
+    color: var(--text-muted);
+    display: block;
+    line-height: 1.35;
+    margin-top: 6px;
+}
+
+.cuida-soap-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+}
+
+.cuida-soap-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.cuida-modal-gordon .modal-content {
+    width: 95%;
+    max-width: 1280px;
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.cuida-gordon-card {
+    background: rgba(17, 28, 46, .78);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--primary);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.cuida-gordon-card h4 {
+    margin: 0 0 12px 0;
+    color: var(--primary-neon);
+}
+
+.cuida-gordon-footer {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    margin-top: 16px;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -387,6 +457,10 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="navigate('motor-cognitivo-aps')">
                     <span class="nav-emoji">🧠</span><span class="nav-text">Motor Cognitivo APS</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('motor-regras-aps')">
+                    <span class="nav-emoji">⚙️</span><span class="nav-text">Motor de Regras APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('territorio-inteligente')">
@@ -887,6 +961,14 @@ body.login-ativo #painelDiscagemContainer {
                         </div>
                     </div>
 
+                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-regras-aps')">
+                        <div style="font-size:24px;">⚙️</div>
+                        <div>
+                            <strong>Motor de Regras</strong>
+                            <small>Automação APS</small>
+                        </div>
+                    </div>
+
                     <div class="quick-action-card quick-action-cyan" onclick="navigate('motor-predicao-aps')">
                         <div style="font-size:24px;">🔮</div>
                         <div>
@@ -1252,6 +1334,154 @@ body.login-ativo #painelDiscagemContainer {
                         <textarea id="soapSubjetivo" rows="3" placeholder="Paciente relata..."></textarea>
                     </div>
 
+
+                    <div class="cuida-soap-bloco" id="blocoCuidaHistoricoSOAP">
+                        <h4>🧾 Histórico ampliado — Cuida</h4>
+                        <small>
+                            Campos integrados ao novo atendimento SOAP. Identificação do paciente e lista de sintoma principal foram mantidas fora deste bloco.
+                        </small>
+
+                        <div class="cuida-soap-grid-2" style="margin-top:14px;">
+                            <div>
+                                <label>Histórico de saúde / doenças prévias</label>
+                                <textarea
+                                    id="cuidaHistoricoSaude"
+                                    rows="2"
+                                    placeholder="Ex.: HAS, DM, hipotireoidismo, ansiedade, dor crônica..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Alergias</label>
+                                <textarea
+                                    id="cuidaAlergias"
+                                    rows="2"
+                                    placeholder="Ex.: dipirona, penicilina, contraste, alimentos..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Medicamentos em uso / posologia</label>
+                                <textarea
+                                    id="cuidaMedicamentosUso"
+                                    rows="2"
+                                    placeholder="Ex.: losartana 50mg 12/12h; metformina 850mg..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Adesão e dificuldades com medicamentos</label>
+                                <textarea
+                                    id="cuidaAdesaoMedicamentos"
+                                    rows="2"
+                                    placeholder="Esquecimento, efeitos adversos, dificuldade de acesso, custo, compreensão..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cuida-soap-bloco" id="blocoCuidaHabitosEventosSOAP">
+                        <h4>🧭 Hábitos sociais e eventos clínicos</h4>
+
+                        <div class="cuida-soap-grid-3">
+                            <div>
+                                <label>Tabagismo</label>
+                                <select id="cuidaTabagismo">
+                                    <option value="">Selecione</option>
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                    <option value="Ex-tabagista">Ex-tabagista</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Maços/ano</label>
+                                <input
+                                    type="number"
+                                    id="cuidaMacosAno"
+                                    min="0"
+                                    placeholder="Ex.: 10">
+                            </div>
+
+                            <div>
+                                <label>Etilismo</label>
+                                <select id="cuidaEtilismo">
+                                    <option value="">Selecione</option>
+                                    <option value="Não">Não</option>
+                                    <option value="Social">Social</option>
+                                    <option value="Moderado">Moderado</option>
+                                    <option value="Severo">Severo</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Atividade física</label>
+                                <input
+                                    type="text"
+                                    id="cuidaAtividadeFisica"
+                                    placeholder="Ex.: caminhada 3x/semana">
+                            </div>
+
+                            <div>
+                                <label>Outras substâncias / redução de danos</label>
+                                <input
+                                    type="text"
+                                    id="cuidaReducaoDanos"
+                                    placeholder="Álcool, tabaco, outras substâncias, contexto de uso...">
+                            </div>
+
+                            <div>
+                                <label>Risco de quedas</label>
+                                <select id="cuidaRiscoQuedas">
+                                    <option value="">Selecione</option>
+                                    <option value="Baixo">Baixo</option>
+                                    <option value="Moderado">Moderado</option>
+                                    <option value="Alto">Alto</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="cuida-soap-grid-2" style="margin-top:14px;">
+                            <div>
+                                <label>Hospitalizações / eventos clínicos relevantes</label>
+                                <textarea
+                                    id="cuidaEventosClinicos"
+                                    rows="2"
+                                    placeholder="Internações, quedas, crises, descompensações, urgências, eventos adversos..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Histórico cirúrgico</label>
+                                <textarea
+                                    id="cuidaHistoricoCirurgico"
+                                    rows="2"
+                                    placeholder="Cirurgias prévias, ano, complicações, sequelas..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Gestações anteriores / histórico obstétrico</label>
+                                <textarea
+                                    id="cuidaGestacoesAnteriores"
+                                    rows="2"
+                                    placeholder="Gestações, partos, abortos, cesáreas, intercorrências, perdas..."></textarea>
+                            </div>
+
+                            <div>
+                                <label>Impressões de enfermagem</label>
+                                <textarea
+                                    id="cuidaImpressoesEnfermagem"
+                                    rows="2"
+                                    placeholder="Avaliação de enfermagem, necessidades, riscos e prioridades percebidas..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="button-row" style="margin-top:14px;">
+                            <button
+                                type="button"
+                                class="btn-info"
+                                onclick="abrirAnamneseGordonAPS()">
+                                🧩 Abrir Anamnese de Gordon
+                            </button>
+                        </div>
+                    </div>
+
+
                     <label style="color: var(--primary-neon); margin-bottom: 12px; font-size:14px; text-transform:uppercase;">
     O - Objetivo: Triagem de Sinais Vitais (SSVV)
 </label>
@@ -1307,6 +1537,37 @@ body.login-ativo #painelDiscagemContainer {
     <div>
         <label>IMC</label>
         <input type="text" id="objIMC" readonly>
+    </div>
+
+    <div>
+        <label>Intensidade do sintoma / desconforto (0 a 10)</label>
+        <input
+            type="number"
+            id="objIntensidadeSintoma"
+            min="0"
+            max="10"
+            placeholder="Ex.: 7">
+    </div>
+
+    <div>
+        <label>Frequência do sintoma</label>
+        <select id="objFrequenciaSintomaTipo">
+            <option value="">Selecione</option>
+            <option value="Diário">Diário</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Mensal">Mensal</option>
+            <option value="Intermitente">Intermitente</option>
+            <option value="Contínuo">Contínuo</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Quantas vezes?</label>
+        <input
+            type="number"
+            id="objFrequenciaSintomaVezes"
+            min="0"
+            placeholder="Ex.: 3">
     </div>
 
 </div>
@@ -1384,6 +1645,377 @@ body.login-ativo #painelDiscagemContainer {
                     </div>
                 </div>
             </div>
+
+
+<!-- ======================================================
+     MODAL — ANAMNESE DE GORDON ESTRUTURADA
+     ====================================================== -->
+<div
+    id="modalAnamneseGordonAPS"
+    class="modal cuida-modal-gordon"
+    style="display:none;">
+
+    <div class="modal-content">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+                <h2 style="margin:0;">🧩 Anamnese de Gordon</h2>
+                <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                    Padrões Funcionais de Marjory Gordon integrados ao SOAP APS.
+                </p>
+            </div>
+
+            <button
+                class="btn-danger"
+                onclick="fecharAnamneseGordonAPS()">
+                ✕ Fechar
+            </button>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>1. Percepção e controle da saúde</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Demonstra adesão ao tratamento?</label>
+                    <select id="gordon_perception_adherence">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="parcial">Parcial</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Percepção da saúde</label>
+                    <select id="gordon_perception_health">
+                        <option value="">Selecione</option>
+                        <option value="muito_boa">Muito boa</option>
+                        <option value="boa">Boa</option>
+                        <option value="regular">Regular</option>
+                        <option value="ruim">Ruim</option>
+                        <option value="muito_ruim">Muito ruim</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Observações</label>
+                    <input type="text" id="gordon_perception_notes" placeholder="Ex.: baixa compreensão, autocuidado preservado...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>2. Nutricional-metabólico</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Apetite</label>
+                    <select id="gordon_nutrition_appetite">
+                        <option value="">Selecione</option>
+                        <option value="bom">Bom</option>
+                        <option value="regular">Regular</option>
+                        <option value="ruim">Ruim</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Hidratação</label>
+                    <select id="gordon_nutrition_hydration">
+                        <option value="">Selecione</option>
+                        <option value="boa">Boa</option>
+                        <option value="regular">Regular</option>
+                        <option value="ruim">Ruim</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Alterações metabólicas / pele / peso</label>
+                    <input type="text" id="gordon_nutrition_side_effects" placeholder="Peso, apetite, pele, feridas, edema...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>3. Eliminação</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Hábitos regulares?</label>
+                    <select id="gordon_elimination_regular">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Eliminação vesical diária</label>
+                    <select id="gordon_elimination_urinary">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Eliminação intestinal diária</label>
+                    <select id="gordon_elimination_bowel">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>4. Atividade-exercício</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Quantidade na semana</label>
+                    <input type="text" id="gordon_activity_week_qty" placeholder="Ex.: caminhada 3x/semana">
+                </div>
+                <div>
+                    <label>Limitação funcional?</label>
+                    <select id="gordon_activity_limitation">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="parcial">Parcial</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Dificuldade de respirar?</label>
+                    <select id="gordon_activity_dyspnea">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Dor?</label>
+                    <select id="gordon_activity_pain">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Intensidade da dor</label>
+                    <input type="number" id="gordon_activity_pain_intensity" min="0" max="10" placeholder="0 a 10">
+                </div>
+                <div>
+                    <label>Dependência para AVD?</label>
+                    <select id="gordon_activity_adl_dependence">
+                        <option value="">Selecione</option>
+                        <option value="independente">Independente</option>
+                        <option value="parcial">Dependência parcial</option>
+                        <option value="total">Dependência total</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>5. Sono-repouso</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Qualidade do sono</label>
+                    <select id="gordon_sleep_quality">
+                        <option value="">Selecione</option>
+                        <option value="boa">Boa</option>
+                        <option value="regular">Regular</option>
+                        <option value="ruim">Ruim</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Horas de sono</label>
+                    <input type="number" id="gordon_sleep_hours" min="0" max="24" placeholder="Ex.: 6">
+                </div>
+                <div>
+                    <label>Uso de medicação para dormir?</label>
+                    <select id="gordon_sleep_medication">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>6. Cognitivo-perceptivo</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Memória/orientação preservadas?</label>
+                    <select id="gordon_cognitive_orientation">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="parcial">Parcial</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Dificuldade de compreensão?</label>
+                    <select id="gordon_cognitive_comprehension">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Alteração sensorial / dor / percepção</label>
+                    <input type="text" id="gordon_cognitive_notes" placeholder="Audição, visão, dor, tontura, confusão...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>7. Autopercepção e autoconceito</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Autoimagem</label>
+                    <select id="gordon_self_image">
+                        <option value="">Selecione</option>
+                        <option value="positiva">Positiva</option>
+                        <option value="regular">Regular</option>
+                        <option value="negativa">Negativa</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Ansiedade / tristeza / medo?</label>
+                    <select id="gordon_self_emotional">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Observações</label>
+                    <input type="text" id="gordon_self_notes" placeholder="Sofrimento, estigma, baixa autoestima...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>8. Papéis e relacionamentos</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Rede de apoio</label>
+                    <select id="gordon_roles_support">
+                        <option value="">Selecione</option>
+                        <option value="boa">Boa</option>
+                        <option value="limitada">Limitada</option>
+                        <option value="ausente">Ausente</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Conflitos familiares/sociais?</label>
+                    <select id="gordon_roles_conflict">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Cuidador principal</label>
+                    <input type="text" id="gordon_roles_caregiver" placeholder="Nome/vínculo se houver">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>9. Sexualidade e reprodução</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Questões reprodutivas/sexuais relevantes?</label>
+                    <select id="gordon_sexuality_relevant">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                        <option value="nao_se_aplica">Não se aplica</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Gestação atual/anterior relevante?</label>
+                    <select id="gordon_sexuality_pregnancy">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                        <option value="nao_se_aplica">Não se aplica</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Observações</label>
+                    <input type="text" id="gordon_sexuality_notes" placeholder="Histórico obstétrico, contracepção, queixas...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>10. Enfrentamento e tolerância ao estresse</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Estratégia de enfrentamento</label>
+                    <select id="gordon_coping_strategy">
+                        <option value="">Selecione</option>
+                        <option value="adequada">Adequada</option>
+                        <option value="parcial">Parcial</option>
+                        <option value="prejudicada">Prejudicada</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Estresse atual</label>
+                    <select id="gordon_coping_stress">
+                        <option value="">Selecione</option>
+                        <option value="baixo">Baixo</option>
+                        <option value="moderado">Moderado</option>
+                        <option value="alto">Alto</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Observações</label>
+                    <input type="text" id="gordon_coping_notes" placeholder="Sobrecarga, luto, trabalho, cuidado familiar...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-card">
+            <h4>11. Valores e crenças</h4>
+            <div class="form-grid">
+                <div>
+                    <label>Prática de espiritualidade?</label>
+                    <select id="gordon_beliefs_practice">
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div style="grid-column: span 2;">
+                    <label>Valores, crenças e preferências de cuidado</label>
+                    <input type="text" id="gordon_beliefs_notes" placeholder="Preferências, restrições, valores importantes...">
+                </div>
+            </div>
+        </div>
+
+        <div class="cuida-gordon-footer">
+            <button
+                type="button"
+                class="btn-secondary"
+                onclick="copiarResumoGordonAPS()">
+                📋 Copiar resumo Gordon
+            </button>
+
+            <button
+                type="button"
+                class="btn-success"
+                onclick="aplicarResumoGordonNoSOAP()">
+                ✅ Inserir resumo no SOAP
+            </button>
+
+            <button
+                type="button"
+                class="btn-danger"
+                onclick="fecharAnamneseGordonAPS()">
+                Fechar
+            </button>
+        </div>
+
+    </div>
+</div>
+
 
 <div id="view-banco" class="view">
 
@@ -3430,6 +4062,80 @@ body.login-ativo #painelDiscagemContainer {
 
 
 
+
+<div id="view-motor-regras-aps" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>⚙️ Motor de Regras APS</h2>
+            <p>
+                Automação operacional explicável para gerar Agenda APS a partir do Score Territorial Global,
+                EVFAM, pendências clínicas, visita domiciliar e linhas de cuidado.
+            </p>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary" onclick="executarMotorRegrasAPS?.()">
+                ▶ Executar Motor
+            </button>
+
+            <button class="btn-info" onclick="atualizarEcossistemaAPS?.()">
+                🔄 Atualizar Ecossistema APS
+            </button>
+
+            <button class="btn-secondary" onclick="navigate('agenda-inteligente-aps')">
+                🗓 Abrir Agenda APS
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dash-card">
+            <div class="dash-icon icon-blue">👥</div>
+            <div>
+                <h3 id="motorRegrasPacientesAvaliados">0</h3>
+                <p>Pacientes avaliados</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-purple">⚙️</div>
+            <div>
+                <h3 id="motorRegrasAcionadas">0</h3>
+                <p>Regras acionadas</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">🚨</div>
+            <div>
+                <h3 id="motorRegrasCriticas">0</h3>
+                <p>Ações críticas</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">🏠</div>
+            <div>
+                <h3 id="motorRegrasVisitas">0</h3>
+                <p>Visitas geradas</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🧠 Resultado da execução</h3>
+
+        <div id="conteudoMotorRegrasAPS">
+            <p style="color:var(--text-muted);">
+                Clique em executar para gerar ações automáticas na Agenda APS.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+
 <div id="view-territorio-inteligente" class="view">
 
     <div class="page-header">
@@ -4488,6 +5194,7 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/centralPrioridadesAPS.js"></script>
 <script src="./js/visitaDomiciliarAPS.js"></script>
 <script src="./js/centralOperacoesAPS.js"></script>
+<script src="./js/motorRegrasAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
@@ -5016,9 +5723,205 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
                 carregarCentralOperacoesAPS();
             }
+
+            if (
+                view === "motor-regras-aps" &&
+                typeof executarMotorRegrasAPS === "function"
+            ) {
+                Promise
+                    .resolve(executarMotorRegrasAPS({ simular: true }))
+                    .then(function () {
+                        if (typeof renderizarResumoMotorRegrasAPSView === "function") {
+                            renderizarResumoMotorRegrasAPSView();
+                        }
+                    })
+                    .catch(console.warn);
+            }
         };
     }
 });
+</script>
+
+
+<script id="scriptCuidaSOAPGordonAPS">
+(function () {
+    function valorCampoGordonAPS(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || "").trim() : "";
+    }
+
+    function linhaGordonAPS(rotulo, valor) {
+        return valor ? rotulo + ": " + valor : "";
+    }
+
+    window.abrirAnamneseGordonAPS = function () {
+        var modal = document.getElementById("modalAnamneseGordonAPS");
+        if (modal) {
+            modal.style.display = "flex";
+        }
+    };
+
+    window.fecharAnamneseGordonAPS = function () {
+        var modal = document.getElementById("modalAnamneseGordonAPS");
+        if (modal) {
+            modal.style.display = "none";
+        }
+    };
+
+    window.gerarResumoGordonAPS = function () {
+        var linhas = [
+            "ANAMNESE DE GORDON — PADRÕES FUNCIONAIS",
+            "",
+            "1. Percepção/controle da saúde",
+            linhaGordonAPS("Adesão", valorCampoGordonAPS("gordon_perception_adherence")),
+            linhaGordonAPS("Percepção da saúde", valorCampoGordonAPS("gordon_perception_health")),
+            linhaGordonAPS("Observações", valorCampoGordonAPS("gordon_perception_notes")),
+            "",
+            "2. Nutricional-metabólico",
+            linhaGordonAPS("Apetite", valorCampoGordonAPS("gordon_nutrition_appetite")),
+            linhaGordonAPS("Hidratação", valorCampoGordonAPS("gordon_nutrition_hydration")),
+            linhaGordonAPS("Alterações", valorCampoGordonAPS("gordon_nutrition_side_effects")),
+            "",
+            "3. Eliminação",
+            linhaGordonAPS("Hábitos regulares", valorCampoGordonAPS("gordon_elimination_regular")),
+            linhaGordonAPS("Vesical diária", valorCampoGordonAPS("gordon_elimination_urinary")),
+            linhaGordonAPS("Intestinal diária", valorCampoGordonAPS("gordon_elimination_bowel")),
+            "",
+            "4. Atividade-exercício",
+            linhaGordonAPS("Quantidade semanal", valorCampoGordonAPS("gordon_activity_week_qty")),
+            linhaGordonAPS("Limitação funcional", valorCampoGordonAPS("gordon_activity_limitation")),
+            linhaGordonAPS("Dispneia", valorCampoGordonAPS("gordon_activity_dyspnea")),
+            linhaGordonAPS("Dor", valorCampoGordonAPS("gordon_activity_pain")),
+            linhaGordonAPS("Intensidade da dor", valorCampoGordonAPS("gordon_activity_pain_intensity")),
+            linhaGordonAPS("Dependência AVD", valorCampoGordonAPS("gordon_activity_adl_dependence")),
+            "",
+            "5. Sono-repouso",
+            linhaGordonAPS("Qualidade do sono", valorCampoGordonAPS("gordon_sleep_quality")),
+            linhaGordonAPS("Horas de sono", valorCampoGordonAPS("gordon_sleep_hours")),
+            linhaGordonAPS("Medicação para dormir", valorCampoGordonAPS("gordon_sleep_medication")),
+            "",
+            "6. Cognitivo-perceptivo",
+            linhaGordonAPS("Orientação/memória", valorCampoGordonAPS("gordon_cognitive_orientation")),
+            linhaGordonAPS("Compreensão", valorCampoGordonAPS("gordon_cognitive_comprehension")),
+            linhaGordonAPS("Observações", valorCampoGordonAPS("gordon_cognitive_notes")),
+            "",
+            "7. Autopercepção/autoconceito",
+            linhaGordonAPS("Autoimagem", valorCampoGordonAPS("gordon_self_image")),
+            linhaGordonAPS("Emocional", valorCampoGordonAPS("gordon_self_emotional")),
+            linhaGordonAPS("Observações", valorCampoGordonAPS("gordon_self_notes")),
+            "",
+            "8. Papéis/relacionamentos",
+            linhaGordonAPS("Rede de apoio", valorCampoGordonAPS("gordon_roles_support")),
+            linhaGordonAPS("Conflitos", valorCampoGordonAPS("gordon_roles_conflict")),
+            linhaGordonAPS("Cuidador", valorCampoGordonAPS("gordon_roles_caregiver")),
+            "",
+            "9. Sexualidade/reprodução",
+            linhaGordonAPS("Questões relevantes", valorCampoGordonAPS("gordon_sexuality_relevant")),
+            linhaGordonAPS("Gestação", valorCampoGordonAPS("gordon_sexuality_pregnancy")),
+            linhaGordonAPS("Observações", valorCampoGordonAPS("gordon_sexuality_notes")),
+            "",
+            "10. Enfrentamento/estresse",
+            linhaGordonAPS("Estratégia", valorCampoGordonAPS("gordon_coping_strategy")),
+            linhaGordonAPS("Estresse", valorCampoGordonAPS("gordon_coping_stress")),
+            linhaGordonAPS("Observações", valorCampoGordonAPS("gordon_coping_notes")),
+            "",
+            "11. Valores/crenças",
+            linhaGordonAPS("Espiritualidade", valorCampoGordonAPS("gordon_beliefs_practice")),
+            linhaGordonAPS("Preferências", valorCampoGordonAPS("gordon_beliefs_notes"))
+        ];
+
+        return linhas
+            .filter(function (linha, index, arr) {
+                return linha !== "" || arr[index - 1] !== "";
+            })
+            .join("\n")
+            .trim();
+    };
+
+    window.aplicarResumoGordonNoSOAP = function () {
+        var resumo = window.gerarResumoGordonAPS();
+        var campo = document.getElementById("cuidaImpressoesEnfermagem") ||
+                    document.getElementById("soapPlanoConduta");
+
+        if (campo && resumo) {
+            var atual = campo.value || "";
+            campo.value = atual
+                ? atual + "\n\n" + resumo
+                : resumo;
+        }
+
+        if (typeof mostrarToast === "function") {
+            mostrarToast("✅ Anamnese de Gordon inserida no SOAP.");
+        }
+
+        window.fecharAnamneseGordonAPS();
+    };
+
+    window.copiarResumoGordonAPS = function () {
+        var resumo = window.gerarResumoGordonAPS();
+
+        if (navigator.clipboard && resumo) {
+            navigator.clipboard.writeText(resumo)
+                .then(function () {
+                    if (typeof mostrarToast === "function") {
+                        mostrarToast("📋 Resumo Gordon copiado.");
+                    }
+                })
+                .catch(function () {
+                    alert(resumo);
+                });
+        } else {
+            alert(resumo || "Sem dados preenchidos.");
+        }
+    };
+
+    window.renderizarResumoMotorRegrasAPSView = function () {
+        var estado = window.motorRegrasAPSAtual || {};
+        var resumo = estado.resumo || {};
+        var box = document.getElementById("conteudoMotorRegrasAPS");
+
+        if (typeof setTextoApp === "function") {
+            setTextoApp("motorRegrasPacientesAvaliados", resumo.pacientesAvaliados || 0);
+            setTextoApp("motorRegrasAcionadas", resumo.pacientesComRegra || 0);
+            setTextoApp("motorRegrasCriticas", resumo.criticas || 0);
+            setTextoApp("motorRegrasVisitas", resumo.visitas || 0);
+        }
+
+        if (box) {
+            box.innerHTML =
+                '<div class="agenda-aps-resumo-ia">' +
+                (resumo.status || "Motor de Regras APS pronto.") + "\\n\\n" +
+                "Pacientes avaliados: " + (resumo.pacientesAvaliados || 0) + "\\n" +
+                "Pacientes com regra: " + (resumo.pacientesComRegra || 0) + "\\n" +
+                "Ações geradas: " + (resumo.acoesGeradas || 0) + "\\n" +
+                "Críticas: " + (resumo.criticas || 0) + "\\n" +
+                "Buscas ativas: " + (resumo.buscaAtiva || 0) + "\\n" +
+                "Visitas: " + (resumo.visitas || 0) + "\\n" +
+                "Consultas: " + (resumo.consultas || 0) +
+                '</div>';
+        }
+    };
+
+    var originalExecutarMotorRegrasAPS = window.executarMotorRegrasAPS;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(function () {
+            if (
+                typeof window.executarMotorRegrasAPS === "function" &&
+                !window.__motorRegrasRenderPatch
+            ) {
+                window.__motorRegrasRenderPatch = true;
+                var funcaoOriginal = window.executarMotorRegrasAPS;
+
+                window.executarMotorRegrasAPS = async function () {
+                    var retorno = await funcaoOriginal.apply(this, arguments);
+                    window.renderizarResumoMotorRegrasAPSView();
+                    return retorno;
+                };
+            }
+        }, 800);
+    });
+})();
 </script>
 
 </body>
