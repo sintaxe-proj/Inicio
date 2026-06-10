@@ -90,6 +90,7 @@
 <style id="cssBotoesFlutuantesSafeArea">
 /* ==========================================================
    SAFE AREA — BOTÕES FLUTUANTES
+   Evita sobreposição com barra do Windows / navegador
    ========================================================== */
 
 :root {
@@ -624,14 +625,6 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                     <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial APS</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('mapa-territorial')">
-                    <span class="nav-emoji">🗺️</span><span class="nav-text">Mapa Territorial</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('georreferenciamento')">
-                    <span class="nav-emoji">🌎</span><span class="nav-text">Georreferenciamento</span>
-                </a>
-
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="abrirPainelEpidemiologico('criticos')">
                     <span class="nav-emoji">📞</span><span class="nav-text">Monitoramento</span>
                 </a>
@@ -651,28 +644,9 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                 </a>
 
                 <div class="sidebar-section-title">Inteligência APS</div>
-<a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-cognitivo-aps')">
-                    <span class="nav-emoji">🧠</span><span class="nav-text">Motor Cognitivo APS</span>
-                </a>
-
-                <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-regras-aps')">
-                    <span class="nav-emoji">⚙️</span><span class="nav-text">Motor de Regras APS</span>
-                </a>
-
-                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('territorio-inteligente')">
-                    <span class="nav-emoji">🌎</span><span class="nav-text">Território Inteligente</span>
-                </a>
-
-                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('agenda-inteligente-aps')">
-                    <span class="nav-emoji">🗓️</span><span class="nav-text">Agenda Inteligente APS</span>
-                </a>
 
                 <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-predicao-aps')">
                     <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('central-prioridades-aps')">
-                    <span class="nav-emoji">🚨</span><span class="nav-text">Central de Prioridades</span>
                 </a>
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('torre-controle-aps')">
                     <span class="nav-emoji">🏢</span><span class="nav-text">Torre APS 2.0</span>
@@ -708,10 +682,6 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 
                 <a class="nav-link" onclick="navigate('gestor-executivo')">
                     <span class="nav-emoji">📊</span><span class="nav-text">Painel Executivo</span>
-                </a>
-
-                <a class="nav-link" onclick="abrirDashboardEpidemiologicoTerritorial()">
-                    <span class="nav-emoji">📈</span><span class="nav-text">Epidemiológico</span>
                 </a>
 
                 <div class="sidebar-section-title">Sistema</div>
@@ -867,21 +837,11 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 
                     
 
-                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-cognitivo-aps')">
-                        <div style="font-size:24px;">🧠</div>
-                        <div>
-                            <strong>Motor Cognitivo</strong>
-                            <small>Análise explicável APS</small>
-                        </div>
-                    </div>
+                    
 
-                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-regras-aps')">
-                        <div style="font-size:24px;">⚙️</div>
-                        <div>
-                            <strong>Motor de Regras</strong>
-                            <small>Automação APS</small>
-                        </div>
-                    </div>
+
+                    
+
 
                     <div class="quick-action-card quick-action-cyan" onclick="navigate('motor-predicao-aps')">
                         <div style="font-size:24px;">🔮</div>
@@ -899,21 +859,11 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-cyan" onclick="navigate('agenda-inteligente-aps')">
-                        <div style="font-size:24px;">🗓️</div>
-                        <div>
-                            <strong>Agenda APS</strong>
-                            <small>Gerar fila do dia</small>
-                        </div>
-                    </div>
+                    
 
-                    <div class="quick-action-card quick-action-blue" onclick="navigate('territorio-inteligente')">
-                        <div style="font-size:24px;">🌎</div>
-                        <div>
-                            <strong>Território Inteligente</strong>
-                            <small>Score global APS</small>
-                        </div>
-                    </div>
+
+                    
+
 
                     <div class="quick-action-card quick-action-dark" onclick="navigate('torre-controle-aps')">
                         <div style="font-size:24px;">🏢</div>
@@ -2269,7 +2219,7 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
         <div class="button-row">
             <button
                 class="btn-info"
-                onclick="abrirDashboardEpidemiologicoTerritorial()">
+                onclick="navigate('banco')">
                 📊 Visualizar Dashboard
             </button>
 
@@ -2501,6 +2451,16 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                 <option value="EVFAM_ALTO">⚠️ EVFAM alto</option>
             </select>
         </div>
+
+        <div>
+            <label>Microárea</label>
+            <select
+                id="filtroMicroareaBase"
+                onchange="aplicarFiltrosBaseTerritorial()">
+                <option value="TODAS">Todas as microáreas</option>
+            </select>
+        </div>
+
 
     </div>
 </div>
@@ -6805,3 +6765,73 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 1000);
 });
 </script>
+
+
+<script id="forcarCerebroSemNumeroTopbar">
+function forcarCerebroAPSSemNumero() {
+    const botao =
+        document.getElementById("btnTopbarCopilotoAPS");
+
+    if (!botao) return;
+
+    botao.innerHTML = "🧠";
+    botao.title = "Cérebro APS";
+    botao.setAttribute("data-copiloto-topbar", "true");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    forcarCerebroAPSSemNumero();
+    setTimeout(forcarCerebroAPSSemNumero, 1000);
+    setTimeout(forcarCerebroAPSSemNumero, 2500);
+});
+
+setInterval(forcarCerebroAPSSemNumero, 60000);
+</script>
+
+
+<script id="sanitizarCopilotoExecutivoAPS">
+function sanitizarCopilotoExecutivoAPS() {
+    const alvos = [
+        document.getElementById("respostaCopilotoAPS"),
+        document.getElementById("modalCopilotoAPS"),
+        document.getElementById("dashInicialCopilotoAPS")
+    ].filter(Boolean);
+
+    alvos.forEach(container => {
+        container
+            .querySelectorAll("*")
+            .forEach(el => {
+                const texto =
+                    String(el.textContent || "").toLowerCase();
+
+                if (
+                    texto.includes("3058") ||
+                    texto.includes("alertas")
+                ) {
+                    el.style.display = "none";
+                }
+            });
+    });
+
+    const botao =
+        document.getElementById("btnTopbarCopilotoAPS");
+
+    if (botao) {
+        botao.innerHTML = "🧠";
+        botao.title = "Cérebro APS";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(sanitizarCopilotoExecutivoAPS, 800);
+    setTimeout(sanitizarCopilotoExecutivoAPS, 1800);
+});
+
+document.addEventListener("click", function () {
+    setTimeout(sanitizarCopilotoExecutivoAPS, 300);
+    setTimeout(sanitizarCopilotoExecutivoAPS, 900);
+});
+</script>
+
+</body>
+</html>
