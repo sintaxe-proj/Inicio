@@ -527,7 +527,7 @@ function carregarFiltrosBaseTerritorial(base) {
     carregarSelectBase(
         "filtroMicroareaBase",
         base.map(p => p.microarea || "Não informada"),
-        "Todas as microáreas"
+        "Não informada"
     );
 }
 
@@ -576,7 +576,7 @@ function aplicarFiltrosBaseTerritorial() {
         document.getElementById("filtroUBSBase")?.value || "TODOS";
 
     const microarea =
-        document.getElementById("filtroMicroareaBase")?.value || "TODAS";
+        document.getElementById("filtroMicroareaBase")?.value || "Não informada";
 
     const linha =
         document.getElementById("filtroLinhaCuidadoBase")?.value || "TODAS";
