@@ -45,6 +45,7 @@ function limparFormularioProntuario() {
         "soapReavaliacaoDias",
         "notaMonitoramento",
         "inputBuscaCIAPS",
+        "inputBuscaCIPE",
 
         "nomePaciente",
         "cpfPaciente",
@@ -317,6 +318,49 @@ function dataOuNullSOAP(valor) {
     return valor ? valor : null;
 }
 
+
+/* ==========================================================================
+   🧩 CIPE — AUTOCOMPLETE DE ENFERMAGEM
+   ========================================================================== */
+
+function carregarDatalistCIPE() {
+    const lista =
+        document.getElementById("listaCIPE");
+
+    if (!lista) {
+        return;
+    }
+
+    lista.innerHTML = "";
+
+    const termos =
+        Array.isArray(window.CIPE_TERMS)
+            ? window.CIPE_TERMS
+            : [];
+
+    termos.forEach(termo => {
+        if (!termo) return;
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            termo;
+
+        lista.appendChild(option);
+    });
+
+    console.log(`✅ CIPE carregado no prontuário: ${termos.length} termos.`);
+}
+
+function obterValorCIPEProntuario() {
+    return document.getElementById("inputBuscaCIPE")?.value || "";
+}
+
+function obterValorCIAPProntuario() {
+    return document.getElementById("inputBuscaCIAPS")?.value || "";
+}
+
 /* ==========================================================================
    🔎 AUTOCOMPLETE PACIENTE
    ========================================================================== */
@@ -476,7 +520,12 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
                     ].filter(Boolean).join(" / ") ||
                     "-";
 
-                const avaliacao = at.inputBuscaCIAPS || at.avaliacao || at.ciap || "-";
+                const ciap = at.inputBuscaCIAPS || at.avaliacao || at.ciap || "-";
+                const cipe = at.inputBuscaCIPE || at.input_busca_cipe || at.cipe || "";
+                const avaliacao = [
+                    ciap && ciap !== "-" ? `CIAP-2: ${ciap}` : "",
+                    cipe ? `CIPE: ${cipe}` : ""
+                ].filter(Boolean).join(" | ") || "-";
                 const plano = at.soapPlanoConduta || at.plano || "-";
 
                 return `
@@ -708,11 +757,14 @@ async function salvarProntuario() {
             subjetivo: document.getElementById("soapSubjetivo")?.value || "",
             objetivo: document.getElementById("soapObjetivoAlterado")?.value || "",
             avaliacao: document.getElementById("inputBuscaCIAPS")?.value || "",
+            avaliacao_enfermagem: document.getElementById("inputBuscaCIPE")?.value || "",
             plano: document.getElementById("soapPlanoConduta")?.value || "",
 
             soapSubjetivo: document.getElementById("soapSubjetivo")?.value || "",
             soapObjetivoAlterado: document.getElementById("soapObjetivoAlterado")?.value || "",
             inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
+            inputBuscaCIPE: document.getElementById("inputBuscaCIPE")?.value || "",
+            cipe: document.getElementById("inputBuscaCIPE")?.value || "",
             soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
 
             retorno_dias: reavaliacao,
@@ -838,6 +890,13 @@ async function salvarProntuario() {
             carregarResumoTerritorioInteligente().catch(console.warn);
         }
 
+        if (
+            typeof analisarPacienteComIA === "function" &&
+            (paciente.cpf || paciente.cns)
+        ) {
+            analisarPacienteComIA(paciente.cpf || paciente.cns).catch(console.warn);
+        }
+
         await carregarHistoricoClinicoPaciente(
             paciente.cpf,
             paciente.cns
@@ -946,6 +1005,7 @@ function fecharProntuarioAtivo() {
 
 document.addEventListener("DOMContentLoaded", () => {
     iniciarAutocompletePaciente();
+    carregarDatalistCIPE();
     mostrarCardsLinhasCuidado();
 
     ["hasSN", "dmSN", "gestanteSN", "tbSN", "hansenSN"].forEach(id => {
@@ -985,5 +1045,8 @@ window.fecharProntuarioAtivo = fecharProntuarioAtivo;
 window.sincronizarPAObjetivoParaHAS = sincronizarPAObjetivoParaHAS;
 window.sincronizarPAHASParaObjetivo = sincronizarPAHASParaObjetivo;
 window.valorSimNaoCampo = valorSimNaoCampo;
+window.carregarDatalistCIPE = carregarDatalistCIPE;
+window.obterValorCIPEProntuario = obterValorCIPEProntuario;
+window.obterValorCIAPProntuario = obterValorCIAPProntuario;
 
 window.atualizarTerritorioInteligenteDoFormulario = atualizarTerritorioInteligenteDoFormulario;
