@@ -576,6 +576,34 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 }
 </style>
 
+
+<style id="cssComunicacoesEquipeAPS">
+.comunicacoes-equipe-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.comunicacao-equipe-item {
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--primary);
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(17, 28, 46, .82);
+}
+
+.comunicacao-equipe-item small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+.comunicacao-equipe-nota {
+    margin-top: 8px;
+    white-space: pre-wrap;
+    color: var(--text-main);
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -633,10 +661,6 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('prontuario')">
                     <span class="nav-emoji">🩺</span><span class="nav-text">Prontuário SOAP</span>
-                </a>
-
-                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('pendencias-clinicas')">
-                    <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
                 </a>
 
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('visita-domiciliar-aps')">
@@ -745,7 +769,7 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                     <div
                         id="centralAvisosContainer"
                         class="alert-badge topbar-alert"
-                        onclick="abrirCentralAvisosPendenciasAPS()"
+                        onclick="abrirCentralPendenciasAPS?.() || abrirComunicacoesEquipeAPS()"
                         title="Central de Pendências APS">
                         🔔 <span id="contadorAvisosSininho">0</span>
                     </div>
@@ -3948,190 +3972,8 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
 
 </div>
 
-<div id="view-pendencias-clinicas" class="view">
 
-    <div class="page-header">
-        <div>
-            <h2>🧭 Central de Pendências Clínicas</h2>
-            <p>Filas automáticas de acompanhamento clínico e longitudinal.</p>
-        </div>
 
-        <div class="button-row">
-            <button
-                class="btn-primary"
-                onclick="carregarPendenciasClinicasAPS()">
-                🔄 Atualizar
-            </button>
-
-            <button
-                class="btn-secondary"
-                onclick="exportarPendenciasClinicasCSV()">
-                📤 Exportar CSV
-            </button>
-        </div>
-    </div>
-
-    <div class="dashboard-grid">
-
-        <div class="dash-card">
-            <div class="dash-icon icon-red">🚨</div>
-            <div>
-                <h3 id="pendenciasTotal">0</h3>
-                <p>Total de pendências</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-red">❤️</div>
-            <div>
-                <h3 id="pendenciasHAS">0</h3>
-                <p>HAS</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-green">🍬</div>
-            <div>
-                <h3 id="pendenciasDM">0</h3>
-                <p>DM</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-yellow">🤰</div>
-            <div>
-                <h3 id="pendenciasGestantes">0</h3>
-                <p>Gestantes</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-purple">⏰</div>
-            <div>
-                <h3 id="pendenciasRetorno">0</h3>
-                <p>Retorno vencido</p>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">🔎 Filtros</h3>
-
-        <div class="form-grid">
-
-            <div>
-                <label>Tipo de pendência</label>
-                <select
-                    id="pendenciaTipo"
-                    onchange="aplicarFiltroPendenciasClinicas()">
-                    <option value="TODAS">Todas</option>
-                    <option value="HAS">HAS sem PA</option>
-                    <option value="DM">DM sem HbA1c</option>
-                    <option value="Gestante">Gestantes</option>
-                    <option value="Retorno">Retorno vencido</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Buscar</label>
-                <input
-                    type="text"
-                    id="pendenciaBusca"
-                    oninput="aplicarFiltroPendenciasClinicas()"
-                    placeholder="Nome, CPF, CNS, equipe ou UBS...">
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">📋 Pendências</h3>
-
-        <div
-            id="listaPendenciasClinicas"
-            style="overflow-x:auto;">
-            <p style="color:var(--text-muted);">
-                Clique em atualizar para carregar as pendências clínicas.
-            </p>
-        </div>
-
-    </div>
-
-</div><div id="view-motor-regras-aps" class="view">
-
-    <div class="page-header">
-        <div>
-            <h2>⚙️ Motor de Regras APS</h2>
-            <p>
-                Automação operacional explicável para gerar Agenda APS a partir do Score Territorial Global,
-                EVFAM, pendências clínicas, visita domiciliar e linhas de cuidado.
-            </p>
-        </div>
-
-        <div class="button-row">
-            <button class="btn-primary" onclick="executarMotorRegrasAPS?.()">
-                ▶ Executar Motor
-            </button>
-
-            <button class="btn-info" onclick="atualizarEcossistemaAPS?.()">
-                🔄 Atualizar Ecossistema APS
-            </button>
-
-            <button class="btn-secondary" onclick="navigate('agenda-inteligente-aps')">
-                🗓 Abrir Agenda APS
-            </button>
-        </div>
-    </div>
-
-    <div class="dashboard-grid">
-        <div class="dash-card">
-            <div class="dash-icon icon-blue">👥</div>
-            <div>
-                <h3 id="motorRegrasPacientesAvaliados">0</h3>
-                <p>Pacientes avaliados</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-purple">⚙️</div>
-            <div>
-                <h3 id="motorRegrasAcionadas">0</h3>
-                <p>Regras acionadas</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-red">🚨</div>
-            <div>
-                <h3 id="motorRegrasCriticas">0</h3>
-                <p>Ações críticas</p>
-            </div>
-        </div>
-
-        <div class="dash-card">
-            <div class="dash-icon icon-green">🏠</div>
-            <div>
-                <h3 id="motorRegrasVisitas">0</h3>
-                <p>Visitas geradas</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="form-section">
-        <h3 style="margin-top:0;">🧠 Resultado da execução</h3>
-
-        <div id="conteudoMotorRegrasAPS">
-            <p style="color:var(--text-muted);">
-                Clique em executar para gerar ações automáticas na Agenda APS.
-            </p>
-        </div>
-    </div>
-
-</div>
 
 <div id="view-territorio-inteligente" class="view">
 
@@ -6831,6 +6673,205 @@ document.addEventListener("click", function () {
     setTimeout(sanitizarCopilotoExecutivoAPS, 300);
     setTimeout(sanitizarCopilotoExecutivoAPS, 900);
 });
+</script>
+
+
+<div id="modalComunicacoesEquipeAPS" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:980px; width:94%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+                <h2 style="margin:0;">💬 Comunicações entre a equipe</h2>
+                <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                    Notas inseridas no prontuário para orientar contato, busca ativa e seguimento.
+                </p>
+            </div>
+
+            <button class="btn-danger" onclick="fecharComunicacoesEquipeAPS()">
+                ✕ Fechar
+            </button>
+        </div>
+
+        <div class="button-row" style="margin-top:14px;">
+            <button class="btn-primary" onclick="carregarComunicacoesEquipeAPS()">
+                🔄 Atualizar comunicações
+            </button>
+            <button class="btn-secondary" onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || navigate('banco')">
+                🗂️ Abrir Base Territorial
+            </button>
+        </div>
+
+        <div id="listaComunicacoesEquipeAPS" style="margin-top:16px;">
+            <p style="color:var(--text-muted);">Carregando comunicações...</p>
+        </div>
+    </div>
+</div>
+
+
+<script id="centralComunicacoesEquipeAPS">
+async function carregarComunicacoesEquipeAPS() {
+    const container =
+        document.getElementById("listaComunicacoesEquipeAPS");
+
+    if (!container) return;
+
+    if (typeof supabaseClient === "undefined") {
+        container.innerHTML =
+            `<p style="color:var(--danger);">Supabase não carregado.</p>`;
+        return;
+    }
+
+    container.innerHTML =
+        `<p style="color:var(--text-muted);">Buscando notas do prontuário...</p>`;
+
+    try {
+        const { data, error } =
+            await supabaseClient
+                .from("atendimentos")
+                .select("*")
+                .order("data_atendimento", { ascending: false, nullsFirst: false })
+                .limit(300);
+
+        if (error) {
+            container.innerHTML =
+                `<p style="color:var(--danger);">Erro ao buscar comunicações: ${error.message || "verifique permissões"}.</p>`;
+            return;
+        }
+
+        const lista =
+            (data || [])
+                .map(a => ({
+                    nome:
+                        a.nome_paciente ||
+                        a.nome ||
+                        "Paciente sem nome",
+                    cpf:
+                        a.paciente_cpf ||
+                        a.cpf ||
+                        "",
+                    cns:
+                        a.cns ||
+                        "",
+                    equipe:
+                        a.equipe_esf ||
+                        a.equipe ||
+                        "Equipe não informada",
+                    ubs:
+                        a.ubs_vinculacao ||
+                        a.unidade ||
+                        a.ubs ||
+                        "UBS não informada",
+                    data:
+                        a.data_atendimento ||
+                        a.criado_em ||
+                        a.created_at,
+                    nota:
+                        a.notaMonitoramento ||
+                        a.nota_monitoramento ||
+                        a.notas ||
+                        a.nota ||
+                        a.observacao_equipe ||
+                        ""
+                }))
+                .filter(item =>
+                    String(item.nota || "").trim()
+                )
+                .slice(0, 80);
+
+        atualizarCardComunicacoesEquipeAPS(lista.length);
+
+        if (!lista.length) {
+            container.innerHTML =
+                `<p style="color:var(--text-muted);">Nenhuma nota de comunicação encontrada nos atendimentos recentes.</p>`;
+            return;
+        }
+
+        container.innerHTML =
+            `<div class="comunicacoes-equipe-grid">
+                ${lista.map(item => `
+                    <div class="comunicacao-equipe-item">
+                        <strong>${escaparComunicacaoEquipeAPS(item.nome)}</strong>
+                        <small>CPF: ${escaparComunicacaoEquipeAPS(item.cpf || "-")} | CNS: ${escaparComunicacaoEquipeAPS(item.cns || "-")}</small>
+                        <small>${escaparComunicacaoEquipeAPS(item.equipe)} · ${escaparComunicacaoEquipeAPS(item.ubs)} · ${formatarDataComunicacaoEquipeAPS(item.data)}</small>
+                        <div class="comunicacao-equipe-nota">${escaparComunicacaoEquipeAPS(item.nota)}</div>
+                        <div class="button-row" style="margin-top:10px;">
+                            <button class="btn-secondary btn-sm" onclick="abrirAtendimentoExistente?.('${escaparComunicacaoEquipeAPS(item.cpf)}', '${escaparComunicacaoEquipeAPS(item.cns)}')">
+                                📋 Abrir prontuário
+                            </button>
+                        </div>
+                    </div>
+                `).join("")}
+            </div>`;
+
+    } catch (erro) {
+        console.error("Erro comunicações equipe:", erro);
+        container.innerHTML =
+            `<p style="color:var(--danger);">Falha ao carregar comunicações.</p>`;
+    }
+}
+
+function abrirComunicacoesEquipeAPS() {
+    const modal =
+        document.getElementById("modalComunicacoesEquipeAPS");
+
+    if (modal) {
+        modal.style.display = "flex";
+    }
+
+    carregarComunicacoesEquipeAPS();
+}
+
+function fecharComunicacoesEquipeAPS() {
+    const modal =
+        document.getElementById("modalComunicacoesEquipeAPS");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function atualizarCardComunicacoesEquipeAPS(total) {
+    const alvos = [
+        "contadorComunicacoesEquipeAPS",
+        "cardComunicacoesEquipeAPSValor"
+    ];
+
+    alvos.forEach(id => {
+        const el =
+            document.getElementById(id);
+
+        if (el) {
+            el.innerText =
+                Number(total || 0).toLocaleString("pt-BR");
+        }
+    });
+}
+
+function formatarDataComunicacaoEquipeAPS(valor) {
+    if (!valor) return "-";
+
+    try {
+        return new Date(valor).toLocaleDateString("pt-BR");
+    } catch {
+        return "-";
+    }
+}
+
+function escaparComunicacaoEquipeAPS(valor) {
+    return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(carregarComunicacoesEquipeAPS, 1800);
+});
+
+window.abrirComunicacoesEquipeAPS = abrirComunicacoesEquipeAPS;
+window.fecharComunicacoesEquipeAPS = fecharComunicacoesEquipeAPS;
+window.carregarComunicacoesEquipeAPS = carregarComunicacoesEquipeAPS;
 </script>
 
 </body>
