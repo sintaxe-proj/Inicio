@@ -653,10 +653,6 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                     <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial APS</span>
                 </a>
 
-                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="abrirPainelEpidemiologico('criticos')">
-                    <span class="nav-emoji">📞</span><span class="nav-text">Monitoramento</span>
-                </a>
-
                 <div class="sidebar-section-title">Assistência</div>
 
                 <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('prontuario')">
@@ -2239,6 +2235,13 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
             <h2>🗄️ Base Territorial Inteligente</h2>
             <p>Cadastro territorial, linhas de cuidado, risco e monitoramento em tempo real.</p>
         </div>
+
+        <div class="button-row">
+            <button
+                class="btn-info"
+                onclick="navigate('banco')">
+                📊 Visualizar Dashboard
+            </button>
 
             <button
                 class="btn-primary"
@@ -6653,7 +6656,7 @@ function sanitizarCopilotoExecutivoAPS() {
 
     if (botao) {
         botao.innerHTML = "🧠";
-        botao.title = "Copiloto APS";
+        botao.title = "Cérebro APS";
     }
 }
 
