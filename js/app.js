@@ -238,7 +238,6 @@ function navigate(view) {
     ) {
         carregarPendenciasClinicasAPS();
     }
-    }
 
     if (
         view === "visita-domiciliar-aps" &&
