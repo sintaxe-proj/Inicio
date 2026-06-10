@@ -1203,6 +1203,421 @@ function fecharProntuarioAtivo() {
     mostrarToast?.("📋 Prontuário encerrado.");
 }
 
+function setValorSOAPSeguro(id, valor) {
+    const campo =
+        document.getElementById(id);
+
+    if (!campo) return;
+
+    if (
+        valor === null ||
+        valor === undefined ||
+        String(valor).trim() === ""
+    ) {
+        return;
+    }
+
+    campo.value =
+        valor;
+
+    campo.dispatchEvent(
+        new Event("change", { bubbles: true })
+    );
+
+    campo.dispatchEvent(
+        new Event("input", { bubbles: true })
+    );
+}
+
+function setCheckSOAPSeguro(id, valor) {
+    const campo =
+        document.getElementById(id);
+
+    if (!campo) return;
+
+    const v =
+        String(valor || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
+    campo.checked =
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo";
+
+    campo.dispatchEvent(
+        new Event("change", { bubbles: true })
+    );
+}
+
+function valorSimSOAP(valor) {
+    const v =
+        String(valor || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "positivo" ||
+        v === "presente" ||
+        v === "ativo"
+    );
+}
+
+async function buscarUltimoAtendimentoLinhaCuidadoSOAP(cpf, cns) {
+    if (typeof supabaseClient === "undefined") {
+        return null;
+    }
+
+    const cpfLimpo =
+        String(cpf || "").replace(/\D/g, "");
+
+    const cnsLimpo =
+        String(cns || "").trim();
+
+    const filtros = [];
+
+    if (cpfLimpo) {
+        filtros.push(`cpf.eq.${cpfLimpo}`);
+        filtros.push(`paciente_cpf.eq.${cpfLimpo}`);
+    }
+
+    if (cnsLimpo) {
+        filtros.push(`cns.eq.${cnsLimpo}`);
+    }
+
+    if (!filtros.length) {
+        return null;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("atendimentos")
+            .select("*")
+            .or(filtros.join(","))
+            .order("data_atendimento", {
+                ascending: false,
+                nullsFirst: false
+            })
+            .limit(1);
+
+    if (error) {
+        console.warn(
+            "SOAP: não foi possível buscar último atendimento para linhas/rastreamento.",
+            error.message || error
+        );
+
+        return null;
+    }
+
+    return data?.[0] || null;
+}
+
+async function preencherLinhasCuidadoRastreamentoSOAP(paciente = null) {
+    const cpf =
+        paciente?.cpf ||
+        document.getElementById("cpfPaciente")?.value ||
+        "";
+
+    const cns =
+        paciente?.cns ||
+        document.getElementById("cnsPaciente")?.value ||
+        "";
+
+    const ultimo =
+        await buscarUltimoAtendimentoLinhaCuidadoSOAP(
+            cpf,
+            cns
+        );
+
+    const origem =
+        {
+            ...(paciente || {}),
+            ...(ultimo || {})
+        };
+
+    if (!Object.keys(origem).length) {
+        return;
+    }
+
+    /* ======================================================
+       LINHAS DE CUIDADO APS
+       ====================================================== */
+
+    const has =
+        origem.has ??
+        origem.isHAS ??
+        origem.hipertensao ??
+        origem.has_ativo;
+
+    const dm =
+        origem.dm ??
+        origem.isDM ??
+        origem.diabetes ??
+        origem.dm_ativo;
+
+    const gestante =
+        origem.gestante ??
+        origem.isGestante ??
+        origem.pn ??
+        origem.pre_natal;
+
+    const tb =
+        origem.tb ??
+        origem.tuberculose ??
+        origem.isTB;
+
+    const hansen =
+        origem.hansen ??
+        origem.hanseniase ??
+        origem.isHansen;
+
+    // Selects ou inputs textuais
+    setValorSOAPSeguro("has", valorSimSOAP(has) ? "Sim" : "Não");
+    setValorSOAPSeguro("dm", valorSimSOAP(dm) ? "Sim" : "Não");
+    setValorSOAPSeguro("gestante", valorSimSOAP(gestante) ? "Sim" : "Não");
+    setValorSOAPSeguro("tb", valorSimSOAP(tb) ? "Sim" : "Não");
+    setValorSOAPSeguro("hansen", valorSimSOAP(hansen) ? "Sim" : "Não");
+
+    // Checkboxes, caso o seu HTML use checkbox
+    setCheckSOAPSeguro("checkHAS", has);
+    setCheckSOAPSeguro("checkDM", dm);
+    setCheckSOAPSeguro("checkGestante", gestante);
+    setCheckSOAPSeguro("checkTB", tb);
+    setCheckSOAPSeguro("checkHansen", hansen);
+
+    /* ======================================================
+       HAS
+       ====================================================== */
+
+    setValorSOAPSeguro(
+        "hasPAS",
+        origem.hasPAS ||
+        origem.has_pas ||
+        origem.objPAS ||
+        origem.obj_pas
+    );
+
+    setValorSOAPSeguro(
+        "hasPAD",
+        origem.hasPAD ||
+        origem.has_pad ||
+        origem.objPAD ||
+        origem.obj_pad
+    );
+
+    setValorSOAPSeguro(
+        "hasClassif",
+        origem.hasClassif ||
+        origem.has_classificacao ||
+        origem.classificacao_has
+    );
+
+    setValorSOAPSeguro(
+        "dataRetinopatiaHAS",
+        origem.dataRetinopatiaHAS ||
+        origem.retinopatia_has_data ||
+        origem.data_retinopatia_has
+    );
+
+    setValorSOAPSeguro(
+        "valorRetinopatiaHAS",
+        origem.valorRetinopatiaHAS ||
+        origem.retinopatia_has_valor ||
+        origem.resultado_retinopatia_has
+    );
+
+    /* ======================================================
+       DM
+       ====================================================== */
+
+    setValorSOAPSeguro(
+        "dmHbA1c",
+        origem.dmHbA1c ||
+        origem.dm_hba1c ||
+        origem.hba1c
+    );
+
+    setValorSOAPSeguro(
+        "dmClassif",
+        origem.dmClassif ||
+        origem.dm_classificacao ||
+        origem.classificacao_dm
+    );
+
+    setValorSOAPSeguro(
+        "dataRetinopatiaDM",
+        origem.dataRetinopatiaDM ||
+        origem.retinopatia_dm_data ||
+        origem.data_retinopatia_dm
+    );
+
+    setValorSOAPSeguro(
+        "valorRetinopatiaDM",
+        origem.valorRetinopatiaDM ||
+        origem.retinopatia_dm_valor ||
+        origem.resultado_retinopatia_dm
+    );
+
+    setValorSOAPSeguro(
+        "grauPeDiabetico",
+        origem.grauPeDiabetico ||
+        origem.grau_pe_diabetico ||
+        origem.pe_diabetico_grau
+    );
+
+    /* ======================================================
+       GESTANTE / PRÉ-NATAL
+       ====================================================== */
+
+    setValorSOAPSeguro(
+        "gestDUM",
+        origem.gestDUM ||
+        origem.dum ||
+        origem.gest_dum
+    );
+
+    setValorSOAPSeguro(
+        "gestIG",
+        origem.gestIG ||
+        origem.ig ||
+        origem.idade_gestacional
+    );
+
+    setValorSOAPSeguro(
+        "gestDPP",
+        origem.gestDPP ||
+        origem.dpp ||
+        origem.gest_dpp
+    );
+
+    if (typeof calcIG === "function") {
+        calcIG();
+    }
+
+    /* ======================================================
+       RASTREAMENTOS APS
+       ====================================================== */
+
+    setValorSOAPSeguro(
+        "dataCitopatologico",
+        origem.dataCitopatologico ||
+        origem.citopatologico_data ||
+        origem.data_citopatologico
+    );
+
+    setValorSOAPSeguro(
+        "resultadoCitopatologico",
+        origem.resultadoCitopatologico ||
+        origem.citopatologico_resultado ||
+        origem.resultado_citopatologico
+    );
+
+    setValorSOAPSeguro(
+        "dataMamografia",
+        origem.dataMamografia ||
+        origem.mamografia_data ||
+        origem.data_mamografia
+    );
+
+    setValorSOAPSeguro(
+        "resultadoMamografia",
+        origem.resultadoMamografia ||
+        origem.mamografia_resultado ||
+        origem.resultado_mamografia
+    );
+
+    setValorSOAPSeguro(
+        "statusVacinal",
+        origem.statusVacinal ||
+        origem.vacinacao_status ||
+        origem.status_vacinal
+    );
+
+    setValorSOAPSeguro(
+        "dataUltimaVacina",
+        origem.dataUltimaVacina ||
+        origem.ultima_vacina_data ||
+        origem.data_ultima_vacina
+    );
+
+    setValorSOAPSeguro(
+        "rastreamentoNotas",
+        origem.rastreamentoNotas ||
+        origem.notas_rastreamento ||
+        origem.observacao_rastreamento
+    );
+
+    console.log(
+        "✅ SOAP: linhas de cuidado e rastreamentos preenchidos.",
+        origem
+    );
+}
+
+/* ==========================================================
+   INTEGRAÇÃO COM A BUSCA EXISTENTE DO CPF/CNS
+   ========================================================== */
+
+(function integrarBuscaPacienteComLinhasCuidadoSOAP() {
+    const original =
+        window.buscarPacientePorDocumento;
+
+    if (
+        typeof original === "function" &&
+        !original.__linhasCuidadoIntegrada
+    ) {
+        window.buscarPacientePorDocumento =
+            async function buscarPacientePorDocumentoIntegrado() {
+                const retorno =
+                    await original.apply(this, arguments);
+
+                setTimeout(() => {
+                    preencherLinhasCuidadoRastreamentoSOAP();
+                }, 400);
+
+                return retorno;
+            };
+
+        window.buscarPacientePorDocumento.__linhasCuidadoIntegrada =
+            true;
+    }
+
+    const cpfInput =
+        document.getElementById("cpfPaciente");
+
+    const cnsInput =
+        document.getElementById("cnsPaciente");
+
+    [cpfInput, cnsInput]
+        .filter(Boolean)
+        .forEach(input => {
+            input.addEventListener("blur", () => {
+                setTimeout(() => {
+                    preencherLinhasCuidadoRastreamentoSOAP();
+                }, 500);
+            });
+        });
+})();
+
+window.preencherLinhasCuidadoRastreamentoSOAP =
+    preencherLinhasCuidadoRastreamentoSOAP;
+
+
 /* ==========================================================================
    🚀 START
    ========================================================================== */
