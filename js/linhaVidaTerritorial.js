@@ -346,23 +346,76 @@ async function buscarRegistrosLinhaTempo(
     cns,
     limite = 300
 ) {
+    /*
+       Correção 5.1:
+       Cada tabela tem colunas diferentes.
+       Não podemos usar sempre cpf, paciente_cpf, cns e paciente_cns,
+       porque o Supabase retorna 400 quando a coluna não existe.
+    */
+
+    const cpfLimpo =
+        limparDocumentoLinhaTempo(cpf || "");
+
+    const cnsLimpo =
+        String(cns || "").trim();
+
+    const filtrosPorTabela = {
+        atendimentos: {
+            cpf: ["cpf", "paciente_cpf"],
+            cns: ["cns"]
+        },
+
+        interacoes_busca_ativa: {
+            cpf: ["paciente_cpf"],
+            cns: []
+        },
+
+        agenda_aps: {
+            cpf: ["paciente_cpf"],
+            cns: []
+        },
+
+        visitas_domiciliares: {
+            cpf: ["paciente_cpf"],
+            cns: []
+        },
+
+        reunioes: {
+            cpf: ["paciente_cpf"],
+            cns: []
+        },
+
+        solicitacoes_materiais: {
+            cpf: ["paciente_cpf"],
+            cns: []
+        }
+    };
+
+    const config =
+        filtrosPorTabela[tabela] || {
+            cpf: ["paciente_cpf"],
+            cns: []
+        };
+
+    const filtros = [];
+
+    if (cpfLimpo) {
+        (config.cpf || []).forEach(coluna => {
+            filtros.push(`${coluna}.eq.${cpfLimpo}`);
+        });
+    }
+
+    if (cnsLimpo) {
+        (config.cns || []).forEach(coluna => {
+            filtros.push(`${coluna}.eq.${cnsLimpo}`);
+        });
+    }
+
+    if (!filtros.length) {
+        return [];
+    }
+
     try {
-        const filtros = [];
-
-        if (cpf) {
-            filtros.push(`cpf.eq.${cpf}`);
-            filtros.push(`paciente_cpf.eq.${cpf}`);
-        }
-
-        if (cns) {
-            filtros.push(`cns.eq.${cns}`);
-            filtros.push(`paciente_cns.eq.${cns}`);
-        }
-
-        if (!filtros.length) {
-            return [];
-        }
-
         const {
             data,
             error
@@ -586,6 +639,7 @@ function montarEventosLinhaVidaTerritorial(
 
             titulo:
                 a.inputBuscaCIAPS ||
+                a.ciapSelecionado ||
                 a.ciap ||
                 a.inputBuscaCIPE ||
                 "SOAP",
