@@ -536,6 +536,9 @@ function aplicarFiltrosBaseTerritorial() {
     const risco =
         document.getElementById("filtroRiscoBase")?.value || "TODOS";
 
+    const filaOperacional =
+        document.getElementById("filtroFilaOperacionalAPS")?.value || "TODOS";
+
     const termoNormalizado =
         normalizarTextoBase(termo);
 
@@ -610,6 +613,12 @@ function aplicarFiltrosBaseTerritorial() {
         }
     }
 
+    base =
+        filtrarFilaOperacionalAPS(
+            base,
+            filaOperacional
+        );
+
     atualizarIndicadoresBaseTerritorial(base);
     renderizarTabelaBaseTerritorial(base);
 }
@@ -621,6 +630,124 @@ function normalizarTextoBase(valor) {
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
 }
+
+
+function filtrarFilaOperacionalAPS(base, fila) {
+    if (fila === "TODOS") {
+        return base;
+    }
+
+    if (fila === "CRITICOS") {
+        return base.filter(p =>
+            Number(p.score_territorial_global || 0) >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase().includes("CRIT") ||
+            Number(p.prazo) === 0
+        );
+    }
+
+    if (fila === "ALTO") {
+        return base.filter(p => {
+            const score =
+                Number(p.score_territorial_global || 0);
+
+            return (
+                score >= 65 ||
+                String(p.nivel_prioridade || "").toUpperCase().includes("ALTO") ||
+                normalizarTextoBase(p.risco_global).includes("alto") ||
+                Number(p.risco_pontos || 0) >= 6
+            );
+        });
+    }
+
+    if (fila === "MODERADO") {
+        return base.filter(p => {
+            const score =
+                Number(p.score_territorial_global || 0);
+
+            return score >= 40 && score < 65;
+        });
+    }
+
+    if (fila === "BUSCA_ATIVA") {
+        return base.filter(p =>
+            Number(p.prazo) === 0 ||
+            (p.pendencias?.length || 0) > 0 ||
+            normalizarTextoBase(p.acao_recomendada).includes("busca") ||
+            normalizarTextoBase(p.acao_recomendada).includes("contato")
+        );
+    }
+
+    if (fila === "VISITA") {
+        return base.filter(p =>
+            p.visita_domiciliar_indicada === true ||
+            normalizarTextoBase(p.tipo_visita_sugerida).includes("visita") ||
+            normalizarTextoBase(p.acao_recomendada).includes("visita") ||
+            Number(p.score_domiciliar || 0) > 0
+        );
+    }
+
+    if (fila === "HAS_SEM_PA") {
+        return base.filter(p =>
+            valorSimBase(p.has) &&
+            (
+                !temValorBase(p.hasPAS) ||
+                !temValorBase(p.hasPAD)
+            )
+        );
+    }
+
+    if (fila === "DM_SEM_HBA1C") {
+        return base.filter(p =>
+            valorSimBase(p.dm) &&
+            !temValorBase(p.dmHbA1c)
+        );
+    }
+
+    if (fila === "GESTANTES") {
+        return base.filter(p =>
+            valorSimBase(p.gestante)
+        );
+    }
+
+    if (fila === "RETORNO_VENCIDO") {
+        return base.filter(p =>
+            Number(p.prazo) === 0
+        );
+    }
+
+    if (fila === "EVFAM_ALTO") {
+        return base.filter(p =>
+            Number(p.evfam_total || 0) >= 15 ||
+            normalizarTextoBase(p.evfam_classificacao).includes("alto")
+        );
+    }
+
+    if (fila === "ACAMADOS") {
+        return base.filter(p =>
+            p.acamado === true ||
+            valorSimBase(p.acamado) ||
+            normalizarTextoBase(p.acao_recomendada).includes("acam")
+        );
+    }
+
+    if (fila === "DOMICILIADOS") {
+        return base.filter(p =>
+            p.domiciliado === true ||
+            valorSimBase(p.domiciliado) ||
+            normalizarTextoBase(p.tipo_visita_sugerida).includes("domic") ||
+            normalizarTextoBase(p.acao_recomendada).includes("domic")
+        );
+    }
+
+    if (fila === "PENDENCIAS") {
+        return base.filter(p =>
+            (p.pendencias?.length || 0) > 0
+        );
+    }
+
+    return base;
+}
+
 
 /* ==========================================================================
    INDICADORES
@@ -1143,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 window.carregarTabelaBanco = carregarTabelaBanco;
 window.limparBuscaBaseTerritorial = limparBuscaBaseTerritorial;
 window.aplicarFiltrosBaseTerritorial = aplicarFiltrosBaseTerritorial;
+window.filtrarFilaOperacionalAPS = filtrarFilaOperacionalAPS;
 window.carregarFiltrosBaseTerritorial = carregarFiltrosBaseTerritorial;
 window.exportarBaseTerritorialCSV = exportarBaseTerritorialCSV;
 window.abrirFallbackTentativaLigacaoBase = abrirFallbackTentativaLigacaoBase;
