@@ -887,32 +887,32 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
                 <div class="dashboard-grid dashboard-hero-grid">
 
-                    <div class="dash-card dashboard-kpi-card" onclick="navigate('banco')">
-                        <div class="dash-icon icon-blue">👥</div>
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('relatorios')">
+                        <div class="dash-icon icon-green">🩺</div>
                         <div>
-                            <span class="card-label">Pessoas cadastradas</span>
+                            <span class="card-label">Atendimentos no mês</span>
                             <h3 id="dashInicialPessoas">0</h3>
-                            <p>Total real do cadastro</p>
-                            <span class="card-trend" id="dashInicialPessoasTrend">count exato</span>
+                            <p>Produção assistencial mensal</p>
+                            <span class="card-trend" id="dashInicialPessoasTrend">mês atual</span>
                         </div>
                     </div>
 
-                    <div class="dash-card dashboard-kpi-card" onclick="navigate('relatorios')">
-                        <div class="dash-icon icon-green">✅</div>
+                    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('BUSCA_ATIVA') || navigate('banco')">
+                        <div class="dash-icon icon-cyan">📞</div>
                         <div>
-                            <span class="card-label">Atendimentos</span>
+                            <span class="card-label">Busca ativa</span>
                             <h3 id="dashInicialAtendimentos">0</h3>
-                            <p>Produção do mês</p>
-                            <span class="card-trend trend-positive">APS</span>
+                            <p>Fila operacional de contato</p>
+                            <span class="card-trend trend-warning">Base APS</span>
                         </div>
                     </div>
 
                     <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || navigate('banco')">
                         <div class="dash-icon icon-yellow">⏰</div>
                         <div>
-                            <span class="card-label">Pendentes</span>
+                            <span class="card-label">Pacientes com pendência</span>
                             <h3 id="dashInicialPendentes">0</h3>
-                            <p>Critérios que exigem ação</p>
+                            <p>Pessoas com ao menos 1 pendência</p>
                             <span class="card-trend trend-warning">Acompanhar</span>
                         </div>
                     </div>
