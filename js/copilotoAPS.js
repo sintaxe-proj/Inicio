@@ -2159,6 +2159,207 @@ function escaparCopilotoAPS(valor) {
         .replace(/>/g, "&gt;");
 }
 
+
+/* ==========================================================
+   TOPBAR DINÂMICA — COPILOTO EXECUTIVO APS
+   Remove botão flutuante e transforma a TopBar em indicador.
+   ========================================================== */
+
+function removerBotaoFlutuanteCopilotoAPS() {
+    const seletores = [
+        ".btn-copiloto-aps",
+        "#btnCopilotoAPSFlutuante",
+        "#botaoCopilotoAPSFlutuante",
+        ".copiloto-aps-flutuante",
+        ".floating-copiloto-aps"
+    ];
+
+    seletores.forEach(seletor => {
+        document
+            .querySelectorAll(seletor)
+            .forEach(el => el.remove());
+    });
+}
+
+function criarBotaoFlutuanteCopilotoAPS() {
+    /*
+       O botão flutuante foi desativado.
+       O acesso ao Copiloto APS agora fica na TopBar como indicador dinâmico.
+    */
+    removerBotaoFlutuanteCopilotoAPS();
+    return null;
+}
+
+async function atualizarIndicadorTopbarCopilotoAPS() {
+    removerBotaoFlutuanteCopilotoAPS();
+
+    const botao =
+        document.getElementById("btnTopbarCopilotoAPS") ||
+        document.querySelector("[data-copiloto-topbar='true']") ||
+        document.querySelector(".topbar-alert[title='Copiloto APS']") ||
+        document.querySelector("button[title='Copiloto APS']");
+
+    if (!botao) {
+        return null;
+    }
+
+    let resumo = null;
+
+    try {
+        if (
+            window.centralOperacoesAPSAtual?.dados
+        ) {
+            const dados =
+                window.centralOperacoesAPSAtual.dados;
+
+            resumo = {
+                criticos:
+                    dados.criticos?.length || 0,
+                buscas:
+                    dados.resumoAgenda?.buscas || 0,
+                visitas:
+                    dados.resumoAgenda?.visitas || 0,
+                gestantes:
+                    dados.resumoAgenda?.gestantes || 0
+            };
+
+        } else if (
+            window.motorCognitivoAPSAtual?.resumo
+        ) {
+            const r =
+                window.motorCognitivoAPSAtual.resumo;
+
+            resumo = {
+                criticos:
+                    r.criticos || 0,
+                buscas:
+                    r.buscas || 0,
+                visitas:
+                    r.visitas || 0,
+                gestantes:
+                    r.gestantes || 0
+            };
+
+        } else if (
+            window.copilotoAPSContextoAtual?.resumo
+        ) {
+            const r =
+                window.copilotoAPSContextoAtual.resumo;
+
+            resumo = {
+                criticos:
+                    r.criticos || 0,
+                buscas:
+                    r.agenda?.buscas || 0,
+                visitas:
+                    r.agenda?.visitas || 0,
+                gestantes:
+                    r.agenda?.gestantes || 0
+            };
+        } else {
+            const dados =
+                await carregarDadosCopilotoAPS();
+
+            const r =
+                dados?.resumo || {};
+
+            resumo = {
+                criticos:
+                    r.criticos || 0,
+                buscas:
+                    r.agenda?.buscas || 0,
+                visitas:
+                    r.agenda?.visitas || 0,
+                gestantes:
+                    r.agenda?.gestantes || 0
+            };
+        }
+    } catch (erro) {
+        console.warn("Copiloto APS: não foi possível atualizar indicador dinâmico.", erro);
+
+        resumo = {
+            criticos: 0,
+            buscas: 0,
+            visitas: 0,
+            gestantes: 0
+        };
+    }
+
+    const totalAlertas =
+        Number(resumo.criticos || 0) +
+        Number(resumo.buscas || 0) +
+        Number(resumo.visitas || 0) +
+        Number(resumo.gestantes || 0);
+
+    botao.id =
+        botao.id || "btnTopbarCopilotoAPS";
+
+    botao.setAttribute(
+        "data-copiloto-topbar",
+        "true"
+    );
+
+    botao.setAttribute(
+        "title",
+        `Copiloto Executivo APS — ${totalAlertas} alerta(s)`
+    );
+
+    botao.onclick =
+        abrirCopilotoAPS;
+
+    botao.innerHTML =
+        `
+        <span>🧠</span>
+        <span
+            id="contadorCopilotoTopbar"
+            style="
+                margin-left:4px;
+                font-weight:800;
+                color:${totalAlertas > 0 ? "var(--warning)" : "var(--text-main)"};
+            ">
+            ${totalAlertas}
+        </span>
+        `;
+
+    if (totalAlertas > 0) {
+        botao.classList.add("tem-alerta-copiloto");
+    } else {
+        botao.classList.remove("tem-alerta-copiloto");
+    }
+
+    return {
+        ...resumo,
+        totalAlertas
+    };
+}
+
+function iniciarIndicadorTopbarCopilotoAPS() {
+    removerBotaoFlutuanteCopilotoAPS();
+
+    atualizarIndicadorTopbarCopilotoAPS()
+        .catch(console.warn);
+
+    if (!window.intervaloIndicadorTopbarCopilotoAPS) {
+        window.intervaloIndicadorTopbarCopilotoAPS =
+            setInterval(() => {
+                removerBotaoFlutuanteCopilotoAPS();
+
+                atualizarIndicadorTopbarCopilotoAPS()
+                    .catch(console.warn);
+            }, 60000);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    removerBotaoFlutuanteCopilotoAPS();
+
+    setTimeout(
+        iniciarIndicadorTopbarCopilotoAPS,
+        1200
+    );
+});
+
+
 /* ==========================================================
    GLOBAL
    ========================================================== */
@@ -2172,5 +2373,9 @@ window.enviarResultadoCopilotoParaCentralAPS = enviarResultadoCopilotoParaCentra
 window.copiarResumoCopilotoAPS = copiarResumoCopilotoAPS;
 window.carregarDadosCopilotoAPS = carregarDadosCopilotoAPS;
 window.copilotoAPSContextoAtual = copilotoAPSContextoAtual;
+window.removerBotaoFlutuanteCopilotoAPS = removerBotaoFlutuanteCopilotoAPS;
+window.criarBotaoFlutuanteCopilotoAPS = criarBotaoFlutuanteCopilotoAPS;
+window.atualizarIndicadorTopbarCopilotoAPS = atualizarIndicadorTopbarCopilotoAPS;
+window.iniciarIndicadorTopbarCopilotoAPS = iniciarIndicadorTopbarCopilotoAPS;
 
 console.log("✅ Copiloto APS Cognitivo carregado.");
