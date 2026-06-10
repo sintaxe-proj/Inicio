@@ -494,44 +494,92 @@ function abrirPacienteBuscaGlobalSintaxeHub(cpf, cns) {
         campo.value = "";
     }
 
+    const cpfLimpo =
+        limparDocumentoDashboardInicial(cpf || "");
+
+    const cnsLimpo =
+        String(cns || "").trim();
+
+    // =====================================================
+    // AÇÃO PRINCIPAL: ABRIR PRONTUÁRIO DO PACIENTE
+    // =====================================================
+
+    if (typeof abrirAtendimentoExistente === "function") {
+        abrirAtendimentoExistente(
+            cpfLimpo,
+            cnsLimpo
+        );
+
+        setTimeout(() => {
+            if (
+                typeof carregarLinhaVidaTerritorialPaciente === "function"
+            ) {
+                carregarLinhaVidaTerritorialPaciente(
+                    cpfLimpo,
+                    cnsLimpo
+                );
+            }
+        }, 700);
+
+        return;
+    }
+
+    // =====================================================
+    // FALLBACK: NAVEGAR PARA PRONTUÁRIO E PREENCHER CPF/CNS
+    // =====================================================
+
     if (typeof navigate === "function") {
-        navigate("mapa-territorial");
+        navigate("prontuario");
     }
 
     setTimeout(() => {
-        const buscaBase =
-            document.getElementById("buscaBaseTerritorial");
+        const campoCPF =
+            document.getElementById("cpfPaciente");
 
-        const buscaMapa =
-            document.getElementById("geoFiltroBusca");
+        const campoCNS =
+            document.getElementById("cnsPaciente");
 
-        const buscaCentral =
-            document.getElementById("buscaCentralAPS");
-
-        const termo =
-            cpf || cns || "";
-
-        if (buscaBase) buscaBase.value = termo;
-        if (buscaMapa) buscaMapa.value = termo;
-        if (buscaCentral) buscaCentral.value = termo;
-
-        if (typeof aplicarFiltrosMapaTerritorial === "function") {
-            aplicarFiltrosMapaTerritorial();
+        if (campoCPF && cpfLimpo) {
+            campoCPF.value =
+                cpfLimpo;
         }
 
-        if (typeof carregarMapaTerritorialAPS === "function") {
-            carregarMapaTerritorialAPS();
+        if (campoCNS && cnsLimpo) {
+            campoCNS.value =
+                cnsLimpo;
         }
-    }, 450);
+
+        if (typeof buscarPacientePorDocumento === "function") {
+            buscarPacientePorDocumento();
+        }
+
+        if (
+            typeof carregarHistoricoClinicoPaciente === "function"
+        ) {
+            carregarHistoricoClinicoPaciente(
+                cpfLimpo,
+                cnsLimpo
+            );
+        }
+
+        if (
+            typeof carregarLinhaVidaTerritorialPaciente === "function"
+        ) {
+            carregarLinhaVidaTerritorialPaciente(
+                cpfLimpo,
+                cnsLimpo
+            );
+        }
+    }, 500);
 }
 
 function atualizarTituloViewSintaxeHub(view) {
     const titulos = {
         inicio: ["Dashboard", "Visão geral da operação"],
-        banco: ["Base Territorial", "Cadastro e monitoramento populacional"],
+        banco: ["Base Territorial APS", "Cadastro populacional, EVFAM e filas operacionais"],
         "mapa-territorial": ["Mapa Territorial", "Distribuição por equipe, UBS e CEP"],
         georreferenciamento: ["Georreferenciamento APS", "Mapa territorial e priorização por risco"],
-        "central-aps": ["Central Operacional APS", "Filas inteligentes e busca ativa"],
+        "central-aps": ["Base Territorial APS", "Filas operacionais integradas à base"],
         reuniao: ["Reunião de Equipe", "Ata, casos e encaminhamentos"],
         estoque: ["Estoque", "Materiais e solicitações"],
         "auditoria-estoque": ["Auditoria de Estoque", "Rastreabilidade operacional"],
