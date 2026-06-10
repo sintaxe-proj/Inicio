@@ -222,31 +222,18 @@ function calcularResumoDashboardInicialSintaxeHub(
             normalizarDashboardInicial(t.nivel_prioridade || t.prioridade).includes("critic")
         ).length;
 
+    const pendenciasCalculadas =
+        calcularPendenciasOperacionaisDashboardInicial(
+            pacientes,
+            atendimentos,
+            territorio
+        );
+
     const pendenciasOperacionais =
-        (territorio || []).reduce((total, t) => {
-            if (Array.isArray(t.pendencias)) {
-                return total + t.pendencias.length;
-            }
-
-            const score =
-                Number(t.score_territorial_global || t.score_geral || 0);
-
-            const acao =
-                normalizarDashboardInicial(t.acao_recomendada || "");
-
-            if (
-                score >= 65 ||
-                Number(t.evfam_total || 0) >= 15 ||
-                acao.includes("busca") ||
-                acao.includes("visita") ||
-                acao.includes("pend")
-            ) {
-                return total + 1;
-            }
-
-            return total;
-        }, 0) ||
-        pendentes;
+        Math.max(
+            pendentes,
+            pendenciasCalculadas.pacientes || 0
+        );
 
     const buscasAgenda =
         (agendaHoje || []).filter(a =>
@@ -268,6 +255,8 @@ function calcularResumoDashboardInicialSintaxeHub(
         atendimentosMes,
         pendentes: Math.max(pendentes, pendenciasOperacionais),
         pendenciasOperacionais,
+        pacientesComPendencia: pendenciasOperacionais,
+        pendenciasTotal: pendenciasCalculadas.total || pendenciasOperacionais,
         criticos: Math.max(criticos, criticosTerritoriais),
         estoqueBaixo,
         populacaoCadastrada,
@@ -281,15 +270,161 @@ function calcularResumoDashboardInicialSintaxeHub(
     };
 }
 
+
+function calcularPendenciasOperacionaisDashboardInicial(pacientes, atendimentos, territorio) {
+    const mapa = new Map();
+
+    (pacientes || []).forEach(p => {
+        const chave =
+            limparDocumentoDashboardInicial(p.cpf || "") ||
+            String(p.cns || "").trim() ||
+            String(p.id || "");
+
+        if (!chave) return;
+
+        mapa.set(chave, {
+            cpf: p.cpf || "",
+            cns: p.cns || "",
+            ultimoAtendimento: null,
+            pendencias: []
+        });
+    });
+
+    (atendimentos || []).forEach(a => {
+        const chave =
+            limparDocumentoDashboardInicial(a.paciente_cpf || a.cpf || "") ||
+            String(a.cns || "").trim();
+
+        if (!chave) return;
+
+        const item =
+            mapa.get(chave) || {
+                cpf: a.paciente_cpf || a.cpf || "",
+                cns: a.cns || "",
+                ultimoAtendimento: null,
+                pendencias: []
+            };
+
+        const prazo =
+            a.reavaliacaoDias ??
+            a.retorno_dias ??
+            a.prazo ??
+            null;
+
+        if (
+            prazo !== null &&
+            prazo !== undefined &&
+            Number(prazo) === 0
+        ) {
+            item.pendencias.push("Retorno vencido");
+        }
+
+        const dataAtendimento =
+            dataValidaDashboardInicial(
+                a.data_atendimento ||
+                a.criado_em ||
+                a.created_at
+            );
+
+        if (
+            dataAtendimento &&
+            (
+                !item.ultimoAtendimento ||
+                dataAtendimento > item.ultimoAtendimento
+            )
+        ) {
+            item.ultimoAtendimento =
+                dataAtendimento;
+        }
+
+        mapa.set(chave, item);
+    });
+
+    (territorio || []).forEach(t => {
+        const chave =
+            limparDocumentoDashboardInicial(t.cpf || "") ||
+            limparDocumentoDashboardInicial(t.paciente_cpf || "") ||
+            String(t.cns || "").trim();
+
+        if (!chave) return;
+
+        const item =
+            mapa.get(chave) || {
+                cpf: t.cpf || t.paciente_cpf || "",
+                cns: t.cns || "",
+                ultimoAtendimento: null,
+                pendencias: []
+            };
+
+        if (Array.isArray(t.pendencias)) {
+            item.pendencias.push(...t.pendencias);
+        }
+
+        if (
+            Number(t.evfam_total || 0) >= 15 ||
+            normalizarDashboardInicial(t.evfam_classificacao).includes("alto")
+        ) {
+            item.pendencias.push("EVFAM alto");
+        }
+
+        if (
+            Number(t.score_territorial_global || t.score_geral || 0) >= 65
+        ) {
+            item.pendencias.push("Prioridade territorial alta");
+        }
+
+        mapa.set(chave, item);
+    });
+
+    const hoje =
+        new Date();
+
+    mapa.forEach(item => {
+        if (!item.ultimoAtendimento) {
+            item.pendencias.push("Sem atendimento registrado");
+            return;
+        }
+
+        const dias =
+            Math.floor(
+                (hoje.getTime() - item.ultimoAtendimento.getTime()) /
+                (1000 * 60 * 60 * 24)
+            );
+
+        if (dias > 180) {
+            item.pendencias.push("Sem atendimento >180 dias");
+        }
+    });
+
+    const pacientesComPendencia =
+        [...mapa.values()].filter(item =>
+            [...new Set(item.pendencias.filter(Boolean))].length > 0
+        );
+
+    const totalPendencias =
+        pacientesComPendencia.reduce(
+            (total, item) =>
+                total +
+                [...new Set(item.pendencias.filter(Boolean))].length,
+            0
+        );
+
+    return {
+        pacientes: pacientesComPendencia.length,
+        total: totalPendencias
+    };
+}
+
+
 function renderizarDashboardInicialSintaxeHub(dados) {
-    setTextoDashboardInicial("dashInicialPessoas", dados.populacaoCadastrada ?? dados.pacientes.length);
+    setTextoDashboardInicial("dashInicialPessoas", dados.atendimentosMes.length);
     setTextoDashboardInicial("dashInicialPopulacaoCadastrada", dados.populacaoCadastrada ?? dados.pacientes.length);
     setTextoDashboardInicial("dashInicialMonitoramentoAtivo", dados.emMonitoramentoAtivo ?? 0);
     setTextoDashboardInicial("dashInicialPrioridadeAlta", dados.prioridadeAlta ?? 0);
     setTextoDashboardInicial("dashInicialVisitaDomiciliar", dados.visitaDomiciliar ?? 0);
     setTextoDashboardInicial("dashInicialEVFAMAlto", dados.evfamAlto ?? 0);
 
-    setTextoDashboardInicial("dashInicialAtendimentos", dados.atendimentosMes.length);
+    setTextoDashboardInicial("dashInicialAtendimentos", dados.buscasAgenda ?? 0);
     setTextoDashboardInicial("dashInicialPendentes", dados.pendenciasOperacionais ?? dados.pendentes);
     setTextoDashboardInicial("dashInicialCriticos", dados.criticos);
     setTextoDashboardInicial("dashInicialEstoqueBaixo", dados.estoqueBaixo.length);
@@ -298,6 +433,14 @@ function renderizarDashboardInicialSintaxeHub(dados) {
     renderizarSolicitacoesDashboardInicial(dados.solicitacoes);
     renderizarEstoqueCriticoDashboardInicial(dados.estoqueBaixo.slice(0, 6));
     renderizarGraficoMensalDashboardInicial(dados.atendimentos);
+
+    console.log("📊 Dashboard Inicial APS — Auditoria", {
+        populacaoCadastrada: dados.populacaoCadastrada,
+        atendimentosMes: dados.atendimentosMes?.length || 0,
+        pacientesComPendencia: dados.pacientesComPendencia,
+        totalPendencias: dados.pendenciasTotal,
+        buscaAtivaHoje: dados.buscasAgenda
+    });
 }
 
 function renderizarAtendimentosRecentesDashboardInicial(lista) {
