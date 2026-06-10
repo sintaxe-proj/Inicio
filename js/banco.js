@@ -36,21 +36,7 @@ async function carregarTabelaBanco() {
         const { data: pacientes, error: erroPacientes } =
             await supabaseClient
                 .from("pacientes")
-                .select(`
-                    id,
-                    nome,
-                    cpf,
-                    cns,
-                    telefone,
-                    cep,
-                    endereco,
-                    numero,
-                    complemento,
-                    ubs,
-                    equipe,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
+                .select("*")
                 .order("nome", { ascending: true })
                 .limit(5000);
 
@@ -58,7 +44,7 @@ async function carregarTabelaBanco() {
             console.error("Erro ao carregar pacientes:", erroPacientes);
             container.innerHTML = `
                 <p style="color:var(--danger);">
-                    Erro ao carregar pacientes.
+                    Erro ao carregar pacientes: ${erroPacientes.message || "verifique colunas/permissões no Supabase"}.
                 </p>
             `;
             return;
@@ -67,45 +53,33 @@ async function carregarTabelaBanco() {
         const { data: atendimentos, error: erroAtendimentos } =
             await supabaseClient
                 .from("atendimentos")
-                .select(`
-                    id,
-                    paciente_cpf,
-                    cpf,
-                    cns,
-                    nome_paciente,
-                    has,
-                    dm,
-                    gestante,
-                    tb,
-                    hansen,
-                    risco_global,
-                    risco_pontos,
-                    reavaliacaoDias,
-                    retorno_dias,
-                    inputBuscaCIAPS,
-                    data_atendimento,
-                    criado_em,
-                    ubs_vinculacao,
-                    equipe_esf
-                `)
-                .order("data_atendimento", { ascending: false })
+                .select("*")
+                .order("data_atendimento", { ascending: false, nullsFirst: false })
                 .limit(10000);
 
         if (erroAtendimentos) {
             console.error("Erro ao carregar atendimentos:", erroAtendimentos);
             container.innerHTML = `
                 <p style="color:var(--danger);">
-                    Erro ao carregar atendimentos.
+                    Erro ao carregar atendimentos: ${erroAtendimentos.message || "verifique colunas/permissões no Supabase"}.
                 </p>
             `;
             return;
         }
+
+        const territorio =
+            await carregarTerritorioInteligenteBaseTerritorial();
 
         baseTerritorialCache =
             consolidarBaseTerritorial(
                 pacientes || [],
                 atendimentos || []
             );
+
+        enriquecerBaseTerritorialComOperacaoAPS(
+            baseTerritorialCache,
+            territorio || []
+        );
 
         carregarFiltrosBaseTerritorial(baseTerritorialCache);
         aplicarFiltrosBaseTerritorial();
@@ -121,6 +95,200 @@ async function carregarTabelaBanco() {
     }
 }
 
+
+async function carregarTerritorioInteligenteBaseTerritorial() {
+    if (typeof supabaseClient === "undefined") {
+        return [];
+    }
+
+    try {
+        const { data, error } =
+            await supabaseClient
+                .from("territorio_inteligente")
+                .select("*")
+                .limit(50000);
+
+        if (error) {
+            console.warn("Base Territorial: territorio_inteligente indisponível.", error.message || error);
+            return [];
+        }
+
+        return data || [];
+
+    } catch (erro) {
+        console.warn("Base Territorial: erro opcional ao carregar Território Inteligente.", erro);
+        return [];
+    }
+}
+
+function enriquecerBaseTerritorialComOperacaoAPS(base, territorio) {
+    const mapa =
+        new Map();
+
+    (territorio || []).forEach(t => {
+        const chave =
+            limparDocumentoBase(t.cpf || "") ||
+            limparDocumentoBase(t.paciente_cpf || "") ||
+            String(t.cns || "").trim();
+
+        if (chave) {
+            mapa.set(chave, t);
+        }
+    });
+
+    (base || []).forEach(p => {
+        const chave =
+            limparDocumentoBase(p.cpf || "") ||
+            String(p.cns || "").trim();
+
+        const ti =
+            mapa.get(chave);
+
+        p.score_territorial_global =
+            Number(
+                ti?.score_territorial_global ??
+                ti?.score_geral ??
+                p.score_territorial_global ??
+                0
+            );
+
+        p.nivel_prioridade =
+            ti?.nivel_prioridade ||
+            ti?.prioridade ||
+            classificarPrioridadeBaseTerritorial(p.score_territorial_global);
+
+        p.evfam_total =
+            Number(ti?.evfam_total || 0);
+
+        p.evfam_classificacao =
+            ti?.evfam_classificacao || "";
+
+        p.score_clinico =
+            Number(ti?.score_clinico || 0);
+
+        p.score_social =
+            Number(ti?.score_social || 0);
+
+        p.score_assistencial =
+            Number(ti?.score_assistencial || 0);
+
+        p.score_domiciliar =
+            Number(ti?.score_domiciliar || 0);
+
+        p.acao_recomendada =
+            ti?.acao_recomendada ||
+            ti?.recomendacao_ia ||
+            definirAcaoRecomendadaBaseTerritorial(p);
+
+        p.visita_domiciliar_indicada =
+            ti?.visita_domiciliar_indicada ||
+            false;
+
+        p.tipo_visita_sugerida =
+            ti?.tipo_visita_sugerida || "";
+
+        p.pendencias =
+            Array.isArray(ti?.pendencias)
+                ? ti.pendencias
+                : identificarPendenciasBaseTerritorial(p);
+    });
+}
+
+function classificarPrioridadeBaseTerritorial(score) {
+    const s =
+        Number(score || 0);
+
+    if (s >= 85) return "CRITICO";
+    if (s >= 65) return "ALTO";
+    if (s >= 40) return "MODERADO";
+    return "BAIXO";
+}
+
+function definirAcaoRecomendadaBaseTerritorial(p) {
+    if (Number(p.score_territorial_global || 0) >= 85) {
+        return "Priorizar avaliação da equipe e possível visita domiciliar.";
+    }
+
+    if (Number(p.prazo) === 0) {
+        return "Realizar busca ativa por retorno vencido.";
+    }
+
+    if ((p.pendencias || []).length) {
+        return "Revisar pendências clínicas e programar contato.";
+    }
+
+    return "Manter acompanhamento conforme rotina da equipe.";
+}
+
+function identificarPendenciasBaseTerritorial(p) {
+    const pendencias = [];
+
+    if (valorSimBase(p.has) && (!temValorBase(p.hasPAS) || !temValorBase(p.hasPAD))) {
+        pendencias.push("HAS sem PA");
+    }
+
+    if (valorSimBase(p.dm) && !temValorBase(p.dmHbA1c)) {
+        pendencias.push("DM sem HbA1c");
+    }
+
+    if (valorSimBase(p.gestante) && diasDesdeBase(p.ultimo_atendimento) > 30) {
+        pendencias.push("Gestante sem consulta recente");
+    }
+
+    if (valorSimBase(p.tb) && diasDesdeBase(p.ultimo_atendimento) > 30) {
+        pendencias.push("TB sem acompanhamento recente");
+    }
+
+    if (valorSimBase(p.hansen) && diasDesdeBase(p.ultimo_atendimento) > 60) {
+        pendencias.push("Hanseníase sem avaliação recente");
+    }
+
+    if (Number(p.prazo) === 0) {
+        pendencias.push("Retorno vencido");
+    }
+
+    if (diasDesdeBase(p.ultimo_atendimento) > 180) {
+        pendencias.push("Sem atendimento >180 dias");
+    }
+
+    return [...new Set(pendencias)];
+}
+
+function temValorBase(valor) {
+    return (
+        valor !== null &&
+        valor !== undefined &&
+        String(valor).trim() !== ""
+    );
+}
+
+function primeiroValorBase(...valores) {
+    for (const valor of valores) {
+        if (temValorBase(valor)) {
+            return valor;
+        }
+    }
+
+    return null;
+}
+
+function diasDesdeBase(data) {
+    if (!data) return 9999;
+
+    const d =
+        new Date(data);
+
+    if (Number.isNaN(d.getTime())) {
+        return 9999;
+    }
+
+    return Math.floor(
+        (Date.now() - d.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
+
 /* ==========================================================================
    CONSOLIDAÇÃO
    ========================================================================== */
@@ -130,8 +298,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
 
     pacientes.forEach(p => {
         const chave =
-            p.cpf ||
-            p.cns ||
+            limparDocumentoBase(p.cpf || "") ||
+            String(p.cns || "").trim() ||
             p.id;
 
         if (!chave) return;
@@ -146,7 +314,7 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
             endereco: p.endereco || "",
             numero: p.numero || "",
             complemento: p.complemento || "",
-            ubs: p.ubs_vinculacao || p.ubs || "Não informado",
+            ubs: p.ubs_vinculacao || p.unidade || p.ubs || "Não informado",
             equipe: p.equipe_esf || p.equipe || "Não informado",
 
             has: "Não",
@@ -160,15 +328,23 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
             prazo: null,
 
             ciap: "",
-            ultimo_atendimento: null
+            ultimo_atendimento: null,
+            hasPAS: null,
+            hasPAD: null,
+            dmHbA1c: null,
+            score_territorial_global: 0,
+            nivel_prioridade: "BAIXO",
+            evfam_total: 0,
+            evfam_classificacao: "",
+            pendencias: [],
+            acao_recomendada: ""
         });
     });
 
     atendimentos.forEach(a => {
         const chave =
-            a.paciente_cpf ||
-            a.cpf ||
-            a.cns;
+            limparDocumentoBase(a.paciente_cpf || a.cpf || "") ||
+            String(a.cns || "").trim();
 
         if (!chave) return;
 
@@ -183,8 +359,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 endereco: "",
                 numero: "",
                 complemento: "",
-                ubs: a.ubs_vinculacao || "Não informado",
-                equipe: a.equipe_esf || "Não informado",
+                ubs: a.ubs_vinculacao || a.unidade || a.ubs || "Não informado",
+                equipe: a.equipe_esf || a.equipe || "Não informado",
 
                 has: "Não",
                 dm: "Não",
@@ -197,7 +373,16 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 prazo: null,
 
                 ciap: "",
-                ultimo_atendimento: null
+                ultimo_atendimento: null,
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+                score_territorial_global: 0,
+                nivel_prioridade: "BAIXO",
+                evfam_total: 0,
+                evfam_classificacao: "",
+                pendencias: [],
+                acao_recomendada: ""
             };
 
         if (!atual.nome && a.nome_paciente) {
@@ -229,8 +414,9 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 : atual.prazo;
 
         atual.ciap =
+            a.ciapSelecionado ||
             a.inputBuscaCIAPS ||
-            a.ciap ||
+            atual.ciap ||
             "";
 
         atual.ultimo_atendimento =
@@ -238,13 +424,28 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
             a.criado_em ||
             atual.ultimo_atendimento;
 
-        if (a.ubs_vinculacao) atual.ubs = a.ubs_vinculacao;
-        if (a.equipe_esf) atual.equipe = a.equipe_esf;
+        atual.hasPAS =
+            primeiroValorBase(a.hasPAS, a.has_pas, a.objPAS, a.obj_pas, atual.hasPAS);
+
+        atual.hasPAD =
+            primeiroValorBase(a.hasPAD, a.has_pad, a.objPAD, a.obj_pad, atual.hasPAD);
+
+        atual.dmHbA1c =
+            primeiroValorBase(a.dmHbA1c, a.dm_hba1c, a.hba1c, atual.dmHbA1c);
+
+        if (a.ubs_vinculacao || a.unidade || a.ubs) atual.ubs = a.ubs_vinculacao || a.unidade || a.ubs;
+        if (a.equipe_esf || a.equipe) atual.equipe = a.equipe_esf || a.equipe;
 
         mapa.set(chave, atual);
     });
 
     return Array.from(mapa.values());
+}
+
+
+function limparDocumentoBase(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
 }
 
 function valorSimBase(valor) {
@@ -474,11 +675,12 @@ function renderizarTabelaBaseTerritorial(base) {
                     <th>Cidadão</th>
                     <th>CPF / CNS</th>
                     <th>Equipe</th>
-                    <th>Linhas</th>
-                    <th>Risco</th>
-                    <th>Prazo</th>
+                    <th>Linhas / EVFAM</th>
+                    <th>Prioridade</th>
+                    <th>Pendências</th>
+                    <th>Ação recomendada</th>
                     <th>Último atendimento</th>
-                    <th>Ação</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
 
@@ -502,18 +704,25 @@ function renderizarTabelaBaseTerritorial(base) {
 
                         <td>
                             ${renderizarBadgesLinhasBase(p)}
+                            ${renderizarEVFAMBase(p)}
                         </td>
 
                         <td>
-                            ${renderizarBadgeRiscoBase(p)}
+                            ${renderizarPrioridadeOperacionalBase(p)}
+                            <small>Score: ${Number(p.score_territorial_global || 0)}</small>
                         </td>
 
                         <td>
-                            ${renderizarPrazoBase(p.prazo)}
+                            ${renderizarPendenciasBase(p)}
+                        </td>
+
+                        <td>
+                            <small>${escaparBase(p.acao_recomendada || definirAcaoRecomendadaBaseTerritorial(p))}</small>
                         </td>
 
                         <td>
                             ${formatarDataBase(p.ultimo_atendimento)}
+                            <small>${renderizarPrazoBase(p.prazo)}</small>
                         </td>
 
                         <td>
@@ -525,21 +734,21 @@ function renderizarTabelaBaseTerritorial(base) {
                                 </button>
 
                                 <button
-                                    class="btn-table-action btn-ok"
-                                    onclick="abrirLinhaTempoTerritorial('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}')">
-                                    🧬 Linha
-                                </button>
-
-                                <button
                                     class="btn-table-action btn-warn"
-                                    onclick="navigate('central-aps'); setTimeout(() => { const campo = document.getElementById('buscaCentralAPS'); if (campo) campo.value='${escaparBase(p.cpf || p.cns || "")}'; if (typeof aplicarFilaCentralAPS === 'function') aplicarFilaCentralAPS('PENDENCIAS'); }, 400);">
-                                    🧭 Pendências
+                                    onclick="abrirModuloVisitaDomiciliarAPS?.('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}', 'ACS')">
+                                    🏠 Visita
                                 </button>
 
                                 <button
                                     class="btn-table-action btn-info"
-                                    onclick="navigate('central-aps'); setTimeout(() => { if (typeof abrirModalInteracaoCentralAPS === 'function') abrirModalInteracaoCentralAPS('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}'); }, 400);">
-                                    📞 Busca
+                                    onclick="abrirFallbackTentativaLigacaoBase('${escaparBase(p.cpf || "")}', '${escaparBase(p.cns || "")}', '${escaparBase(p.nome || "")}', '${escaparBase(p.telefone || "")}')">
+                                    📞 Tentativa
+                                </button>
+
+                                <button
+                                    class="btn-table-action btn-ok"
+                                    onclick="navigate('central-aps'); setTimeout(() => { const campo = document.getElementById('buscaCentralAPS'); if (campo) campo.value='${escaparBase(p.cpf || p.cns || "")}'; if (typeof aplicarFilaCentralAPS === 'function') aplicarFilaCentralAPS('PENDENCIAS'); }, 400);">
+                                    🧭 Central
                                 </button>
                             </div>
                         </td>
@@ -589,6 +798,75 @@ function renderizarBadgesLinhasBase(p) {
         ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>`
         : `<span style="color:var(--text-muted);">-</span>`;
 }
+
+
+function renderizarEVFAMBase(p) {
+    const evfam =
+        Number(p.evfam_total || 0);
+
+    if (!evfam) {
+        return `<small style="color:var(--text-muted);">EVFAM: -</small>`;
+    }
+
+    const classe =
+        evfam >= 15
+            ? "status-danger"
+            : evfam >= 8
+                ? "status-warning"
+                : "status-info";
+
+    return `
+        <div style="margin-top:6px;">
+            <span class="status-badge ${classe}">
+                EVFAM ${evfam}
+            </span>
+            ${
+                p.evfam_classificacao
+                    ? `<small>${escaparBase(p.evfam_classificacao)}</small>`
+                    : ""
+            }
+        </div>
+    `;
+}
+
+function renderizarPrioridadeOperacionalBase(p) {
+    const nivel =
+        String(p.nivel_prioridade || classificarPrioridadeBaseTerritorial(p.score_territorial_global))
+            .toUpperCase();
+
+    if (nivel.includes("CRIT")) {
+        return `<span class="status-badge status-danger">🔴 CRÍTICO</span>`;
+    }
+
+    if (nivel.includes("ALTO") || nivel.includes("ALTA")) {
+        return `<span class="status-badge status-warning">🟠 ALTO</span>`;
+    }
+
+    if (nivel.includes("MOD")) {
+        return `<span class="status-badge status-info">🟡 MODERADO</span>`;
+    }
+
+    return `<span class="status-badge status-success">🟢 BAIXO</span>`;
+}
+
+function renderizarPendenciasBase(p) {
+    const pendencias =
+        p.pendencias?.length
+            ? p.pendencias
+            : identificarPendenciasBaseTerritorial(p);
+
+    if (!pendencias.length) {
+        return `<span style="color:var(--text-muted);">-</span>`;
+    }
+
+    return pendencias
+        .slice(0, 4)
+        .map(item =>
+            `<span class="status-badge status-warning">${escaparBase(item)}</span>`
+        )
+        .join(" ");
+}
+
 
 function renderizarBadgeRiscoBase(p) {
     const risco =
@@ -718,6 +996,91 @@ function exportarBaseTerritorialCSV() {
     URL.revokeObjectURL(url);
 }
 
+
+async function abrirFallbackTentativaLigacaoBase(cpf, cns, nome, telefone) {
+    const resultado =
+        prompt(
+            `Registrar tentativa de ligação para ${nome || "paciente"} (${telefone || "sem telefone"}):\n\nDigite:\n1 = Sucesso\n2 = Sem sucesso\n3 = Não atende\n4 = Telefone incorreto\n5 = Reagendado`,
+            "1"
+        );
+
+    if (resultado === null) return;
+
+    const mapaResultado = {
+        "1": "SUCESSO",
+        "2": "SEM_SUCESSO",
+        "3": "NAO_ATENDE",
+        "4": "TELEFONE_INCORRETO",
+        "5": "REAGENDADO"
+    };
+
+    const status =
+        mapaResultado[String(resultado).trim()] ||
+        String(resultado || "TENTATIVA").toUpperCase();
+
+    const observacao =
+        prompt("Observação da tentativa:", "") || "";
+
+    if (typeof supabaseClient === "undefined") {
+        mostrarToast?.("Supabase não carregado para registrar tentativa.");
+        return;
+    }
+
+    const payloadCompleto = {
+        paciente_cpf: limparDocumentoBase(cpf || ""),
+        paciente_cns: cns || "",
+        paciente_nome: nome || "",
+        telefone: telefone || "",
+        tipo_contato: "TELEFONE",
+        resultado: status,
+        observacao,
+        origem: "base_territorial",
+        criado_em: new Date().toISOString()
+    };
+
+    try {
+        let { error } =
+            await supabaseClient
+                .from("interacoes_busca_ativa")
+                .insert(payloadCompleto);
+
+        if (error) {
+            console.warn("Tentativa completa falhou. Tentando payload mínimo.", error.message || error);
+
+            const minimo = {
+                paciente_cpf: limparDocumentoBase(cpf || ""),
+                resultado: status,
+                observacao
+            };
+
+            const retry =
+                await supabaseClient
+                    .from("interacoes_busca_ativa")
+                    .insert(minimo);
+
+            error =
+                retry.error;
+        }
+
+        if (error) {
+            console.error("Erro ao registrar tentativa:", error);
+            mostrarToast?.(`⚠️ Não foi possível registrar tentativa: ${error.message || "verifique colunas da tabela"}`);
+            return;
+        }
+
+        mostrarToast?.(`📞 Tentativa registrada: ${status}`);
+
+        if (typeof carregarCentralAPS === "function") {
+            carregarCentralAPS();
+        }
+
+    } catch (erro) {
+        console.error("Erro geral ao registrar tentativa:", erro);
+        mostrarToast?.("Erro ao registrar tentativa de ligação.");
+    }
+}
+
+
 /* ==========================================================================
    HELPERS
    ========================================================================== */
@@ -782,5 +1145,6 @@ window.limparBuscaBaseTerritorial = limparBuscaBaseTerritorial;
 window.aplicarFiltrosBaseTerritorial = aplicarFiltrosBaseTerritorial;
 window.carregarFiltrosBaseTerritorial = carregarFiltrosBaseTerritorial;
 window.exportarBaseTerritorialCSV = exportarBaseTerritorialCSV;
+window.abrirFallbackTentativaLigacaoBase = abrirFallbackTentativaLigacaoBase;
 
 window.baseTerritorialCache = baseTerritorialCache;
