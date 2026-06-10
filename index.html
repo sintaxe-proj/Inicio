@@ -425,6 +425,21 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 }
 </style>
 
+
+<style id="cssBaseTerritorialOperacionalUnificada">
+#blocoFiltrosOperacionaisBaseTerritorial {
+    border-left: 6px solid var(--primary);
+}
+
+#blocoFiltrosOperacionaisBaseTerritorial select {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -471,11 +486,7 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                 <div class="sidebar-section-title">Operação APS</div>
 
                 <a class="nav-link" onclick="navigate('banco')">
-                    <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('central-aps')">
-                    <span class="nav-emoji">🎯</span><span class="nav-text">Central Operacional</span>
+                    <span class="nav-emoji">🗄️</span><span class="nav-text">Base Territorial APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('mapa-territorial')">
@@ -536,10 +547,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
                 <a class="nav-link" onclick="navigate('sala-situacao-aps')">
                     <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação</span>
-                </a>
-
-                <a class="nav-link" onclick="navigate('central-operacoes-aps')">
-                    <span class="nav-emoji">📡</span><span class="nav-text">Central de Operações APS</span>
                 </a>
 
                 <div class="sidebar-section-title">Logística</div>
@@ -729,7 +736,7 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                         </div>
                     </div>
 
-                    <div class="dash-card dashboard-kpi-card" onclick="navigate('central-aps')">
+                    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || navigate('banco')">
                         <div class="dash-icon icon-yellow">⏰</div>
                         <div>
                             <span class="card-label">Pendentes</span>
@@ -1061,11 +1068,11 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                         </div>
                     </div>
 
-                    <div class="quick-action-card quick-action-dark" onclick="navigate('central-operacoes-aps')">
-                        <div style="font-size:24px;">📡</div>
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('banco')">
+                        <div style="font-size:24px;">🗄️</div>
                         <div>
-                            <strong>Central de Operações</strong>
-                            <small>Sala 4.0 cognitiva</small>
+                            <strong>Base Operacional APS</strong>
+                            <small>Filas, EVFAM e ações</small>
                         </div>
                     </div>
 
@@ -2252,6 +2259,63 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
             📋 Cidadãos monitorados
         </h3>
 
+
+<div class="form-section" id="blocoFiltrosOperacionaisBaseTerritorial">
+    <h3 style="margin-top:0;">🧭 Filtros Operacionais APS</h3>
+    <p style="color:var(--text-muted); margin-top:-4px;">
+        Use a Base Territorial como cadastro populacional e fila operacional da equipe.
+    </p>
+
+    <div class="form-grid">
+
+        <div>
+            <label>Fila Operacional APS</label>
+            <select
+                id="filtroFilaOperacionalAPS"
+                onchange="aplicarFiltrosBaseTerritorial()">
+
+                <option value="TODOS">Todas as filas</option>
+
+                <option value="CRITICOS">🔴 Críticos</option>
+                <option value="ALTO">🟠 Alto Risco</option>
+                <option value="MODERADO">🟡 Moderados</option>
+
+                <option value="BUSCA_ATIVA">📞 Busca Ativa</option>
+                <option value="VISITA">🏠 Visita Domiciliar</option>
+
+                <option value="HAS_SEM_PA">🩺 HAS sem PA</option>
+                <option value="DM_SEM_HBA1C">🍬 DM sem HbA1c</option>
+
+                <option value="GESTANTES">🤰 Gestantes</option>
+                <option value="RETORNO_VENCIDO">📅 Retorno Vencido</option>
+
+                <option value="EVFAM_ALTO">⚠️ EVFAM Alto</option>
+
+                <option value="ACAMADOS">🛏️ Acamados</option>
+                <option value="DOMICILIADOS">♿ Domiciliados</option>
+
+                <option value="PENDENCIAS">🧭 Com pendências</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Pontuação EVFAM</label>
+            <select
+                id="filtroPontuacaoEVFAMBase"
+                onchange="aplicarFiltrosBaseTerritorial()">
+
+                <option value="TODOS">Todos EVFAM</option>
+                <option value="SEM_EVFAM">Sem EVFAM</option>
+                <option value="EVFAM_BAIXO">EVFAM baixo (1–7)</option>
+                <option value="EVFAM_MODERADO">EVFAM moderado (8–14)</option>
+                <option value="EVFAM_ALTO">EVFAM alto (≥15)</option>
+            </select>
+        </div>
+
+    </div>
+</div>
+
+
         <div
             id="tabelaBancoContainer"
             style="overflow-x:auto;">
@@ -2768,171 +2832,8 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 </div>
 
 
-<div id="view-central-aps" class="view">
 
-    <div class="page-header">
-        <div>
-            <h2>🎯 Central Operacional APS</h2>
-            <p>Filas inteligentes para busca ativa, vigilância territorial e acompanhamento longitudinal.</p>
-        </div>
 
-        <div class="button-row">
-            <button
-                class="btn-primary"
-                onclick="carregarCentralAPS()">
-                🔄 Atualizar Central
-            </button>
-
-            <button
-                class="btn-secondary"
-                onclick="exportarCentralAPSCSV()">
-                📤 Exportar CSV
-            </button>
-        </div>
-    </div>
-
-    <div class="dashboard-grid">
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('CRITICOS')">
-            <div class="dash-icon icon-red">🚨</div>
-            <div>
-                <h3 id="centralTotalCriticos">0</h3>
-                <p>Críticos / alto risco</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('HAS')">
-            <div class="dash-icon icon-red">❤️</div>
-            <div>
-                <h3 id="centralTotalHAS">0</h3>
-                <p>HAS</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('DM')">
-            <div class="dash-icon icon-green">🍬</div>
-            <div>
-                <h3 id="centralTotalDM">0</h3>
-                <p>DM</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('GESTANTES')">
-            <div class="dash-icon icon-yellow">🤰</div>
-            <div>
-                <h3 id="centralTotalGestantes">0</h3>
-                <p>Gestantes</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('TB')">
-            <div class="dash-icon icon-purple">🫁</div>
-            <div>
-                <h3 id="centralTotalTB">0</h3>
-                <p>Tuberculose</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('HANSEN')">
-            <div class="dash-icon icon-cyan">🖐️</div>
-            <div>
-                <h3 id="centralTotalHansen">0</h3>
-                <p>Hanseníase</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('PENDENCIAS')">
-            <div class="dash-icon icon-red">🧭</div>
-            <div>
-                <h3 id="centralTotalPendencias">0</h3>
-                <p>Pendências Clínicas</p>
-            </div>
-        </div>
-
-        <div class="dash-card" onclick="aplicarFilaCentralAPS('RETORNO_VENCIDO')">
-            <div class="dash-icon icon-purple">⏰</div>
-            <div>
-                <h3 id="centralTotalRetornoVencido">0</h3>
-                <p>Retorno vencido</p>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">🔎 Filtros operacionais</h3>
-
-        <div class="form-grid">
-
-            <div>
-                <label>Fila</label>
-                <select
-                    id="filtroFilaCentralAPS"
-                    onchange="aplicarFilaCentralAPS()">
-                    <option value="CRITICOS">Críticos / Alto risco</option>
-                    <option value="PENDENCIAS">Todas as pendências clínicas</option>
-                    <option value="HAS">HAS</option>
-                    <option value="HAS_SEM_PA">HAS sem PA</option>
-                    <option value="DM">DM</option>
-                    <option value="DM_SEM_HBA1C">DM sem HbA1c</option>
-                    <option value="GESTANTES">Gestantes</option>
-                    <option value="GESTANTE_ATRASADA">Gestantes atrasadas</option>
-                    <option value="TB">Tuberculose</option>
-                    <option value="TB_SEM_ACOMPANHAMENTO">TB sem acompanhamento</option>
-                    <option value="HANSEN">Hanseníase</option>
-                    <option value="HANSEN_SEM_AVALIACAO">Hanseníase sem avaliação</option>
-                    <option value="RETORNO_VENCIDO">Retorno vencido</option>
-                    <option value="TODOS">Todos</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Equipe</label>
-                <select
-                    id="filtroCentralEquipe"
-                    onchange="aplicarFilaCentralAPS()">
-                    <option value="TODOS">Todas as equipes</option>
-                </select>
-            </div>
-
-            <div>
-                <label>UBS</label>
-                <select
-                    id="filtroCentralUBS"
-                    onchange="aplicarFilaCentralAPS()">
-                    <option value="TODOS">Todas as UBS</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Buscar</label>
-                <input
-                    type="text"
-                    id="buscaCentralAPS"
-                    oninput="aplicarFilaCentralAPS()"
-                    placeholder="Nome, CPF, CNS, telefone, equipe...">
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="form-section">
-
-        <h3 style="margin-top:0;">📋 Lista operacional</h3>
-
-        <div
-            id="listaCentralAPS"
-            style="overflow-x:auto;">
-            <p style="color:var(--text-muted);">
-                Clique em atualizar para carregar a central.
-            </p>
-        </div>
-
-    </div>
-
-</div>
 
 
 <div id="view-central-prioridades-aps" class="view">
@@ -5915,6 +5816,46 @@ document.addEventListener("DOMContentLoaded", function () {
             el.remove();
         });
 });
+</script>
+
+
+<script id="compatFiltroEVFAMBaseTerritorial">
+/* Complemento do filtro de Pontuação EVFAM na Base Territorial */
+(function () {
+    const aplicarOriginal = window.aplicarFiltrosBaseTerritorial;
+
+    window.aplicarFiltroEVFAMBaseTerritorial = function (base) {
+        const filtro =
+            document.getElementById("filtroPontuacaoEVFAMBase")?.value || "TODOS";
+
+        if (!Array.isArray(base) || filtro === "TODOS") {
+            return base;
+        }
+
+        return base.filter(p => {
+            const evfam =
+                Number(p.evfam_total || 0);
+
+            if (filtro === "SEM_EVFAM") {
+                return !evfam;
+            }
+
+            if (filtro === "EVFAM_BAIXO") {
+                return evfam >= 1 && evfam <= 7;
+            }
+
+            if (filtro === "EVFAM_MODERADO") {
+                return evfam >= 8 && evfam <= 14;
+            }
+
+            if (filtro === "EVFAM_ALTO") {
+                return evfam >= 15;
+            }
+
+            return true;
+        });
+    };
+})();
 </script>
 
 </body>
