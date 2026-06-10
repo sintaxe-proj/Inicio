@@ -367,6 +367,10 @@ body.login-ativo #painelDiscagemContainer {
                     <span class="nav-emoji">🧠</span><span class="nav-text">Motor Cognitivo APS</span>
                 </a>
 
+                <a class="nav-link" onclick="navigate('territorio-inteligente')">
+                    <span class="nav-emoji">🌎</span><span class="nav-text">Território Inteligente</span>
+                </a>
+
                 <a class="nav-link" onclick="navigate('agenda-inteligente-aps')">
                     <span class="nav-emoji">🗓️</span><span class="nav-text">Agenda Inteligente APS</span>
                 </a>
@@ -603,6 +607,46 @@ body.login-ativo #painelDiscagemContainer {
                         </div>
                     </div>
 
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('territorio-inteligente')">
+                        <div class="dash-icon icon-red">🌎</div>
+                        <div>
+                            <span class="card-label">Score Territorial</span>
+                            <h3 id="dashScoreTerritorialGlobal">0</h3>
+                            <p>Priorização APS</p>
+                            <span class="card-trend">Território Inteligente</span>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('agenda-inteligente-aps')">
+                        <div class="dash-icon icon-yellow">📞</div>
+                        <div>
+                            <span class="card-label">Buscas Ativas</span>
+                            <h3 id="dashInicialBuscaAtiva">0</h3>
+                            <p>Ações para hoje</p>
+                            <span class="card-trend">Agenda APS</span>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('visita-domiciliar-aps')">
+                        <div class="dash-icon icon-green">🏠</div>
+                        <div>
+                            <span class="card-label">Visitas Hoje</span>
+                            <h3 id="dashInicialVisitas">0</h3>
+                            <p>Domiciliares prioritárias</p>
+                            <span class="card-trend">EVFAM + Score</span>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('agenda-inteligente-aps')">
+                        <div class="dash-icon icon-purple">🤰</div>
+                        <div>
+                            <span class="card-label">Gestantes Prioritárias</span>
+                            <h3 id="dashInicialGestantes">0</h3>
+                            <p>Pré-natal territorial</p>
+                            <span class="card-trend">Linha de cuidado</span>
+                        </div>
+                    </div>
+
                     <div class="dash-card dashboard-kpi-card" onclick="navigate('motor-predicao-aps')">
                         <div class="dash-icon icon-purple">🔮</div>
                         <div>
@@ -672,6 +716,25 @@ body.login-ativo #painelDiscagemContainer {
                         <div id="dashInicialMotorCognitivoAPS">
                             <p style="color:var(--text-muted);">
                                 Carregue o Motor Cognitivo APS para visualizar o resumo inteligente.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>🧠 Copiloto Executivo APS</h3>
+                                <p>Resumo operacional automático do território.</p>
+                            </div>
+
+                            <button class="btn-secondary btn-sm" onclick="abrirCopilotoAPS()">
+                                Perguntar
+                            </button>
+                        </div>
+
+                        <div id="dashInicialCopilotoAPS">
+                            <p style="color:var(--text-muted);">
+                                Carregando resumo executivo do Copiloto APS...
                             </p>
                         </div>
                     </div>
@@ -819,6 +882,14 @@ body.login-ativo #painelDiscagemContainer {
                         <div>
                             <strong>Agenda APS</strong>
                             <small>Gerar fila do dia</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-blue" onclick="navigate('territorio-inteligente')">
+                        <div style="font-size:24px;">🌎</div>
+                        <div>
+                            <strong>Território Inteligente</strong>
+                            <small>Score global APS</small>
                         </div>
                     </div>
 
@@ -3323,6 +3394,83 @@ body.login-ativo #painelDiscagemContainer {
 
 
 
+
+
+<div id="view-territorio-inteligente" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>🌎 Território Inteligente APS</h2>
+            <p>
+                Fonte única do Score Territorial Global, EVFAM, risco clínico,
+                vulnerabilidade social, prioridade domiciliar e ação recomendada.
+            </p>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary" onclick="carregarTerritorioInteligente?.()">
+                🔄 Atualizar Território
+            </button>
+
+            <button class="btn-secondary" onclick="atualizarScoresTerritoriaisGlobais?.()">
+                🧠 Recalcular Scores
+            </button>
+
+            <button class="btn-info" onclick="navigate('torre-controle-aps')">
+                🏢 Abrir Torre APS
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dash-card">
+            <div class="dash-icon icon-blue">👥</div>
+            <div>
+                <h3 id="territorioTotalPacientes">0</h3>
+                <p>Pessoas no território</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-red">🚨</div>
+            <div>
+                <h3 id="territorioTotalCriticos">0</h3>
+                <p>Críticos</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🟠</div>
+            <div>
+                <h3 id="territorioTotalAltos">0</h3>
+                <p>Alta prioridade</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-purple">🧬</div>
+            <div>
+                <h3 id="territorioScoreMedio">0</h3>
+                <p>Score médio</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🏆 Ranking Territorial APS</h3>
+        <p style="color:var(--text-muted);">
+            Lista ordenada pelo Score Territorial Global para orientar Torre APS,
+            Agenda Inteligente e Sala de Situação.
+        </p>
+
+        <div id="conteudoTerritorioInteligente">
+            <p style="color:var(--text-muted);">
+                Clique em atualizar Território para carregar o ranking territorial.
+            </p>
+        </div>
+    </div>
+
+</div>
 <div id="view-torre-controle-aps" class="view">
 
     <div class="page-header">
@@ -3599,6 +3747,54 @@ body.login-ativo #painelDiscagemContainer {
             </div>
         </div>
 
+        <div class="dash-card">
+            <div class="dash-icon icon-purple">🧠</div>
+            <div>
+                <h3 id="salaScoreMedio">0</h3>
+                <p>Score médio</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🟠</div>
+            <div>
+                <h3 id="salaTotalAltos">0</h3>
+                <p>Alta prioridade</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-yellow">🟡</div>
+            <div>
+                <h3 id="salaTotalModerados">0</h3>
+                <p>Moderados</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">🟢</div>
+            <div>
+                <h3 id="salaTotalBaixos">0</h3>
+                <p>Baixos</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-cyan">🗓️</div>
+            <div>
+                <h3 id="salaTotalAgenda">0</h3>
+                <p>Itens na agenda</p>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-icon icon-green">🏠</div>
+            <div>
+                <h3 id="salaTotalVisitas">0</h3>
+                <p>Visitas</p>
+            </div>
+        </div>
+
     </div>
 
     <div class="form-section">
@@ -3638,7 +3834,48 @@ body.login-ativo #painelDiscagemContainer {
                     <option value="TODAS">Todas as UBS</option>
                 </select>
             </div>
+
+            <div>
+                <label>Prioridade</label>
+                <select
+                    id="salaFiltroPrioridade"
+                    onchange="renderizarSalaSituacaoAPS()">
+                    <option value="TODAS">Todas</option>
+                    <option value="CRITICO">Críticos</option>
+                    <option value="ALTO">Alta prioridade</option>
+                    <option value="MODERADO">Moderados</option>
+                    <option value="BAIXO">Baixos</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Linha de cuidado</label>
+                <select
+                    id="salaFiltroLinha"
+                    onchange="renderizarSalaSituacaoAPS()">
+                    <option value="TODAS">Todas</option>
+                    <option value="HAS">HAS</option>
+                    <option value="DM">DM</option>
+                    <option value="GESTANTE">Gestantes</option>
+                    <option value="TB">Tuberculose</option>
+                    <option value="HANSEN">Hanseníase</option>
+                </select>
+            </div>
         </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🧠 Inteligência Executiva APS</h3>
+        <p style="color:var(--text-muted);">
+            Espaço preparado para o Motor Cognitivo, recomendações executivas e visão operacional consolidada.
+        </p>
+
+        <div id="painelIAExecutivaAPS"></div>
+        <div id="painelCasosCriticosAPS"></div>
+        <div id="painelVisitasAPS"></div>
+        <div id="painelBuscaAtivaAPS"></div>
+        <div id="painelGestantesAPS"></div>
+        <div id="painelTerritorialAPS"></div>
     </div>
 
     <div
@@ -4126,7 +4363,7 @@ body.login-ativo #painelDiscagemContainer {
 
 <!-- Dados clínicos -->
 <script src="./data/ciap2.js"></script>
-<script src="./js/cipe.js"></script>
+<script src="./data/cipe.js"></script>
 
 <!-- Bibliotecas de importação/exportação -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -4663,6 +4900,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.sincronizarEstadoLoginSintaxeHub = sincronizarEstadoLoginSintaxeHub;
 })();
+</script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const originalNavigateTerritorio = window.navigate;
+
+    if (
+        typeof originalNavigateTerritorio === "function" &&
+        !window.__territorioInteligenteNavigatePatch
+    ) {
+        window.__territorioInteligenteNavigatePatch = true;
+
+        window.navigate = function(view) {
+            originalNavigateTerritorio(view);
+
+            if (
+                view === "territorio-inteligente" &&
+                typeof carregarTerritorioInteligente === "function"
+            ) {
+                carregarTerritorioInteligente();
+            }
+
+            if (
+                view === "sala-situacao-aps" &&
+                typeof carregarSalaSituacaoAPS === "function"
+            ) {
+                carregarSalaSituacaoAPS();
+            }
+        };
+    }
+});
 </script>
 
 </body>
