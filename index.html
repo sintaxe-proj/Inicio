@@ -181,6 +181,23 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+
+<style id="cssVisitaDomiciliarAPS">
+#view-visita-domiciliar-aps label {
+    line-height: 1.35;
+}
+
+#view-visita-domiciliar-aps input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+#view-visita-domiciliar-aps .form-grid label {
+    color: var(--text-main);
+    font-weight: 600;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -258,6 +275,10 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="navigate('pendencias-clinicas')">
                     <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('visita-domiciliar-aps')">
+                    <span class="nav-emoji">🏠</span><span class="nav-text">Visita Domiciliar</span>
                 </a>
 
                 <div class="sidebar-section-title">Inteligência APS</div>
@@ -619,6 +640,14 @@ body.login-ativo #painelDiscagemContainer {
                         <div>
                             <strong>Novo atendimento</strong>
                             <small>Abrir prontuário SOAP</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-blue" onclick="navigate('visita-domiciliar-aps')">
+                        <div style="font-size:24px;">🏠</div>
+                        <div>
+                            <strong>Visita domiciliar</strong>
+                            <small>EVFAM e vulnerabilidade</small>
                         </div>
                     </div>
 
@@ -1960,6 +1989,199 @@ body.login-ativo #painelDiscagemContainer {
             <p style="color:var(--text-muted);">Clique em atualizar prioridades.</p>
         </div>
     </div>
+</div>
+
+<div id="view-visita-domiciliar-aps" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>🏠 Visita Domiciliar APS</h2>
+            <p>
+                Registro de visita ACS ou clínica, com estratificação familiar baseada nas dimensões da EVFAM-BR:
+                renda, cuidado em saúde, família e violência.
+            </p>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary" onclick="salvarVisitaDomiciliarAPS()">
+                💾 Salvar visita
+            </button>
+
+            <button class="btn-secondary" onclick="carregarHistoricoVisitasDomiciliaresAPS()">
+                📋 Histórico
+            </button>
+
+            <button class="btn-info" onclick="calcularEVFAMFormularioVisitaAPS()">
+                🧠 Calcular EVFAM
+            </button>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">👤 Identificação do cidadão</h3>
+
+        <div class="form-grid">
+            <div>
+                <label>CPF</label>
+                <input type="text" id="visitaPacienteCPF" placeholder="000.000.000-00">
+            </div>
+
+            <div>
+                <label>CNS</label>
+                <input type="text" id="visitaPacienteCNS" placeholder="Cartão Nacional de Saúde">
+            </div>
+
+            <div>
+                <label>Busca por nome</label>
+                <input type="text" id="visitaBuscaNome" placeholder="Nome do cidadão">
+            </div>
+
+            <div>
+                <label>Data da visita</label>
+                <input type="datetime-local" id="visitaData">
+            </div>
+        </div>
+
+        <div class="button-row" style="margin-top:12px;">
+            <button class="btn-secondary" onclick="localizarPacienteVisitaDomiciliarAPS()">
+                🔎 Localizar cidadão
+            </button>
+
+            <button class="btn-info" onclick="abrirVisitaDomiciliarPacienteAtualApp?.('ACS')">
+                🏠 Usar paciente atual
+            </button>
+        </div>
+
+        <div id="visitaPacienteResumo"></div>
+        <div id="statusVisitaDomiciliarAPS"></div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🏠 Tipo de visita</h3>
+
+        <div class="form-grid">
+            <div>
+                <label>Tipo</label>
+                <select id="visitaTipoVisita" onchange="alternarTipoVisitaDomiciliarAPS()">
+                    <option value="ACS">ACS / reconhecimento familiar</option>
+                    <option value="ENFERMAGEM">Visita de enfermagem</option>
+                    <option value="MEDICA">Visita médica</option>
+                    <option value="MULTIPROFISSIONAL">Visita multiprofissional</option>
+                    <option value="REDE_PROTECAO">Visita com rede de proteção</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Profissional / categoria</label>
+                <input type="text" id="visitaTipoProfissional" placeholder="ACS, enfermeiro, médico, assistente social...">
+            </div>
+
+            <div>
+                <label>Responsável</label>
+                <input type="text" id="visitaResponsavel" placeholder="Nome do profissional">
+            </div>
+
+            <div>
+                <label>Microárea</label>
+                <input type="text" id="visitaMicroarea" placeholder="Microárea / território">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section" id="blocoVisitaACSAPS">
+        <h3 style="margin-top:0;">📌 EVFAM — Dimensão Renda / Condições materiais</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="rendaInsuficiente" onchange="calcularEVFAMFormularioVisitaAPS()"> Renda insuficiente</label>
+            <label><input type="checkbox" id="insegurancaAlimentar" onchange="calcularEVFAMFormularioVisitaAPS()"> Insegurança alimentar</label>
+            <label><input type="checkbox" id="moradiaInadequada" onchange="calcularEVFAMFormularioVisitaAPS()"> Moradia inadequada</label>
+            <label><input type="checkbox" id="saneamentoInadequado" onchange="calcularEVFAMFormularioVisitaAPS()"> Saneamento inadequado</label>
+        </div>
+
+        <h3>🩺 EVFAM — Dimensão Cuidado em saúde</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="dificuldadeAcessoUBS" onchange="calcularEVFAMFormularioVisitaAPS()"> Dificuldade de acesso à UBS</label>
+            <label><input type="checkbox" id="usoInadequadoMedicamentos" onchange="calcularEVFAMFormularioVisitaAPS()"> Uso inadequado de medicamentos</label>
+            <label><input type="checkbox" id="abandonoTratamento" onchange="calcularEVFAMFormularioVisitaAPS()"> Abandono / baixa adesão ao tratamento</label>
+            <label><input type="checkbox" id="moradorAusente" onchange="calcularEVFAMFormularioVisitaAPS()"> Morador ausente</label>
+            <label><input type="checkbox" id="mudouEndereco" onchange="calcularEVFAMFormularioVisitaAPS()"> Mudou de endereço</label>
+        </div>
+
+        <h3>👨‍👩‍👧 EVFAM — Dimensão Família / suporte</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="ausenciaCuidador" onchange="calcularEVFAMFormularioVisitaAPS()"> Ausência de cuidador</label>
+            <label><input type="checkbox" id="cuidadorSobrecarregado" onchange="calcularEVFAMFormularioVisitaAPS()"> Cuidador sobrecarregado</label>
+            <label><input type="checkbox" id="idosoSozinho" onchange="calcularEVFAMFormularioVisitaAPS()"> Idoso sozinho / baixo suporte</label>
+            <label><input type="checkbox" id="criancaSemResponsavel" onchange="calcularEVFAMFormularioVisitaAPS()"> Criança sem responsável adequado</label>
+            <label><input type="checkbox" id="conflitoFamiliar" onchange="calcularEVFAMFormularioVisitaAPS()"> Conflito familiar relevante</label>
+        </div>
+
+        <h3>🛡️ EVFAM — Dimensão Violência / proteção</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="suspeitaViolencia" onchange="calcularEVFAMFormularioVisitaAPS()"> Suspeita de violência</label>
+            <label><input type="checkbox" id="violenciaDomestica" onchange="calcularEVFAMFormularioVisitaAPS()"> Violência doméstica</label>
+            <label><input type="checkbox" id="negligencia" onchange="calcularEVFAMFormularioVisitaAPS()"> Negligência</label>
+            <label><input type="checkbox" id="usoAbusivoSubstancias" onchange="calcularEVFAMFormularioVisitaAPS()"> Uso abusivo de substâncias no domicílio</label>
+            <label><input type="checkbox" id="riscoAutonegligencia" onchange="calcularEVFAMFormularioVisitaAPS()"> Risco de autonegligência</label>
+        </div>
+    </div>
+
+    <div class="form-section" id="blocoVisitaClinicaAPS">
+        <h3 style="margin-top:0;">🏥 Avaliação clínica domiciliar</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="acamado" onchange="calcularEVFAMFormularioVisitaAPS()"> Pessoa acamada</label>
+            <label><input type="checkbox" id="restricaoMobilidade" onchange="calcularEVFAMFormularioVisitaAPS()"> Restrição de mobilidade</label>
+            <label><input type="checkbox" id="riscoQueda" onchange="calcularEVFAMFormularioVisitaAPS()"> Risco de queda</label>
+            <label><input type="checkbox" id="necessidadeCurativo" onchange="calcularEVFAMFormularioVisitaAPS()"> Necessidade de curativo / cuidado domiciliar</label>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">🧠 Resultado EVFAM operacional</h3>
+
+        <div class="dashboard-grid">
+            <div class="dash-card"><div class="dash-icon icon-blue">💰</div><div><h3 id="evfamRendaValor">0</h3><p>Renda</p></div></div>
+            <div class="dash-card"><div class="dash-icon icon-green">🩺</div><div><h3 id="evfamCuidadoValor">0</h3><p>Cuidado em saúde</p></div></div>
+            <div class="dash-card"><div class="dash-icon icon-yellow">👨‍👩‍👧</div><div><h3 id="evfamFamiliaValor">0</h3><p>Família</p></div></div>
+            <div class="dash-card"><div class="dash-icon icon-red">🛡️</div><div><h3 id="evfamViolenciaValor">0</h3><p>Violência</p></div></div>
+            <div class="dash-card"><div class="dash-icon icon-purple">🧠</div><div><h3 id="evfamTotalValor">0</h3><p>Total</p></div></div>
+            <div class="dash-card"><div class="dash-icon icon-cyan">📊</div><div><h3 id="evfamClassificacaoValor" style="font-size:16px;">Sem vulnerabilidade registrada</h3><p>Classificação</p></div></div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">📋 Desfecho e conduta</h3>
+
+        <div class="form-grid">
+            <label><input type="checkbox" id="necessitaRetorno"> Necessita retorno</label>
+            <label><input type="checkbox" id="encaminharEnfermagem"> Encaminhar enfermagem</label>
+            <label><input type="checkbox" id="encaminharMedico"> Encaminhar médico</label>
+            <label><input type="checkbox" id="encaminharServicoSocial"> Encaminhar serviço social</label>
+            <label><input type="checkbox" id="acionarRedeProtecao"> Acionar rede de proteção</label>
+        </div>
+
+        <div style="margin-top:12px;">
+            <label>Observações</label>
+            <textarea id="visitaObservacoes" rows="3" placeholder="Descreva achados relevantes da visita..."></textarea>
+        </div>
+
+        <div style="margin-top:12px;">
+            <label>Conduta / plano</label>
+            <textarea id="visitaConduta" rows="3" placeholder="Conduta pactuada, orientações, encaminhamentos..."></textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 style="margin-top:0;">📜 Histórico de visitas</h3>
+        <div id="historicoVisitasDomiciliaresAPS">
+            <p style="color:var(--text-muted);">Clique em Histórico para carregar visitas anteriores.</p>
+        </div>
+    </div>
+
 </div>
 
 <div id="view-reuniao" class="view">
@@ -3777,6 +3999,7 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/centralPrioridadesAPS.js"></script>
+<script src="./js/visitaDomiciliarAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
