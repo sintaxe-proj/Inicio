@@ -563,10 +563,16 @@ body.perfil-recepcao #blocoCuidaHistoricoSOAP,
 body.perfil-recepcao #blocoCuidaHabitosEventosSOAP {
     display: none !important;
 }
+</style>
 
-body.perfil-assistencial #seletorPerfilVisualAPS,
-body.perfil-recepcao #seletorPerfilVisualAPS {
+
+<style id="cssCoordenadorTrocaLivrePerfis">
+body:not(.perfil-real-coordenador) #seletorPerfilVisualAPS {
     display: none !important;
+}
+
+body.perfil-real-coordenador #seletorPerfilVisualAPS {
+    display: block !important;
 }
 </style>
 
@@ -6525,10 +6531,11 @@ window.abrirBaseTerritorialPorPendenciaAPS = abrirBaseTerritorialPorPendenciaAPS
 </script>
 
 
+
 <script id="controlePerfisAPS">
 /* ==========================================================
    PERFIS APS
-   coordenador: acesso total e pode alternar visualização.
+   coordenador: acesso total real e pode alternar visualização.
    assistencial: sem estoque, motores cognitivo/regras/predição.
    recepcao: sem dados clínicos.
    ========================================================== */
@@ -6548,7 +6555,7 @@ function normalizarPerfilAPS(perfil) {
         String(perfil || "")
             .toLowerCase()
             .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[\\u0300-\\u036f]/g, "")
             .trim();
 
     if (
@@ -6574,7 +6581,7 @@ function normalizarPerfilAPS(perfil) {
         return "assistencial";
     }
 
-    return "assistencial";
+    return p || "assistencial";
 }
 
 function rotuloPerfilAPS(perfil) {
@@ -6586,9 +6593,26 @@ function rotuloPerfilAPS(perfil) {
     return "Assistencial";
 }
 
+function atualizarClassePerfilRealAPS() {
+    const real =
+        normalizarPerfilAPS(window.perfilRealUsuarioAPS);
+
+    document.body.classList.remove(
+        "perfil-real-coordenador",
+        "perfil-real-assistencial",
+        "perfil-real-recepcao"
+    );
+
+    document.body.classList.add(
+        `perfil-real-${real}`
+    );
+}
+
 function aplicarPerfilVisualAPS(perfil) {
     const perfilNormalizado =
         normalizarPerfilAPS(perfil);
+
+    atualizarClassePerfilRealAPS();
 
     document.body.classList.remove(
         "perfil-coordenador",
@@ -6625,17 +6649,17 @@ function aplicarPerfilVisualAPS(perfil) {
 
         seletor.style.display =
             normalizarPerfilAPS(window.perfilRealUsuarioAPS) === "coordenador"
-                ? ""
+                ? "block"
                 : "none";
     }
 }
 
 function trocarPerfilVisualAPS(perfil) {
-    if (
-        normalizarPerfilAPS(window.perfilRealUsuarioAPS) !==
-        "coordenador"
-    ) {
-        aplicarPerfilVisualAPS(window.perfilRealUsuarioAPS);
+    const real =
+        normalizarPerfilAPS(window.perfilRealUsuarioAPS);
+
+    if (real !== "coordenador") {
+        aplicarPerfilVisualAPS(real);
         return;
     }
 
@@ -6654,6 +6678,8 @@ function configurarPerfilUsuarioAPS(perfil) {
         perfilNormalizado
     );
 
+    atualizarClassePerfilRealAPS();
+
     if (perfilNormalizado !== "coordenador") {
         aplicarPerfilVisualAPS(perfilNormalizado);
         return;
@@ -6665,22 +6691,61 @@ function configurarPerfilUsuarioAPS(perfil) {
     );
 }
 
+function detectarPerfilRealUsuarioAPS() {
+    const textoCargo =
+        document.getElementById("cargoUsuarioLogado")?.innerText || "";
+
+    const usuarioAtual =
+        window.usuarioLogado ||
+        window.usuarioAtual ||
+        window.perfilUsuarioAtual ||
+        null;
+
+    const perfilObjeto =
+        usuarioAtual?.perfil ||
+        usuarioAtual?.cargo ||
+        usuarioAtual?.role ||
+        "";
+
+    const email =
+        (
+            usuarioAtual?.email ||
+            document.getElementById("loginUser")?.value ||
+            ""
+        ).toLowerCase();
+
+    if (
+        email.includes("josimar") ||
+        textoCargo.toLowerCase().includes("coord") ||
+        textoCargo.toLowerCase().includes("gestor") ||
+        normalizarPerfilAPS(perfilObjeto) === "coordenador"
+    ) {
+        return "coordenador";
+    }
+
+    return normalizarPerfilAPS(
+        perfilObjeto ||
+        textoCargo ||
+        localStorage.getItem("perfilRealUsuarioAPS") ||
+        "assistencial"
+    );
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     setTimeout(function () {
-        const cargoAtual =
-            document.getElementById("cargoUsuarioLogado")?.innerText ||
-            localStorage.getItem("perfilRealUsuarioAPS") ||
-            "coordenador";
-
-        configurarPerfilUsuarioAPS(cargoAtual);
-    }, 800);
+        configurarPerfilUsuarioAPS(
+            detectarPerfilRealUsuarioAPS()
+        );
+    }, 900);
 });
 
 window.aplicarPerfilVisualAPS = aplicarPerfilVisualAPS;
 window.trocarPerfilVisualAPS = trocarPerfilVisualAPS;
 window.configurarPerfilUsuarioAPS = configurarPerfilUsuarioAPS;
 window.normalizarPerfilAPS = normalizarPerfilAPS;
+window.detectarPerfilRealUsuarioAPS = detectarPerfilRealUsuarioAPS;
 </script>
+
 
 
 <script id="guardNavigatePerfisAPS">
@@ -6740,6 +6805,28 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }, 1000);
 });
+</script>
+
+
+<script id="forcarCerebroSemNumeroTopbar">
+function forcarCerebroAPSSemNumero() {
+    const botao =
+        document.getElementById("btnTopbarCopilotoAPS");
+
+    if (!botao) return;
+
+    botao.innerHTML = "🧠";
+    botao.title = "Cérebro APS";
+    botao.setAttribute("data-copiloto-topbar", "true");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    forcarCerebroAPSSemNumero();
+    setTimeout(forcarCerebroAPSSemNumero, 1000);
+    setTimeout(forcarCerebroAPSSemNumero, 2500);
+});
+
+setInterval(forcarCerebroAPSSemNumero, 60000);
 </script>
 
 </body>
