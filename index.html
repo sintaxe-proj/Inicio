@@ -227,6 +227,51 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+
+
+<style id="cssCIPEMotorCognitivoAPS">
+/* ==========================================================
+   CIPE + MOTOR COGNITIVO APS
+   ========================================================== */
+.avaliacao-codificacoes-aps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.avaliacao-codificacao-card {
+    background: rgba(17, 28, 46, .72);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.avaliacao-codificacao-card small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.35;
+}
+
+#view-motor-cognitivo-aps .table-sintaxe small,
+#view-sala-situacao-aps .table-sintaxe small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+.motor-cognitivo-resposta {
+    white-space: pre-line;
+    background: rgba(124, 58, 237, .08);
+    border: 1px solid rgba(124, 58, 237, .25);
+    border-radius: 14px;
+    padding: 16px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -314,6 +359,12 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="abrirCopilotoAPS()">
                     <span class="nav-emoji">🧠</span><span class="nav-text">Copiloto APS</span>
+                </a>
+
+
+
+                <a class="nav-link" onclick="navigate('motor-cognitivo-aps')">
+                    <span class="nav-emoji">🧠</span><span class="nav-text">Motor Cognitivo APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('agenda-inteligente-aps')">
@@ -490,7 +541,7 @@ body.login-ativo #painelDiscagemContainer {
                     </div>
 
                     <div class="button-row">
-                        <button class="btn-primary" onclick="carregarDashboardInicialSintaxeHub?.(); carregarMotorPredicaoAPS?.();">
+                        <button class="btn-primary" onclick="carregarDashboardInicialSintaxeHub?.(); carregarMotorPredicaoAPS?.(); carregarMotorCognitivoAPSView?.();">
                             🔄 Atualizar Dashboard
                         </button>
 
@@ -609,6 +660,25 @@ body.login-ativo #painelDiscagemContainer {
                     <div class="panel-card">
                         <div class="panel-header-row">
                             <div>
+                                <h3>🧠 Motor Cognitivo APS</h3>
+                                <p>Resumo explicável do território e perguntas ao Copiloto contextual.</p>
+                            </div>
+
+                            <button class="btn-secondary btn-sm" onclick="navigate('motor-cognitivo-aps')">
+                                Abrir motor
+                            </button>
+                        </div>
+
+                        <div id="dashInicialMotorCognitivoAPS">
+                            <p style="color:var(--text-muted);">
+                                Carregue o Motor Cognitivo APS para visualizar o resumo inteligente.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
                                 <h3>🗓️ Agenda Inteligente APS</h3>
                                 <p>Busca ativa, visitas e consultas priorizadas pelo Score Territorial Global.</p>
                             </div>
@@ -717,6 +787,14 @@ body.login-ativo #painelDiscagemContainer {
                         <div>
                             <strong>Copiloto APS</strong>
                             <small>Perguntar ao sistema</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-cognitivo-aps')">
+                        <div style="font-size:24px;">🧠</div>
+                        <div>
+                            <strong>Motor Cognitivo</strong>
+                            <small>Análise explicável APS</small>
                         </div>
                     </div>
 
@@ -1140,9 +1218,31 @@ body.login-ativo #painelDiscagemContainer {
                     </div>
 
                     <div style="margin-bottom:15px;">
-                        <label>A - Avaliação: Codificação Epidemiológica CIAP-2</label>
-                        <input type="text" id="inputBuscaCIAPS" list="listaCIAP" placeholder="Comece a ditar a patologia ou código CIAP-2 para filtrar...">
-                        <datalist id="listaCIAP"></datalist>
+                        <label>A - Avaliação: Codificação Epidemiológica CIAP-2 + CIPE</label>
+
+                        <div class="avaliacao-codificacoes-aps">
+                            <div class="avaliacao-codificacao-card">
+                                <label for="inputBuscaCIAPS">CIAP-2 — Problema / condição clínica</label>
+                                <input
+                                    type="text"
+                                    id="inputBuscaCIAPS"
+                                    list="listaCIAP"
+                                    placeholder="Digite diagnóstico, queixa ou código CIAP-2...">
+                                <datalist id="listaCIAP"></datalist>
+                                <small>Classificação Internacional de Atenção Primária para motivo de consulta, problema e condição clínica.</small>
+                            </div>
+
+                            <div class="avaliacao-codificacao-card">
+                                <label for="inputBuscaCIPE">CIPE — Diagnóstico / resultado / intervenção de enfermagem</label>
+                                <input
+                                    type="text"
+                                    id="inputBuscaCIPE"
+                                    list="listaCIPE"
+                                    placeholder="Digite diagnóstico, resultado ou intervenção CIPE...">
+                                <datalist id="listaCIPE"></datalist>
+                                <small>Classificação Internacional para a Prática de Enfermagem integrada ao plano de cuidado.</small>
+                            </div>
+                        </div>
                     </div>
 
                     <div style="margin-bottom:15px;">
@@ -4026,6 +4126,7 @@ body.login-ativo #painelDiscagemContainer {
 
 <!-- Dados clínicos -->
 <script src="./data/ciap2.js"></script>
+<script src="./js/cipe.js"></script>
 
 <!-- Bibliotecas de importação/exportação -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -4066,6 +4167,7 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/torreControleAPS.js"></script>
 <script src="./js/agendaInteligenteAps.js"></script>
 <script src="./js/salaSituacaoAPS.js"></script>
+<script src="./js/motorCognitivoAPS.js"></script>
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/centralPrioridadesAPS.js"></script>
@@ -4087,6 +4189,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         window.navigate = function(view) {
             originalNavigateMapa(view);
+
+            if (
+                view === "motor-cognitivo-aps" &&
+                typeof carregarMotorCognitivoAPSView === "function"
+            ) {
+                carregarMotorCognitivoAPSView();
+            }
+
+            if (
+                view === "prontuario" &&
+                typeof carregarDatalistCIPE === "function"
+            ) {
+                carregarDatalistCIPE();
+            }
 
             if (
                 view === "mapa-territorial" &&
@@ -4301,6 +4417,10 @@ document.addEventListener("DOMContentLoaded", () => {
             titulo: "Agenda Inteligente APS",
             subtitulo: "Fila operacional priorizada pelo Score Territorial Global"
         },
+        "motor-cognitivo-aps": {
+            titulo: "Motor Cognitivo APS",
+            subtitulo: "Inteligência explicável e contextual da APS"
+        },
         "torre-controle-aps": {
             titulo: "Torre de Controle APS",
             subtitulo: "Centro de comando executivo da APS"
@@ -4368,6 +4488,136 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.atualizarResumoAgendaDashboardInicial();
             }
         }, 1200);
+    });
+})();
+</script>
+
+
+
+<script id="scriptCIPEMotorCognitivoAPS">
+(function () {
+    function escaparCIPEMotorAPS(valor) {
+        return String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    window.carregarDatalistCIPE = function () {
+        var lista = document.getElementById("listaCIPE");
+        var termos = window.CIPE_TERMS || [];
+
+        if (!lista || !Array.isArray(termos)) return;
+
+        lista.innerHTML = "";
+
+        termos.forEach(function (termo) {
+            if (!termo) return;
+
+            var option = document.createElement("option");
+            option.value = termo;
+            lista.appendChild(option);
+        });
+
+        console.log("✅ CIPE carregado:", termos.length, "termos");
+    };
+
+    window.carregarMotorCognitivoAPSView = async function () {
+        var box = document.getElementById("conteudoMotorCognitivoAPS");
+
+        if (box) {
+            box.innerText = "Carregando Motor Cognitivo APS...";
+        }
+
+        if (typeof carregarMotorCognitivoAPS !== "function") {
+            if (box) box.innerText = "Motor Cognitivo APS não carregado. Verifique o script ./js/motorCognitivoAPS.js.";
+            return null;
+        }
+
+        var estado = await carregarMotorCognitivoAPS();
+        var resumo = estado?.resumo || window.motorCognitivoAPSAtual?.resumo || {};
+
+        if (typeof setTextoApp === "function") {
+            setTextoApp("motorCogTotal", resumo.total || 0);
+            setTextoApp("motorCogCriticos", resumo.criticos || 0);
+            setTextoApp("motorCogAltos", resumo.alto || 0);
+            setTextoApp("motorCogAgenda", resumo.agendaTotal || 0);
+            setTextoApp("motorCogVisitas", resumo.visitas || 0);
+            setTextoApp("motorCogBuscas", resumo.buscas || 0);
+        }
+
+        if (box) {
+            box.innerHTML =
+                "<strong>" + escaparCIPEMotorAPS(resumo.status || "🧠 Motor Cognitivo APS ativo") + "</strong>\n\n" +
+                "População analisada: " + (resumo.total || 0) + "\n" +
+                "Pacientes críticos: " + (resumo.criticos || 0) + "\n" +
+                "Alta prioridade: " + (resumo.alto || 0) + "\n" +
+                "Agenda APS: " + (resumo.agendaTotal || 0) + " item(ns)\n" +
+                "Buscas ativas: " + (resumo.buscas || 0) + "\n" +
+                "Visitas domiciliares: " + (resumo.visitas || 0);
+        }
+
+        var dash = document.getElementById("dashInicialMotorCognitivoAPS");
+        if (dash) {
+            dash.innerHTML =
+                '<div class="dashboard-list">' +
+                    '<div class="dashboard-list-item"><div><strong>🧠 ' + escaparCIPEMotorAPS(resumo.status || "Motor ativo") + '</strong><small>' +
+                    (resumo.criticos || 0) + ' críticos, ' + (resumo.alto || 0) + ' alta prioridade, ' + (resumo.agendaTotal || 0) + ' itens de agenda.</small></div>' +
+                    '<button class="btn-table-action btn-ok" onclick="navigate(\'motor-cognitivo-aps\')">Abrir</button></div>' +
+                '</div>';
+        }
+
+        return estado;
+    };
+
+    window.executarAnaliseTerritorialCognitivaAPS = async function () {
+        var box = document.getElementById("conteudoMotorCognitivoAPS");
+
+        if (box) box.innerText = "Analisando território...";
+
+        if (typeof analisarTerritorioComIA !== "function") {
+            if (box) box.innerText = "Função analisarTerritorioComIA não encontrada.";
+            return;
+        }
+
+        var resultado = await analisarTerritorioComIA();
+
+        if (box) {
+            box.innerText = resultado?.resposta || "Sem resposta da análise territorial.";
+        }
+    };
+
+    window.perguntarMotorCognitivoAPS = async function () {
+        var campo = document.getElementById("perguntaMotorCognitivoAPS");
+        var box = document.getElementById("conteudoMotorCognitivoAPS");
+        var pergunta = campo?.value || "";
+
+        if (!pergunta.trim()) {
+            pergunta = "resumo da situação territorial";
+        }
+
+        if (box) box.innerText = "Processando pergunta...";
+
+        if (typeof responderCopilotoAPS !== "function") {
+            if (box) box.innerText = "Função responderCopilotoAPS não encontrada.";
+            return;
+        }
+
+        var resposta = await responderCopilotoAPS(pergunta);
+
+        if (box) {
+            box.innerText = resposta || "Sem resposta do Motor Cognitivo.";
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(function () {
+            if (typeof window.carregarDatalistCIPE === "function") {
+                window.carregarDatalistCIPE();
+            }
+        }, 400);
     });
 })();
 </script>
