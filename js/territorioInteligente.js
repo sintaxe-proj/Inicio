@@ -97,7 +97,8 @@ async function carregarContextoTerritorioInteligente(identificador) {
         atendimentosResp,
         interacoesResp,
         reunioesResp,
-        materiaisResp
+        materiaisResp,
+        visitasResp
     ] = await Promise.all([
         supabaseClient
             .from("pacientes")
@@ -125,6 +126,11 @@ async function carregarContextoTerritorioInteligente(identificador) {
         buscarTabelaOpcionalTerritorioInteligente(
             "solicitacoes_materiais",
             idLimpo
+        ),
+
+        buscarTabelaOpcionalTerritorioInteligente(
+            "visitas_domiciliares",
+            idLimpo
         )
     ]);
 
@@ -142,7 +148,10 @@ async function carregarContextoTerritorioInteligente(identificador) {
             reunioesResp || [],
 
         materiais:
-            materiaisResp || []
+            materiaisResp || [],
+
+        visitas:
+            visitasResp || []
     };
 }
 
@@ -229,37 +238,90 @@ function calcularTerritorioInteligente(contexto) {
             contexto
         );
 
+    const evfam =
+        calcularEVFAMTerritorioInteligente(
+            base,
+            contexto
+        );
+
+    const domiciliar =
+        calcularScoreDomiciliarTerritorioInteligente(
+            base,
+            contexto,
+            evfam
+        );
+
+    const clinico =
+        calcularScoreClinicoTerritorioInteligente(
+            base,
+            contexto,
+            {
+                internacao,
+                descompensacao,
+                gestacional
+            }
+        );
+
+    const assistencial =
+        calcularScoreAssistencialTerritorioInteligente(
+            base,
+            contexto,
+            {
+                abandono,
+                pendencias
+            }
+        );
+
     const scoreGeral =
         limitarScoreTerritorioInteligente(
             Math.round(
-                abandono.score * 0.22 +
-                internacao.score * 0.22 +
-                descompensacao.score * 0.22 +
-                gestacional.score * 0.12 +
-                social.score * 0.10 +
-                territorial.score * 0.12
+                clinico.score * 0.26 +
+                assistencial.score * 0.22 +
+                social.score * 0.16 +
+                domiciliar.score * 0.16 +
+                territorial.score * 0.10 +
+                evfam.scoreNormalizado * 0.10
             )
         );
 
     const fatores =
         [
-            ...abandono.fatores,
-            ...internacao.fatores,
-            ...descompensacao.fatores,
-            ...gestacional.fatores,
+            ...clinico.fatores,
+            ...assistencial.fatores,
             ...social.fatores,
-            ...territorial.fatores
+            ...domiciliar.fatores,
+            ...territorial.fatores,
+            ...evfam.fatores
+        ];
+
+    const vulnerabilidades =
+        [
+            ...social.fatores,
+            ...domiciliar.fatores,
+            ...evfam.fatores
         ];
 
     const prioridade =
         classificarPrioridadeTerritorioInteligente(scoreGeral);
 
+    const visita =
+        indicarVisitaDomiciliarTerritorioInteligente(
+            base,
+            scoreGeral,
+            evfam,
+            domiciliar,
+            pendencias,
+            fatores
+        );
+
     const recomendacao =
-        gerarRecomendacaoTerritorioInteligente(
+        gerarRecomendacaoTerritorioInteligenteV3(
             base,
             scoreGeral,
             pendencias,
-            fatores
+            fatores,
+            evfam,
+            visita
         );
 
     return {
@@ -321,6 +383,12 @@ function calcularTerritorioInteligente(contexto) {
         score_geral:
             scoreGeral,
 
+        score_clinico:
+            clinico.score,
+
+        score_assistencial:
+            assistencial.score,
+
         score_abandono:
             abandono.score,
 
@@ -336,8 +404,38 @@ function calcularTerritorioInteligente(contexto) {
         score_social:
             social.score,
 
+        score_domiciliar:
+            domiciliar.score,
+
         score_territorial:
             territorial.score,
+
+        evfam_total:
+            evfam.total,
+
+        evfam_renda:
+            evfam.renda,
+
+        evfam_cuidado_saude:
+            evfam.cuidadoSaude,
+
+        evfam_familia:
+            evfam.familia,
+
+        evfam_violencia:
+            evfam.violencia,
+
+        evfam_classificacao:
+            evfam.classificacao,
+
+        visita_domiciliar_indicada:
+            visita.indicada,
+
+        tipo_visita_sugerida:
+            visita.tipo,
+
+        prazo_visita_dias:
+            visita.prazoDias,
 
         prioridade:
             prioridade.prioridade,
@@ -346,24 +444,29 @@ function calcularTerritorioInteligente(contexto) {
             prioridade.classe,
 
         fatores:
-            [...new Set(fatores)].slice(0, 30),
+            [...new Set(fatores)].slice(0, 40),
+
+        vulnerabilidades:
+            [...new Set(vulnerabilidades)].slice(0, 40),
 
         pendencias:
-            [...new Set(pendencias)].slice(0, 30),
+            [...new Set(pendencias)].slice(0, 40),
 
         resumo_ia:
-            gerarResumoTerritorioInteligente(
+            gerarResumoTerritorioInteligenteV3(
                 base,
                 scoreGeral,
                 prioridade,
-                pendencias
+                pendencias,
+                evfam,
+                visita
             ),
 
         recomendacao_ia:
             recomendacao,
 
         origem:
-            "sintaxehub",
+            "sintaxehub_evfam_v3",
 
         ultima_atualizacao:
             new Date().toISOString()
@@ -496,7 +599,36 @@ function montarBasePacienteTerritorioInteligente(paciente, atendimento) {
         nota:
             atendimento.nota_monitoramento ||
             atendimento.notaMonitoramento ||
-            ""
+            "",
+
+        microarea:
+            paciente.microarea ||
+            atendimento.microarea ||
+            "",
+
+        vulnerabilidade_social:
+            primeiroValorTerritorioInteligente(
+                paciente.vulnerabilidade_social,
+                atendimento.vulnerabilidade_social
+            ),
+
+        acamado:
+            primeiroValorTerritorioInteligente(
+                paciente.acamado,
+                atendimento.acamado
+            ),
+
+        restricao_mobilidade:
+            primeiroValorTerritorioInteligente(
+                paciente.restricao_mobilidade,
+                atendimento.restricao_mobilidade
+            ),
+
+        dificuldade_acesso_ubs:
+            primeiroValorTerritorioInteligente(
+                paciente.dificuldade_acesso_ubs,
+                atendimento.dificuldade_acesso_ubs
+            )
     };
 }
 
@@ -755,6 +887,355 @@ function calcularScoreTerritorialTerritorioInteligente(base, contexto) {
     };
 }
 
+
+/* ==========================================================
+   TERRITÓRIO INTELIGENTE 3.0 — EVFAM-BR OPERACIONAL
+   Base conceitual: dimensões renda, cuidado em saúde,
+   família e violência. Não substitui instrumento oficial.
+   ========================================================== */
+
+function calcularEVFAMTerritorioInteligente(base, contexto) {
+    const visitas =
+        contexto.visitas || [];
+
+    const ultimaVisita =
+        visitas
+            .slice()
+            .sort((a, b) =>
+                new Date(b.data_visita || b.created_at || 0) -
+                new Date(a.data_visita || a.created_at || 0)
+            )[0] || {};
+
+    let renda = 0;
+    let cuidadoSaude = 0;
+    let familia = 0;
+    let violencia = 0;
+
+    const fatores = [];
+
+    const nota =
+        normalizarTerritorioInteligente(
+            [
+                base.nota,
+                ultimaVisita.observacoes,
+                ultimaVisita.conduta
+            ].join(" ")
+        );
+
+    // Dimensão renda / condições materiais
+    if (valorSimTerritorioInteligente(ultimaVisita.renda_insuficiente)) {
+        renda += 2;
+        fatores.push("EVFAM: renda insuficiente");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.inseguranca_alimentar) || nota.includes("inseguranca alimentar")) {
+        renda += 3;
+        fatores.push("EVFAM: insegurança alimentar");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.moradia_inadequada) || valorSimTerritorioInteligente(ultimaVisita.saneamento_inadequado)) {
+        renda += 2;
+        fatores.push("EVFAM: moradia/saneamento inadequado");
+    }
+
+    // Dimensão cuidado em saúde
+    if (valorSimTerritorioInteligente(ultimaVisita.acamado) || valorSimTerritorioInteligente(base.acamado) || nota.includes("acamado")) {
+        cuidadoSaude += 4;
+        fatores.push("EVFAM: pessoa acamada");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.restricao_mobilidade) || valorSimTerritorioInteligente(base.restricao_mobilidade) || nota.includes("dificuldade de locomocao") || nota.includes("restricao de mobilidade")) {
+        cuidadoSaude += 3;
+        fatores.push("EVFAM: restrição de mobilidade");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.dificuldade_acesso_ubs) || valorSimTerritorioInteligente(base.dificuldade_acesso_ubs)) {
+        cuidadoSaude += 2;
+        fatores.push("EVFAM: dificuldade de acesso à UBS");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.abandono_tratamento) || valorSimTerritorioInteligente(ultimaVisita.uso_inadequado_medicamentos)) {
+        cuidadoSaude += 3;
+        fatores.push("EVFAM: baixa adesão ao cuidado");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.risco_queda) || valorSimTerritorioInteligente(ultimaVisita.necessidade_curativo)) {
+        cuidadoSaude += 2;
+        fatores.push("EVFAM: risco funcional / necessidade de cuidado domiciliar");
+    }
+
+    // Dimensão família / suporte
+    if (valorSimTerritorioInteligente(ultimaVisita.ausencia_cuidador) || nota.includes("sem cuidador")) {
+        familia += 4;
+        fatores.push("EVFAM: ausência de cuidador");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.cuidador_sobrecarregado)) {
+        familia += 2;
+        fatores.push("EVFAM: cuidador sobrecarregado");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.idoso_sozinho) || nota.includes("idoso sozinho")) {
+        familia += 3;
+        fatores.push("EVFAM: pessoa idosa sem suporte suficiente");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.conflito_familiar) || valorSimTerritorioInteligente(ultimaVisita.crianca_sem_responsavel)) {
+        familia += 3;
+        fatores.push("EVFAM: fragilidade familiar");
+    }
+
+    // Dimensão violência / proteção
+    if (valorSimTerritorioInteligente(ultimaVisita.suspeita_violencia) || valorSimTerritorioInteligente(ultimaVisita.violencia_domestica)) {
+        violencia += 5;
+        fatores.push("EVFAM: suspeita de violência");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.negligencia) || valorSimTerritorioInteligente(ultimaVisita.risco_autonegligencia)) {
+        violencia += 4;
+        fatores.push("EVFAM: negligência/autonegligência");
+    }
+
+    if (valorSimTerritorioInteligente(ultimaVisita.uso_abusivo_substancias)) {
+        violencia += 3;
+        fatores.push("EVFAM: uso abusivo de substâncias no contexto familiar");
+    }
+
+    const total =
+        renda +
+        cuidadoSaude +
+        familia +
+        violencia;
+
+    const scoreNormalizado =
+        limitarScoreTerritorioInteligente(total * 5);
+
+    return {
+        renda,
+        cuidadoSaude,
+        familia,
+        violencia,
+        total,
+        scoreNormalizado,
+        classificacao:
+            classificarEVFAMTerritorioInteligente(total),
+        fatores:
+            fatores.slice(0, 30),
+        ultimaVisita
+    };
+}
+
+function classificarEVFAMTerritorioInteligente(total) {
+    if (total >= 18) return "Vulnerabilidade muito alta";
+    if (total >= 12) return "Vulnerabilidade alta";
+    if (total >= 6) return "Vulnerabilidade moderada";
+    if (total > 0) return "Vulnerabilidade baixa";
+    return "Sem vulnerabilidade registrada";
+}
+
+function calcularScoreClinicoTerritorioInteligente(base, contexto, partes) {
+    let score = 0;
+    const fatores = [];
+
+    if (valorSimTerritorioInteligente(base.has)) {
+        score += 12;
+        fatores.push("HAS");
+    }
+
+    if (valorSimTerritorioInteligente(base.dm)) {
+        score += 16;
+        fatores.push("DM");
+    }
+
+    if (valorSimTerritorioInteligente(base.gestante)) {
+        score += 18;
+        fatores.push("gestação");
+    }
+
+    if (valorSimTerritorioInteligente(base.tb)) {
+        score += 25;
+        fatores.push("TB");
+    }
+
+    if (valorSimTerritorioInteligente(base.hansen)) {
+        score += 20;
+        fatores.push("hanseníase");
+    }
+
+    score += Math.round((partes.internacao?.score || 0) * 0.35);
+    score += Math.round((partes.descompensacao?.score || 0) * 0.45);
+    score += Math.round((partes.gestacional?.score || 0) * 0.25);
+
+    return {
+        score:
+            limitarScoreTerritorioInteligente(score),
+        fatores
+    };
+}
+
+function calcularScoreAssistencialTerritorioInteligente(base, contexto, partes) {
+    let score = 0;
+    const fatores = [];
+
+    const abandonoScore =
+        partes.abandono?.score || 0;
+
+    score += Math.round(abandonoScore * 0.70);
+
+    if ((partes.pendencias || []).length) {
+        score += (partes.pendencias || []).length * 8;
+        fatores.push(`${(partes.pendencias || []).length} pendência(s) assistencial(is)`);
+    }
+
+    const visitas =
+        contexto.visitas || [];
+
+    const ultimaVisita =
+        visitas
+            .slice()
+            .sort((a, b) =>
+                new Date(b.data_visita || b.created_at || 0) -
+                new Date(a.data_visita || a.created_at || 0)
+            )[0];
+
+    if (!ultimaVisita && (abandonoScore >= 30 || (partes.pendencias || []).length >= 2)) {
+        score += 18;
+        fatores.push("sem visita domiciliar registrada apesar de pendências");
+    }
+
+    if (ultimaVisita && diasDesdeTerritorioInteligente(ultimaVisita.data_visita || ultimaVisita.created_at) > 180) {
+        score += 12;
+        fatores.push("visita domiciliar antiga");
+    }
+
+    return {
+        score:
+            limitarScoreTerritorioInteligente(score),
+        fatores
+    };
+}
+
+function calcularScoreDomiciliarTerritorioInteligente(base, contexto, evfam) {
+    let score = 0;
+    const fatores = [];
+
+    const v =
+        evfam.ultimaVisita || {};
+
+    const add = (cond, pontos, texto) => {
+        if (cond) {
+            score += pontos;
+            fatores.push(texto);
+        }
+    };
+
+    add(valorSimTerritorioInteligente(v.acamado) || valorSimTerritorioInteligente(base.acamado), 30, "acamado");
+    add(valorSimTerritorioInteligente(v.restricao_mobilidade) || valorSimTerritorioInteligente(base.restricao_mobilidade), 22, "restrição de mobilidade");
+    add(valorSimTerritorioInteligente(v.ausencia_cuidador), 22, "ausência de cuidador");
+    add(valorSimTerritorioInteligente(v.risco_queda), 18, "risco de queda");
+    add(valorSimTerritorioInteligente(v.necessidade_curativo), 18, "necessidade de curativo/cuidado domiciliar");
+    add(valorSimTerritorioInteligente(v.dificuldade_acesso_ubs) || valorSimTerritorioInteligente(base.dificuldade_acesso_ubs), 16, "dificuldade de acesso à UBS");
+    add(valorSimTerritorioInteligente(v.morador_ausente), 10, "morador ausente em visita");
+    add(valorSimTerritorioInteligente(v.mudou_endereco), 12, "mudança de endereço não consolidada");
+
+    score += Math.round(evfam.scoreNormalizado * 0.25);
+
+    return {
+        score:
+            limitarScoreTerritorioInteligente(score),
+        fatores
+    };
+}
+
+function indicarVisitaDomiciliarTerritorioInteligente(base, scoreGeral, evfam, domiciliar, pendencias, fatores) {
+    const violencia =
+        evfam.violencia >= 4 ||
+        (fatores || []).some(f =>
+            normalizarTerritorioInteligente(f).includes("violencia") ||
+            normalizarTerritorioInteligente(f).includes("negligencia")
+        );
+
+    const clinicoDomiciliar =
+        domiciliar.score >= 45 ||
+        valorSimTerritorioInteligente(base.tb) ||
+        valorSimTerritorioInteligente(base.hansen) ||
+        (valorSimTerritorioInteligente(base.gestante) && scoreGeral >= 60);
+
+    const social =
+        evfam.total >= 12 ||
+        evfam.familia >= 4 ||
+        evfam.renda >= 4;
+
+    const indicada =
+        scoreGeral >= 60 ||
+        domiciliar.score >= 35 ||
+        evfam.total >= 6 ||
+        violencia ||
+        (pendencias || []).length >= 3;
+
+    if (!indicada) {
+        return {
+            indicada: false,
+            tipo: "Não indicada",
+            prazoDias: null
+        };
+    }
+
+    if (violencia) {
+        return {
+            indicada: true,
+            tipo: "Visita compartilhada + rede de proteção",
+            prazoDias: 1
+        };
+    }
+
+    if (clinicoDomiciliar && social) {
+        return {
+            indicada: true,
+            tipo: "Visita compartilhada ACS + enfermagem",
+            prazoDias: scoreGeral >= 80 ? 3 : 7
+        };
+    }
+
+    if (clinicoDomiciliar) {
+        return {
+            indicada: true,
+            tipo: "Visita clínica domiciliar",
+            prazoDias: scoreGeral >= 80 ? 3 : 10
+        };
+    }
+
+    return {
+        indicada: true,
+        tipo: "Visita ACS / reconhecimento familiar",
+        prazoDias: scoreGeral >= 80 ? 3 : 15
+    };
+}
+
+function gerarResumoTerritorioInteligenteV3(base, score, prioridade, pendencias, evfam, visita) {
+    return `${base.nome || "Paciente"}: ${prioridade.prioridade} (${score} pontos), EVFAM ${evfam.classificacao}, ${pendencias.length} pendência(s). Visita domiciliar: ${visita.indicada ? visita.tipo + " em até " + visita.prazoDias + " dia(s)" : "não indicada"}.`;
+}
+
+function gerarRecomendacaoTerritorioInteligenteV3(base, score, pendencias, fatores, evfam, visita) {
+    if (visita.indicada) {
+        return `Recomenda-se ${visita.tipo} em até ${visita.prazoDias} dia(s), com atualização da EVFAM, revisão das pendências e registro de conduta no plano de cuidado.`;
+    }
+
+    if (score >= 80) {
+        return "Priorizar avaliação imediata, busca ativa e revisão de plano terapêutico pela equipe.";
+    }
+
+    if (score >= 60) {
+        return "Programar retorno breve, atualizar pendências clínicas e considerar visita domiciliar se houver barreira de acesso.";
+    }
+
+    if (evfam.total > 0) {
+        return "Manter vigilância familiar e atualizar EVFAM em próxima visita ou contato.";
+    }
+
+    return "Manter seguimento habitual conforme rotina da APS.";
+}
+
 /* ==========================================================
    PENDÊNCIAS E RECOMENDAÇÃO
    ========================================================== */
@@ -972,6 +1453,10 @@ function calcularUltimoEventoTerritorioInteligente(contexto) {
         datas.push(x.criado_em || x.created_at)
     );
 
+    (contexto.visitas || []).forEach(x =>
+        datas.push(x.data_visita || x.criado_em || x.created_at)
+    );
+
     const validas =
         datas
             .filter(Boolean)
@@ -1051,3 +1536,6 @@ window.atualizarTodosTerritoriosInteligentes = atualizarTodosTerritoriosIntelige
 window.calcularTerritorioInteligente = calcularTerritorioInteligente;
 window.listarPrioridadesTerritorioInteligente = listarPrioridadesTerritorioInteligente;
 window.carregarResumoTerritorioInteligente = carregarResumoTerritorioInteligente;
+window.calcularEVFAMTerritorioInteligente = calcularEVFAMTerritorioInteligente;
+window.classificarEVFAMTerritorioInteligente = classificarEVFAMTerritorioInteligente;
+window.indicarVisitaDomiciliarTerritorioInteligente = indicarVisitaDomiciliarTerritorioInteligente;
