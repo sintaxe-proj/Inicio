@@ -222,6 +222,32 @@ function calcularResumoDashboardInicialSintaxeHub(
             normalizarDashboardInicial(t.nivel_prioridade || t.prioridade).includes("critic")
         ).length;
 
+    const pendenciasOperacionais =
+        (territorio || []).reduce((total, t) => {
+            if (Array.isArray(t.pendencias)) {
+                return total + t.pendencias.length;
+            }
+
+            const score =
+                Number(t.score_territorial_global || t.score_geral || 0);
+
+            const acao =
+                normalizarDashboardInicial(t.acao_recomendada || "");
+
+            if (
+                score >= 65 ||
+                Number(t.evfam_total || 0) >= 15 ||
+                acao.includes("busca") ||
+                acao.includes("visita") ||
+                acao.includes("pend")
+            ) {
+                return total + 1;
+            }
+
+            return total;
+        }, 0) ||
+        pendentes;
+
     const buscasAgenda =
         (agendaHoje || []).filter(a =>
             normalizarDashboardInicial(a.tipo).includes("busca")
@@ -240,7 +266,8 @@ function calcularResumoDashboardInicialSintaxeHub(
         territorio,
         agendaHoje,
         atendimentosMes,
-        pendentes,
+        pendentes: Math.max(pendentes, pendenciasOperacionais),
+        pendenciasOperacionais,
         criticos: Math.max(criticos, criticosTerritoriais),
         estoqueBaixo,
         populacaoCadastrada,
@@ -263,7 +290,7 @@ function renderizarDashboardInicialSintaxeHub(dados) {
     setTextoDashboardInicial("dashInicialEVFAMAlto", dados.evfamAlto ?? 0);
 
     setTextoDashboardInicial("dashInicialAtendimentos", dados.atendimentosMes.length);
-    setTextoDashboardInicial("dashInicialPendentes", dados.pendentes);
+    setTextoDashboardInicial("dashInicialPendentes", dados.pendenciasOperacionais ?? dados.pendentes);
     setTextoDashboardInicial("dashInicialCriticos", dados.criticos);
     setTextoDashboardInicial("dashInicialEstoqueBaixo", dados.estoqueBaixo.length);
 
