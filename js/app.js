@@ -81,16 +81,16 @@ function navigate(view) {
         view === "banco" &&
         typeof carregarTabelaBanco === "function"
     ) {
-        carregarTabelaBanco();
-
-        if (
-            typeof aplicarFiltrosBaseTerritorial === "function"
-        ) {
-            setTimeout(
-                aplicarFiltrosBaseTerritorial,
-                500
-            );
-        }
+        Promise
+            .resolve(carregarTabelaBanco())
+            .then(() => {
+                if (
+                    typeof aplicarFiltrosBaseTerritorial === "function"
+                ) {
+                    aplicarFiltrosBaseTerritorial();
+                }
+            })
+            .catch(console.warn);
     }
 
     if (
@@ -162,11 +162,22 @@ function navigate(view) {
         carregarMapaTerritorialAPS();
     }
 
-    if (
-        view === "central-aps" &&
-        typeof carregarCentralAPS === "function"
-    ) {
-        carregarCentralAPS();
+    if (view === "central-aps") {
+        if (typeof carregarCentralAPS === "function") {
+            Promise
+                .resolve(carregarCentralAPS())
+                .catch(console.warn);
+        } else if (typeof carregarTabelaBanco === "function") {
+            console.warn("carregarCentralAPS ausente; usando Base Territorial Operacional como fallback.");
+            Promise
+                .resolve(carregarTabelaBanco())
+                .then(() => {
+                    if (typeof aplicarFiltrosBaseTerritorial === "function") {
+                        aplicarFiltrosBaseTerritorial();
+                    }
+                })
+                .catch(console.warn);
+        }
     }
 
 
@@ -343,6 +354,36 @@ function navigate(view) {
 
 
 
+
+
+
+// ======================================================
+// BASE TERRITORIAL OPERACIONAL — ATALHOS DE FILA
+// ======================================================
+
+function abrirBaseTerritorialOperacionalApp(fila = "TODOS") {
+    if (typeof navigate === "function") {
+        navigate("banco");
+    }
+
+    setTimeout(() => {
+        const filtro =
+            document.getElementById("filtroFilaOperacionalAPS");
+
+        if (filtro) {
+            filtro.value =
+                fila || "TODOS";
+        }
+
+        if (typeof aplicarFiltrosBaseTerritorial === "function") {
+            aplicarFiltrosBaseTerritorial();
+        }
+    }, 450);
+}
+
+function abrirCentralOperacionalUnificadaApp(fila = "CRITICOS") {
+    abrirBaseTerritorialOperacionalApp(fila);
+}
 
 
 // ======================================================
@@ -1486,6 +1527,8 @@ window.abrirSalaSituacaoAPSApp = abrirSalaSituacaoAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
 window.atualizarResumoCentralOperacoesDashboardInicial = atualizarResumoCentralOperacoesDashboardInicial;
 window.abrirCentralOperacoesAPSApp = abrirCentralOperacoesAPSApp;
+window.abrirBaseTerritorialOperacionalApp = abrirBaseTerritorialOperacionalApp;
+window.abrirCentralOperacionalUnificadaApp = abrirCentralOperacionalUnificadaApp;
 
 
 window.atualizarResumoMotorRegrasDashboardInicial = atualizarResumoMotorRegrasDashboardInicial;
