@@ -13,7 +13,9 @@ let baseTerritorialCache = [];
 
 async function carregarTabelaBanco() {
     const container =
-        document.getElementById("tabelaBancoContainer");
+        document.getElementById("tabelaBancoContainer") ||
+        document.getElementById("listaBaseTerritorial") ||
+        document.getElementById("tabelaBaseTerritorial");
 
     if (!container) return;
 
@@ -692,6 +694,12 @@ function aplicarFiltrosBaseTerritorial() {
             tipoPendencia
         );
 
+    base =
+        corrigirBaseVaziaPorFiltroInvalido(
+            base,
+            baseTerritorialCache
+        );
+
     atualizarIndicadoresBaseTerritorial(base);
     renderizarTabelaBaseTerritorial(base);
 }
@@ -977,6 +985,44 @@ function abrirWhatsAppBaseTerritorial(telefone, nome, cpf, cns) {
 }
 
 
+
+function filtrosBaseTerritorialEstaoPadrao() {
+    const ids = [
+        "filtroEquipeBase",
+        "filtroUBSBase",
+        "filtroMicroareaBase",
+        "filtroLinhaCuidadoBase",
+        "filtroRiscoBase",
+        "filtroFilaOperacionalAPS",
+        "filtroPontuacaoEVFAMBase",
+        "filtroTipoPendenciaBase"
+    ];
+
+    return ids.every(id => {
+        const valor =
+            document.getElementById(id)?.value || "TODOS";
+
+        return (
+            valor === "TODOS" ||
+            valor === "TODAS" ||
+            valor === ""
+        );
+    });
+}
+
+function corrigirBaseVaziaPorFiltroInvalido(baseFiltrada, baseOriginal) {
+    if (
+        (!baseFiltrada || !baseFiltrada.length) &&
+        (baseOriginal || []).length &&
+        filtrosBaseTerritorialEstaoPadrao()
+    ) {
+        return [...baseOriginal];
+    }
+
+    return baseFiltrada;
+}
+
+
 /* ==========================================================================
    INDICADORES
    ========================================================================== */
@@ -1028,7 +1074,9 @@ function setTextoBase(id, valor) {
 
 function renderizarTabelaBaseTerritorial(base) {
     const container =
-        document.getElementById("tabelaBancoContainer");
+        document.getElementById("tabelaBancoContainer") ||
+        document.getElementById("listaBaseTerritorial") ||
+        document.getElementById("tabelaBaseTerritorial");
 
     if (!container) return;
 
