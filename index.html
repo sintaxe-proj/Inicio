@@ -6806,28 +6806,3 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 1000);
 });
 </script>
-
-
-<script id="forcarCerebroSemNumeroTopbar">
-function forcarCerebroAPSSemNumero() {
-    const botao =
-        document.getElementById("btnTopbarCopilotoAPS");
-
-    if (!botao) return;
-
-    botao.innerHTML = "🧠";
-    botao.title = "Cérebro APS";
-    botao.setAttribute("data-copiloto-topbar", "true");
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    forcarCerebroAPSSemNumero();
-    setTimeout(forcarCerebroAPSSemNumero, 1000);
-    setTimeout(forcarCerebroAPSSemNumero, 2500);
-});
-
-setInterval(forcarCerebroAPSSemNumero, 60000);
-</script>
-
-</body>
-</html>
