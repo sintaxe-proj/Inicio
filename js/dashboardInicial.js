@@ -44,12 +44,25 @@ async function carregarDashboardInicialSintaxeHub() {
     }
 
     try {
+        const hoje =
+            new Date().toISOString().slice(0, 10);
+
         const [
+            pacientesCountResp,
             pacientesResp,
             atendimentosResp,
             solicitacoesResp,
-            estoqueResp
+            estoqueResp,
+            territorioResp,
+            agendaResp
         ] = await Promise.all([
+            supabaseClient
+                .from("pacientes")
+                .select("id", {
+                    count: "exact",
+                    head: true
+                }),
+
             supabaseClient
                 .from("pacientes")
                 .select("*")
@@ -70,6 +83,17 @@ async function carregarDashboardInicialSintaxeHub() {
             supabaseClient
                 .from("estoque_itens")
                 .select("*")
+                .limit(5000),
+
+            supabaseClient
+                .from("territorio_inteligente")
+                .select("*")
+                .limit(50000),
+
+            supabaseClient
+                .from("agenda_aps")
+                .select("*")
+                .eq("data_sugerida", hoje)
                 .limit(5000)
         ]);
 
@@ -85,12 +109,21 @@ async function carregarDashboardInicialSintaxeHub() {
         const estoque =
             estoqueResp.data || [];
 
+        const territorio =
+            territorioResp.data || [];
+
+        const agendaHoje =
+            agendaResp.data || [];
+
         const dados =
             calcularResumoDashboardInicialSintaxeHub(
                 pacientes,
                 atendimentos,
                 solicitacoes,
-                estoque
+                estoque,
+                territorio,
+                agendaHoje,
+                pacientesCountResp.count ?? pacientes.length
             );
 
         renderizarDashboardInicialSintaxeHub(dados);
@@ -104,7 +137,10 @@ function calcularResumoDashboardInicialSintaxeHub(
     pacientes,
     atendimentos,
     solicitacoes,
-    estoque
+    estoque,
+    territorio = [],
+    agendaHoje = [],
+    totalPacientesExato = null
 ) {
     const inicioMes =
         new Date();
@@ -135,20 +171,97 @@ function calcularResumoDashboardInicialSintaxeHub(
             Number(item.quantidade_minima || 0)
         );
 
+    const populacaoCadastrada =
+        Number(totalPacientesExato ?? pacientes.length ?? 0);
+
+    const emMonitoramentoAtivo =
+        (territorio || []).filter(t =>
+            Number(t.score_territorial_global || t.score_geral || 0) > 0 ||
+            String(t.nivel_prioridade || t.prioridade || "").trim() ||
+            Number(t.evfam_total || 0) > 0 ||
+            (Array.isArray(t.pendencias) && t.pendencias.length)
+        ).length;
+
+    const prioridadeAlta =
+        (territorio || []).filter(t => {
+            const score =
+                Number(t.score_territorial_global || t.score_geral || 0);
+
+            const nivel =
+                normalizarDashboardInicial(t.nivel_prioridade || t.prioridade || "");
+
+            return (
+                score >= 65 ||
+                nivel.includes("alto") ||
+                nivel.includes("critic")
+            );
+        }).length;
+
+    const visitaDomiciliar =
+        (territorio || []).filter(t => {
+            const acao =
+                normalizarDashboardInicial(`${t.acao_recomendada || ""} ${t.tipo_visita_sugerida || ""}`);
+
+            return (
+                t.visita_domiciliar_indicada === true ||
+                Number(t.score_domiciliar || 0) > 0 ||
+                acao.includes("visita") ||
+                acao.includes("domic")
+            );
+        }).length;
+
+    const evfamAlto =
+        (territorio || []).filter(t =>
+            Number(t.evfam_total || 0) >= 15 ||
+            normalizarDashboardInicial(t.evfam_classificacao).includes("alto")
+        ).length;
+
+    const criticosTerritoriais =
+        (territorio || []).filter(t =>
+            Number(t.score_territorial_global || t.score_geral || 0) >= 85 ||
+            normalizarDashboardInicial(t.nivel_prioridade || t.prioridade).includes("critic")
+        ).length;
+
+    const buscasAgenda =
+        (agendaHoje || []).filter(a =>
+            normalizarDashboardInicial(a.tipo).includes("busca")
+        ).length;
+
+    const visitasAgenda =
+        (agendaHoje || []).filter(a =>
+            normalizarDashboardInicial(a.tipo).includes("visita")
+        ).length;
+
     return {
         pacientes,
         atendimentos,
         solicitacoes,
         estoque,
+        territorio,
+        agendaHoje,
         atendimentosMes,
         pendentes,
-        criticos,
-        estoqueBaixo
+        criticos: Math.max(criticos, criticosTerritoriais),
+        estoqueBaixo,
+        populacaoCadastrada,
+        emMonitoramentoAtivo,
+        prioridadeAlta,
+        visitaDomiciliar,
+        evfamAlto,
+        criticosTerritoriais,
+        buscasAgenda,
+        visitasAgenda
     };
 }
 
 function renderizarDashboardInicialSintaxeHub(dados) {
-    setTextoDashboardInicial("dashInicialPessoas", dados.pacientes.length);
+    setTextoDashboardInicial("dashInicialPessoas", dados.populacaoCadastrada ?? dados.pacientes.length);
+    setTextoDashboardInicial("dashInicialPopulacaoCadastrada", dados.populacaoCadastrada ?? dados.pacientes.length);
+    setTextoDashboardInicial("dashInicialMonitoramentoAtivo", dados.emMonitoramentoAtivo ?? 0);
+    setTextoDashboardInicial("dashInicialPrioridadeAlta", dados.prioridadeAlta ?? 0);
+    setTextoDashboardInicial("dashInicialVisitaDomiciliar", dados.visitaDomiciliar ?? 0);
+    setTextoDashboardInicial("dashInicialEVFAMAlto", dados.evfamAlto ?? 0);
+
     setTextoDashboardInicial("dashInicialAtendimentos", dados.atendimentosMes.length);
     setTextoDashboardInicial("dashInicialPendentes", dados.pendentes);
     setTextoDashboardInicial("dashInicialCriticos", dados.criticos);
