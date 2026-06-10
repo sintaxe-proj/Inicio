@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS + Motor Cognitivo APS
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS + Motor Cognitivo APS + Central de Operações APS 4.0
 // ======================================================
 
 
@@ -160,6 +160,21 @@ function navigate(view) {
         typeof carregarCentralAPS === "function"
     ) {
         carregarCentralAPS();
+    }
+
+
+    if (
+        view === "central-operacoes-aps" &&
+        typeof carregarCentralOperacoesAPS === "function"
+    ) {
+        Promise
+            .resolve(carregarCentralOperacoesAPS())
+            .then(() => {
+                if (typeof atualizarResumoCentralOperacoesDashboardInicial === "function") {
+                    atualizarResumoCentralOperacoesDashboardInicial();
+                }
+            })
+            .catch(console.warn);
     }
 
     if (
@@ -832,6 +847,108 @@ function abrirSalaSituacaoAPSApp() {
     }
 }
 
+
+// ======================================================
+// CENTRAL DE OPERAÇÕES APS 4.0 — RESUMO NO DASHBOARD
+// ======================================================
+
+async function atualizarResumoCentralOperacoesDashboardInicial() {
+    let central =
+        window.centralOperacoesAPSAtual || {};
+
+    let dados =
+        central.dados || null;
+
+    if (
+        !dados &&
+        typeof carregarCentralOperacoesAPS === "function" &&
+        (
+            document.getElementById("conteudoCentralOperacoesAPS") ||
+            document.getElementById("dashInicialCopilotoAPS") ||
+            document.getElementById("dashInicialResumoCopiloto")
+        )
+    ) {
+        try {
+            const estado =
+                await carregarCentralOperacoesAPS();
+
+            dados =
+                estado?.dados ||
+                window.centralOperacoesAPSAtual?.dados ||
+                null;
+        } catch (erro) {
+            console.warn(
+                "Não foi possível atualizar resumo da Central de Operações APS:",
+                erro
+            );
+        }
+    }
+
+    if (!dados) {
+        return null;
+    }
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialCentralOperacoes", dados.populacao ?? 0);
+        setTextoApp("dashInicialCentralCriticos", dados.criticos?.length ?? 0);
+        setTextoApp("dashInicialCentralAltos", dados.altos?.length ?? 0);
+        setTextoApp("dashInicialCentralScoreMedio", dados.scoreMedio ?? 0);
+        setTextoApp("dashInicialCentralAgenda", dados.resumoAgenda?.total ?? 0);
+        setTextoApp("dashInicialCentralBuscas", dados.resumoAgenda?.buscas ?? 0);
+        setTextoApp("dashInicialCentralVisitas", dados.resumoAgenda?.visitas ?? 0);
+        setTextoApp("dashInicialCentralGestantes", dados.resumoAgenda?.gestantes ?? 0);
+        setTextoApp("dashInicialCentralCIPE", dados.cipe?.total ?? 0);
+    }
+
+    const centralBox =
+        document.getElementById("dashInicialCentralOperacoesAPS") ||
+        document.getElementById("dashInicialCentralOperacoes") ||
+        document.getElementById("dashCentralOperacoesAPS");
+
+    if (centralBox) {
+        centralBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>📡 Central de Operações APS 4.0</strong>
+                        <small>${dados.criticos?.length || 0} crítico(s), ${dados.altos?.length || 0} alta prioridade, ${dados.resumoAgenda?.buscas || 0} busca(s), ${dados.resumoAgenda?.visitas || 0} visita(s), score médio ${dados.scoreMedio || 0}.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirCentralOperacoesAPSApp()">
+                        Abrir Central
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    const copilotoBox =
+        document.getElementById("dashInicialCopilotoAPS") ||
+        document.getElementById("dashInicialResumoCopiloto") ||
+        document.getElementById("dashCopilotoAgendaAPS");
+
+    if (copilotoBox) {
+        copilotoBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>🧠 Bom dia. Central de Operações APS ativa.</strong>
+                        <small>${dados.criticos?.length || 0} pacientes críticos, ${dados.resumoAgenda?.buscas || 0} buscas ativas, ${dados.resumoAgenda?.visitas || 0} visitas domiciliares e ${dados.resumoAgenda?.gestantes || 0} gestantes priorizadas hoje.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirCentralOperacoesAPSApp()">
+                        📡 Central
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    return dados;
+}
+
+function abrirCentralOperacoesAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("central-operacoes-aps");
+    }
+}
+
 // ======================================================
 // LOGIN AUTOMÁTICO / RESTAURAÇÃO DE SESSÃO
 // ======================================================
@@ -1289,3 +1406,5 @@ window.abrirMotorCognitivoAPSApp = abrirMotorCognitivoAPSApp;
 window.atualizarResumoSalaSituacaoDashboardInicial = atualizarResumoSalaSituacaoDashboardInicial;
 window.abrirSalaSituacaoAPSApp = abrirSalaSituacaoAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
+window.atualizarResumoCentralOperacoesDashboardInicial = atualizarResumoCentralOperacoesDashboardInicial;
+window.abrirCentralOperacoesAPSApp = abrirCentralOperacoesAPSApp;
