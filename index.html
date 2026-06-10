@@ -769,7 +769,7 @@ body.perfil-real-coordenador #seletorPerfilVisualAPS {
                     <div
                         id="centralAvisosContainer"
                         class="alert-badge topbar-alert"
-                        onclick="abrirCentralPendenciasAPS?.() || abrirComunicacoesEquipeAPS()"
+                        onclick="abrirCentralAvisosAPSSegura()"
                         title="Central de Pendências APS">
                         🔔 <span id="contadorAvisosSininho">0</span>
                     </div>
@@ -6872,6 +6872,174 @@ document.addEventListener("DOMContentLoaded", function () {
 window.abrirComunicacoesEquipeAPS = abrirComunicacoesEquipeAPS;
 window.fecharComunicacoesEquipeAPS = fecharComunicacoesEquipeAPS;
 window.carregarComunicacoesEquipeAPS = carregarComunicacoesEquipeAPS;
+</script>
+
+
+<script id="centralAvisosAPSSegura">
+function abrirCentralAvisosAPSSegura() {
+    if (typeof abrirCentralPendenciasAPS === "function") {
+        abrirCentralPendenciasAPS();
+        return;
+    }
+
+    if (typeof abrirComunicacoesEquipeAPS === "function") {
+        abrirComunicacoesEquipeAPS();
+        return;
+    }
+
+    const modalComunicacoes =
+        document.getElementById("modalComunicacoesEquipeAPS");
+
+    if (modalComunicacoes) {
+        modalComunicacoes.style.display = "flex";
+
+        if (typeof carregarComunicacoesEquipeAPS === "function") {
+            carregarComunicacoesEquipeAPS();
+        }
+
+        return;
+    }
+
+    if (typeof abrirPainelEpidemiologico === "function") {
+        abrirPainelEpidemiologico("criticos");
+        return;
+    }
+
+    alert("Central de Avisos indisponível no momento.");
+}
+
+window.abrirCentralAvisosAPSSegura = abrirCentralAvisosAPSSegura;
+</script>
+
+
+<div id="modalCentralPendenciasAPS" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:980px; width:94%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div>
+                <h2 style="margin:0;">🔔 Central de Avisos APS</h2>
+                <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                    Filas operacionais e comunicações da equipe.
+                </p>
+            </div>
+
+            <button class="btn-danger" onclick="fecharCentralPendenciasAPS()">
+                ✕ Fechar
+            </button>
+        </div>
+
+        <div class="dashboard-grid" style="margin-top:16px;">
+            <div class="dash-card dashboard-kpi-card" onclick="irParaBasePorPendenciaAPS('TODAS_PENDENCIAS')">
+                <div class="dash-icon icon-yellow">⚠️</div>
+                <div>
+                    <span class="card-label">Todas as pendências</span>
+                    <h3>↗</h3>
+                    <p>Abrir Base Territorial filtrada</p>
+                </div>
+            </div>
+
+            <div class="dash-card dashboard-kpi-card" onclick="irParaBasePorPendenciaAPS('RETORNO_VENCIDO')">
+                <div class="dash-icon icon-red">📅</div>
+                <div>
+                    <span class="card-label">Retorno vencido</span>
+                    <h3>↗</h3>
+                    <p>Pacientes com prazo vencido</p>
+                </div>
+            </div>
+
+            <div class="dash-card dashboard-kpi-card" onclick="irParaBasePorPendenciaAPS('SEM_ATENDIMENTO_180')">
+                <div class="dash-icon icon-orange">⏳</div>
+                <div>
+                    <span class="card-label">Sem atendimento &gt;180 dias</span>
+                    <h3>↗</h3>
+                    <p>Acompanhamento longitudinal</p>
+                </div>
+            </div>
+
+            <div class="dash-card dashboard-kpi-card" onclick="irParaBasePorPendenciaAPS('HAS_SEM_PA')">
+                <div class="dash-icon icon-blue">🩺</div>
+                <div>
+                    <span class="card-label">HAS sem PA</span>
+                    <h3>↗</h3>
+                    <p>Pressão arterial pendente</p>
+                </div>
+            </div>
+
+            <div class="dash-card dashboard-kpi-card" onclick="irParaBasePorPendenciaAPS('DM_SEM_HBA1C')">
+                <div class="dash-icon icon-green">🍬</div>
+                <div>
+                    <span class="card-label">DM sem HbA1c</span>
+                    <h3>↗</h3>
+                    <p>Controle metabólico pendente</p>
+                </div>
+            </div>
+
+            <div class="dash-card dashboard-kpi-card" onclick="abrirComunicacoesEquipeAPS?.()">
+                <div class="dash-icon icon-purple">💬</div>
+                <div>
+                    <span class="card-label">Comunicações entre a equipe</span>
+                    <h3 id="contadorComunicacoesEquipeAPS">0</h3>
+                    <p>Notas do prontuário</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script id="funcoesCentralPendenciasAPS">
+function abrirCentralPendenciasAPS() {
+    const modal =
+        document.getElementById("modalCentralPendenciasAPS");
+
+    if (modal) {
+        modal.style.display = "flex";
+    }
+
+    if (typeof carregarComunicacoesEquipeAPS === "function") {
+        carregarComunicacoesEquipeAPS();
+    }
+}
+
+function fecharCentralPendenciasAPS() {
+    const modal =
+        document.getElementById("modalCentralPendenciasAPS");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function irParaBasePorPendenciaAPS(tipo) {
+    fecharCentralPendenciasAPS();
+
+    if (typeof navigate === "function") {
+        navigate("banco");
+    }
+
+    setTimeout(function () {
+        const filtroFila =
+            document.getElementById("filtroFilaOperacionalAPS");
+
+        const filtroTipo =
+            document.getElementById("filtroTipoPendenciaBase");
+
+        if (filtroFila) {
+            filtroFila.value = "PENDENCIAS";
+        }
+
+        if (filtroTipo) {
+            filtroTipo.value = tipo || "TODAS_PENDENCIAS";
+        }
+
+        if (typeof aplicarFiltrosBaseTerritorial === "function") {
+            aplicarFiltrosBaseTerritorial();
+        }
+    }, 500);
+}
+
+window.abrirCentralPendenciasAPS = abrirCentralPendenciasAPS;
+window.fecharCentralPendenciasAPS = fecharCentralPendenciasAPS;
+window.irParaBasePorPendenciaAPS = irParaBasePorPendenciaAPS;
 </script>
 
 </body>
