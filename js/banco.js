@@ -187,10 +187,23 @@ function enriquecerBaseTerritorialComOperacaoAPS(base, territorio) {
         p.tipo_visita_sugerida =
             ti?.tipo_visita_sugerida || "";
 
-        p.pendencias =
+        const pendenciasCalculadas =
+            identificarPendenciasBaseTerritorial(p);
+
+        const pendenciasTerritorio =
             Array.isArray(ti?.pendencias)
                 ? ti.pendencias
-                : identificarPendenciasBaseTerritorial(p);
+                : [];
+
+        p.pendencias =
+            [
+                ...pendenciasTerritorio,
+                ...pendenciasCalculadas
+            ]
+                .filter(Boolean)
+                .filter((item, index, lista) =>
+                    lista.indexOf(item) === index
+                );
     });
 }
 
@@ -247,7 +260,9 @@ function identificarPendenciasBaseTerritorial(p) {
         pendencias.push("Retorno vencido");
     }
 
-    if (diasDesdeBase(p.ultimo_atendimento) > 180) {
+    if (!p.ultimo_atendimento) {
+        pendencias.push("Sem atendimento registrado");
+    } else if (diasDesdeBase(p.ultimo_atendimento) > 180) {
         pendencias.push("Sem atendimento >180 dias");
     }
 
@@ -439,7 +454,25 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
         mapa.set(chave, atual);
     });
 
-    return Array.from(mapa.values());
+    const base =
+        Array.from(mapa.values());
+
+    base.forEach(p => {
+        const extras =
+            identificarPendenciasBaseTerritorial(p);
+
+        p.pendencias =
+            [
+                ...(p.pendencias || []),
+                ...extras
+            ]
+                .filter(Boolean)
+                .filter((item, index, lista) =>
+                    lista.indexOf(item) === index
+                );
+    });
+
+    return base;
 }
 
 
