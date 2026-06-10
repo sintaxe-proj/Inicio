@@ -106,6 +106,10 @@ function navigate(view) {
             carregarDatalistCIAP();
         }
 
+        if (typeof carregarDatalistCIPE === "function") {
+            carregarDatalistCIPE();
+        }
+
         const cpf =
             document.getElementById("cpfPaciente")?.value ||
             window.pacienteAtual?.cpf ||
@@ -273,7 +277,14 @@ function navigate(view) {
         view === "sala-situacao-aps" &&
         typeof carregarSalaSituacaoAPS === "function"
     ) {
-        carregarSalaSituacaoAPS();
+        Promise
+            .resolve(carregarSalaSituacaoAPS())
+            .then(() => {
+                if (typeof atualizarResumoSalaSituacaoDashboardInicial === "function") {
+                    atualizarResumoSalaSituacaoDashboardInicial();
+                }
+            })
+            .catch(console.warn);
     }
 
 
@@ -747,6 +758,80 @@ function abrirMotorCognitivoAPSApp() {
     }
 }
 
+
+// ======================================================
+// SALA DE SITUAÇÃO APS COGNITIVA — RESUMO NO DASHBOARD
+// ======================================================
+
+async function atualizarResumoSalaSituacaoDashboardInicial() {
+    const sala =
+        window.salaSituacaoAPSAtual || {};
+
+    let dados =
+        sala.dados || null;
+
+    if (
+        !dados &&
+        typeof carregarSalaSituacaoAPS === "function" &&
+        document.getElementById("conteudoSalaSituacaoAPS")
+    ) {
+        try {
+            await carregarSalaSituacaoAPS();
+            dados = window.salaSituacaoAPSAtual?.dados || null;
+        } catch (erro) {
+            console.warn("Não foi possível atualizar resumo da Sala de Situação APS:", erro);
+        }
+    }
+
+    if (!dados) {
+        return null;
+    }
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialSalaPopulacao", dados.populacao ?? 0);
+        setTextoApp("dashInicialSalaCriticos", dados.criticos?.length ?? 0);
+        setTextoApp("dashInicialSalaScoreMedio", dados.scoreMedio ?? 0);
+        setTextoApp("dashInicialSalaAgenda", dados.agendaResumo?.total ?? 0);
+        setTextoApp("dashInicialSalaVisitas", dados.agendaResumo?.visitas ?? 0);
+        setTextoApp("dashInicialSalaBuscas", dados.agendaResumo?.buscas ?? 0);
+        setTextoApp("dashInicialSalaCIPE", dados.diagnosticosCIPE?.total ?? 0);
+    }
+
+    const salaBox =
+        document.getElementById("dashInicialSalaSituacaoAPS") ||
+        document.getElementById("dashInicialSalaSituacao") ||
+        document.getElementById("dashSalaSituacaoAPS");
+
+    if (salaBox) {
+        const status =
+            dados.status?.titulo || "Sala de Situação APS";
+
+        const icone =
+            dados.status?.icone || "🏢";
+
+        salaBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>${icone} ${status}</strong>
+                        <small>${dados.criticos?.length || 0} crítico(s), ${dados.altos?.length || 0} alta prioridade, score médio ${dados.scoreMedio || 0}.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirSalaSituacaoAPSApp()">
+                        Abrir Sala
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    return dados;
+}
+
+function abrirSalaSituacaoAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("sala-situacao-aps");
+    }
+}
+
 // ======================================================
 // LOGIN AUTOMÁTICO / RESTAURAÇÃO DE SESSÃO
 // ======================================================
@@ -917,6 +1002,12 @@ function atualizarDadosIniciais() {
         typeof atualizarResumoMotorCognitivoDashboardInicial === "function"
     ) {
         atualizarResumoMotorCognitivoDashboardInicial();
+    }
+
+    if (
+        typeof atualizarResumoSalaSituacaoDashboardInicial === "function"
+    ) {
+        atualizarResumoSalaSituacaoDashboardInicial();
     }
 }
 
@@ -1195,4 +1286,6 @@ window.atualizarResumoAgendaDashboardInicial = atualizarResumoAgendaDashboardIni
 window.abrirAgendaInteligenteAPSApp = abrirAgendaInteligenteAPSApp;
 window.atualizarResumoMotorCognitivoDashboardInicial = atualizarResumoMotorCognitivoDashboardInicial;
 window.abrirMotorCognitivoAPSApp = abrirMotorCognitivoAPSApp;
+window.atualizarResumoSalaSituacaoDashboardInicial = atualizarResumoSalaSituacaoDashboardInicial;
+window.abrirSalaSituacaoAPSApp = abrirSalaSituacaoAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
