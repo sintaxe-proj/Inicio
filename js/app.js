@@ -1,6 +1,6 @@
 // ======================================================
 // APP.JS — SINTAXEHUB
-// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS
+// Navegação + sessão + estoque Supabase + IA APS + Central de Prioridades + Linha do Tempo 4.0 + Torre APS 2.0 + Visita Domiciliar APS + Agenda Inteligente APS + Motor Cognitivo APS
 // ======================================================
 
 
@@ -286,6 +286,25 @@ function navigate(view) {
             .then(() => {
                 if (typeof atualizarResumoIADashboardInicial === "function") {
                     atualizarResumoIADashboardInicial();
+                }
+            })
+            .catch(console.warn);
+    }
+
+
+    if (
+        (view === "motor-cognitivo-aps" || view === "cognitivo-aps") &&
+        typeof carregarMotorCognitivoAPS === "function"
+    ) {
+        Promise
+            .resolve(carregarMotorCognitivoAPS())
+            .then(() => {
+                if (typeof atualizarResumoMotorCognitivoDashboardInicial === "function") {
+                    atualizarResumoMotorCognitivoDashboardInicial();
+                }
+
+                if (typeof renderizarMotorCognitivoAPS === "function") {
+                    renderizarMotorCognitivoAPS();
                 }
             })
             .catch(console.warn);
@@ -627,6 +646,107 @@ function abrirAgendaInteligenteAPSApp() {
     }
 }
 
+
+// ======================================================
+// MOTOR COGNITIVO APS — RESUMO NO DASHBOARD INICIAL
+// ======================================================
+
+async function atualizarResumoMotorCognitivoDashboardInicial() {
+    let motor =
+        window.motorCognitivoAPSAtual || {};
+
+    if (
+        (!motor.resumo || !motor.ultimaAtualizacao) &&
+        typeof carregarMotorCognitivoAPS === "function"
+    ) {
+        try {
+            motor =
+                await carregarMotorCognitivoAPS() ||
+                window.motorCognitivoAPSAtual ||
+                {};
+        } catch (erro) {
+            console.warn("Não foi possível carregar Motor Cognitivo APS:", erro);
+        }
+    }
+
+    const resumo =
+        motor.resumo ||
+        (
+            typeof gerarResumoCognitivoTerritorialAPS === "function"
+                ? gerarResumoCognitivoTerritorialAPS()
+                : null
+        );
+
+    if (!resumo) {
+        return null;
+    }
+
+    if (typeof setTextoApp === "function") {
+        setTextoApp("dashInicialMotorCognitivo", "ON");
+        setTextoApp("dashInicialCognitivoCriticos", resumo.criticos ?? 0);
+        setTextoApp("dashInicialCognitivoAgenda", resumo.agendaTotal ?? 0);
+        setTextoApp("dashInicialCognitivoVisitas", resumo.visitas ?? 0);
+        setTextoApp("dashInicialCognitivoBuscas", resumo.buscas ?? 0);
+    }
+
+    const recomendacoesBox =
+        document.getElementById("dashInicialRecomendacoesIA");
+
+    if (recomendacoesBox) {
+        const status =
+            resumo.status || "🧠 Motor Cognitivo ativo";
+
+        recomendacoesBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>${status}</strong>
+                        <small>${resumo.criticos || 0} crítico(s), ${resumo.alto || 0} alta prioridade, ${resumo.agendaTotal || 0} item(ns) na agenda APS.</small>
+                    </div>
+                    <span class="status-badge status-info">Motor Cognitivo</span>
+                </div>
+
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>🧠 Plano operacional IA</strong>
+                        <small>Priorizar críticos, visitas domiciliares, buscas ativas e gestantes conforme Score Territorial Global.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirMotorCognitivoAPSApp()">
+                        Abrir IA
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    const copilotoBox =
+        document.getElementById("dashInicialCopilotoAPS") ||
+        document.getElementById("dashInicialResumoCopiloto") ||
+        document.getElementById("dashCopilotoAgendaAPS");
+
+    if (copilotoBox) {
+        copilotoBox.innerHTML =
+            `<div class="dashboard-list">
+                <div class="dashboard-list-item">
+                    <div>
+                        <strong>🧠 Bom dia. Motor Cognitivo APS ativo.</strong>
+                        <small>Existem ${resumo.criticos || 0} pacientes críticos, ${resumo.buscas || 0} buscas ativas, ${resumo.visitas || 0} visitas domiciliares e ${resumo.gestantes || 0} gestantes no território inteligente.</small>
+                    </div>
+                    <button class="btn-table-action btn-ok" onclick="abrirCopilotoAPS?.()">
+                        Perguntar
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    return resumo;
+}
+
+function abrirMotorCognitivoAPSApp() {
+    if (typeof navigate === "function") {
+        navigate("motor-cognitivo-aps");
+    }
+}
+
 // ======================================================
 // LOGIN AUTOMÁTICO / RESTAURAÇÃO DE SESSÃO
 // ======================================================
@@ -791,6 +911,12 @@ function atualizarDadosIniciais() {
         typeof atualizarResumoAgendaDashboardInicial === "function"
     ) {
         atualizarResumoAgendaDashboardInicial();
+    }
+
+    if (
+        typeof atualizarResumoMotorCognitivoDashboardInicial === "function"
+    ) {
+        atualizarResumoMotorCognitivoDashboardInicial();
     }
 }
 
@@ -1067,4 +1193,6 @@ window.atualizarResumoTorreDashboardInicial = atualizarResumoTorreDashboardInici
 window.abrirTorreControleAPSApp = abrirTorreControleAPSApp;
 window.atualizarResumoAgendaDashboardInicial = atualizarResumoAgendaDashboardInicial;
 window.abrirAgendaInteligenteAPSApp = abrirAgendaInteligenteAPSApp;
+window.atualizarResumoMotorCognitivoDashboardInicial = atualizarResumoMotorCognitivoDashboardInicial;
+window.abrirMotorCognitivoAPSApp = abrirMotorCognitivoAPSApp;
 window.abrirVisitaDomiciliarPacienteAtualApp = abrirVisitaDomiciliarPacienteAtualApp;
