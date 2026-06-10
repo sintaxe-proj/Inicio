@@ -255,7 +255,8 @@ body.login-ativo #painelDiscagemContainer {
 }
 
 #view-motor-cognitivo-aps .table-sintaxe small,
-#view-sala-situacao-aps .table-sintaxe small {
+#view-sala-situacao-aps .table-sintaxe small,
+#view-central-operacoes-aps .table-sintaxe small {
     display: block;
     color: var(--text-muted);
     margin-top: 3px;
@@ -269,6 +270,27 @@ body.login-ativo #painelDiscagemContainer {
     padding: 16px;
     color: var(--text-main);
     line-height: 1.5;
+}
+</style>
+
+
+
+<style id="cssCentralOperacoesAPS4">
+/* ==========================================================
+   CENTRAL DE OPERAÇÕES APS 4.0
+   ========================================================== */
+#view-central-operacoes-aps .table-sintaxe small {
+    display:block;
+    color:var(--text-muted);
+    margin-top:3px;
+}
+
+#view-central-operacoes-aps .dash-card {
+    cursor:default;
+}
+
+.central-operacoes-hero {
+    border-left:6px solid var(--primary);
 }
 </style>
 
@@ -390,6 +412,10 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="navigate('sala-situacao-aps')">
                     <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('central-operacoes-aps')">
+                    <span class="nav-emoji">📡</span><span class="nav-text">Central de Operações APS</span>
                 </a>
 
                 <div class="sidebar-section-title">Logística</div>
@@ -898,6 +924,14 @@ body.login-ativo #painelDiscagemContainer {
                         <div>
                             <strong>Torre APS</strong>
                             <small>Centro de comando</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('central-operacoes-aps')">
+                        <div style="font-size:24px;">📡</div>
+                        <div>
+                            <strong>Central de Operações</strong>
+                            <small>Sala 4.0 cognitiva</small>
                         </div>
                     </div>
 
@@ -4361,6 +4395,50 @@ body.login-ativo #painelDiscagemContainer {
     console.log("✅ Supabase conectado.");
 </script>
 
+
+
+<div id="view-central-operacoes-aps" class="view">
+
+    <div class="page-header">
+        <div>
+            <h2>📡 Central de Operações APS 4.0</h2>
+            <p>
+                Sala de Situação Cognitiva com visão executiva, agenda do dia,
+                radar territorial, CIPE e decisão operacional.
+            </p>
+        </div>
+
+        <div class="button-row">
+            <button class="btn-primary" onclick="carregarCentralOperacoesAPS?.()">
+                🔄 Atualizar Central
+            </button>
+
+            <button class="btn-info" onclick="abrirCopilotoAPS?.()">
+                🧠 Abrir Copiloto
+            </button>
+
+            <button class="btn-secondary" onclick="copiarResumoCentralOperacoesAPS?.()">
+                📋 Copiar resumo
+            </button>
+
+            <button class="btn-secondary" onclick="exportarCentralOperacoesAPSCSV?.()">
+                📤 Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <div id="conteudoCentralOperacoesAPS">
+        <div class="form-section central-operacoes-hero">
+            <h3 style="margin-top:0;">📡 Central pronta para carregamento</h3>
+            <p style="color:var(--text-muted);">
+                Clique em atualizar para carregar a Central de Operações APS 4.0 com Score Territorial Global,
+                Agenda Inteligente APS, Motor Cognitivo, CIPE e Sala de Situação.
+            </p>
+        </div>
+    </div>
+
+</div>
+
 <!-- Dados clínicos -->
 <script src="./data/ciap2.js"></script>
 <script src="./data/cipe.js"></script>
@@ -4409,6 +4487,7 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/centralPrioridadesAPS.js"></script>
 <script src="./js/visitaDomiciliarAPS.js"></script>
+<script src="./js/centralOperacoesAPS.js"></script>
 <script src="./js/app.js"></script>
 
 
@@ -4929,6 +5008,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeof carregarSalaSituacaoAPS === "function"
             ) {
                 carregarSalaSituacaoAPS();
+            }
+
+            if (
+                view === "central-operacoes-aps" &&
+                typeof carregarCentralOperacoesAPS === "function"
+            ) {
+                carregarCentralOperacoesAPS();
             }
         };
     }
