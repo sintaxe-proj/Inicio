@@ -195,7 +195,7 @@ body.login-ativo #painelDiscagemContainer {
 
 <style id="cssAgendaInteligenteAPS">
 /* ==========================================================
-   AGENDA INTELIGENTE APS — SCORE GLOBAL
+   AGENDA INTELIGENTE APS — SCORE TERRITORIAL GLOBAL
    ========================================================== */
 
 #view-agenda-inteligente-aps .table-sintaxe small {
@@ -268,7 +268,7 @@ body.login-ativo #painelDiscagemContainer {
 
 <style id="cssCentralOperacoesAPS4">
 /* ==========================================================
-   CENTRAL DE OPERAÇÕES
+   CENTRAL DE OPERAÇÕES APS 4.0
    ========================================================== */
 #view-central-operacoes-aps .table-sintaxe small {
     display:block;
@@ -533,6 +533,43 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 .central-aviso-card-aps.info { border-left-color: var(--info, #38bdf8); }
 </style>
 
+
+<style id="cssPerfisAPS">
+.seletor-perfil-aps {
+    margin-top: 4px;
+    max-width: 190px;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-main);
+}
+
+body.perfil-assistencial [data-perfil-bloqueado~="assistencial"],
+body.perfil-recepcao [data-perfil-bloqueado~="recepcao"] {
+    display: none !important;
+}
+
+body.perfil-recepcao [data-clinico-sensivel="sim"] {
+    display: none !important;
+}
+
+body.perfil-recepcao #blocoLinhaVidaTerritorialProntuario,
+body.perfil-recepcao #painelRiscoClinico,
+body.perfil-recepcao .clinical-card,
+body.perfil-recepcao .avaliacao-codificacoes-aps,
+body.perfil-recepcao #blocoCuidaHistoricoSOAP,
+body.perfil-recepcao #blocoCuidaHabitosEventosSOAP {
+    display: none !important;
+}
+
+body.perfil-assistencial #seletorPerfilVisualAPS,
+body.perfil-recepcao #seletorPerfilVisualAPS {
+    display: none !important;
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -590,67 +627,67 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                     <span class="nav-emoji">🌎</span><span class="nav-text">Georreferenciamento</span>
                 </a>
 
-                <a class="nav-link" onclick="abrirPainelEpidemiologico('criticos')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="abrirPainelEpidemiologico('criticos')">
                     <span class="nav-emoji">📞</span><span class="nav-text">Monitoramento</span>
                 </a>
 
                 <div class="sidebar-section-title">Assistência</div>
 
-                <a class="nav-link" onclick="navigate('prontuario')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('prontuario')">
                     <span class="nav-emoji">🩺</span><span class="nav-text">Prontuário SOAP</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('pendencias-clinicas')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('pendencias-clinicas')">
                     <span class="nav-emoji">🧭</span><span class="nav-text">Pendências Clínicas</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('visita-domiciliar-aps')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('visita-domiciliar-aps')">
                     <span class="nav-emoji">🏠</span><span class="nav-text">Visita Domiciliar</span>
                 </a>
 
                 <div class="sidebar-section-title">Inteligência APS</div>
-<a class="nav-link" onclick="navigate('motor-cognitivo-aps')">
+<a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-cognitivo-aps')">
                     <span class="nav-emoji">🧠</span><span class="nav-text">Motor Cognitivo APS</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('motor-regras-aps')">
+                <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-regras-aps')">
                     <span class="nav-emoji">⚙️</span><span class="nav-text">Motor de Regras APS</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('territorio-inteligente')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('territorio-inteligente')">
                     <span class="nav-emoji">🌎</span><span class="nav-text">Território Inteligente</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('agenda-inteligente-aps')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('agenda-inteligente-aps')">
                     <span class="nav-emoji">🗓️</span><span class="nav-text">Agenda Inteligente APS</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('motor-predicao-aps')">
+                <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="sim" onclick="navigate('motor-predicao-aps')">
                     <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('central-prioridades-aps')">
                     <span class="nav-emoji">🚨</span><span class="nav-text">Central de Prioridades</span>
                 </a>
-                <a class="nav-link" onclick="navigate('torre-controle-aps')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('torre-controle-aps')">
                     <span class="nav-emoji">🏢</span><span class="nav-text">Torre APS 2.0</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('sala-situacao-aps')">
+                <a class="nav-link" data-perfil-bloqueado="recepcao" data-clinico-sensivel="sim" onclick="navigate('sala-situacao-aps')">
                     <span class="nav-emoji">🏢</span><span class="nav-text">Sala de Situação</span>
                 </a>
 
                 <div class="sidebar-section-title">Logística</div>
 
-                <a class="nav-link" onclick="navigate('estoque')">
+                <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="nao" onclick="navigate('estoque')">
                     <span class="nav-emoji">📦</span><span class="nav-text">Estoque / Materiais</span>
                 </a>
 
-                <a class="nav-link" onclick="abrirModuloSolicitacoesMateriais()">
+                <a class="nav-link" data-perfil-bloqueado="" data-clinico-sensivel="nao" onclick="abrirModuloSolicitacoesMateriais()">
                     <span class="nav-emoji">📋</span><span class="nav-text">Solicitar Material</span>
                 </a>
 
-                <a class="nav-link" onclick="navigate('auditoria-estoque')">
+                <a class="nav-link" data-perfil-bloqueado="assistencial recepcao" data-clinico-sensivel="nao" onclick="navigate('auditoria-estoque')">
                     <span class="nav-emoji">🧾</span><span class="nav-text">Auditoria de Estoque</span>
                 </a>
 
@@ -743,8 +780,8 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                         class="alert-badge topbar-alert"
                         data-copiloto-topbar="true"
                         onclick="abrirCopilotoAPS()"
-                        title="Copiloto Executivo APS">
-                        🧠 <span id="contadorCopilotoTopbar">0</span>
+                        title="Cérebro APS">
+                        🧠
                     </button>
 
                     <div class="usuario-avatar">
@@ -753,7 +790,17 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
                     <div class="usuario-info">
                         <span id="nomeUsuarioLogado">Usuário</span>
-                        <span id="cargoUsuarioLogado">Perfil</span>
+                        <span id="cargoUsuarioLogado">Coordenador/Gestor</span>
+
+                        <select
+                            id="seletorPerfilVisualAPS"
+                            class="seletor-perfil-aps"
+                            onchange="trocarPerfilVisualAPS(this.value)"
+                            title="Alternar perfil de visualização">
+                            <option value="coordenador">Coordenador/Gestor</option>
+                            <option value="assistencial">Assistencial</option>
+                            <option value="recepcao">Recepção</option>
+                        </select>
                     </div>
 
                     <button
@@ -6475,6 +6522,224 @@ window.abrirCentralAvisosPendenciasAPS = abrirCentralAvisosPendenciasAPS;
 window.fecharCentralAvisosPendenciasAPS = fecharCentralAvisosPendenciasAPS;
 window.carregarCentralAvisosPendenciasAPS = carregarCentralAvisosPendenciasAPS;
 window.abrirBaseTerritorialPorPendenciaAPS = abrirBaseTerritorialPorPendenciaAPS;
+</script>
+
+
+<script id="controlePerfisAPS">
+/* ==========================================================
+   PERFIS APS
+   coordenador: acesso total e pode alternar visualização.
+   assistencial: sem estoque, motores cognitivo/regras/predição.
+   recepcao: sem dados clínicos.
+   ========================================================== */
+
+window.perfilRealUsuarioAPS =
+    window.perfilRealUsuarioAPS ||
+    localStorage.getItem("perfilRealUsuarioAPS") ||
+    "coordenador";
+
+window.perfilVisualUsuarioAPS =
+    window.perfilVisualUsuarioAPS ||
+    localStorage.getItem("perfilVisualUsuarioAPS") ||
+    window.perfilRealUsuarioAPS;
+
+function normalizarPerfilAPS(perfil) {
+    const p =
+        String(perfil || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
+    if (
+        p.includes("admin") ||
+        p.includes("coord") ||
+        p.includes("gestor")
+    ) {
+        return "coordenador";
+    }
+
+    if (
+        p.includes("recep") ||
+        p.includes("administrativo")
+    ) {
+        return "recepcao";
+    }
+
+    if (
+        p.includes("assist") ||
+        p.includes("clinico") ||
+        p.includes("enferm")
+    ) {
+        return "assistencial";
+    }
+
+    return "assistencial";
+}
+
+function rotuloPerfilAPS(perfil) {
+    const p =
+        normalizarPerfilAPS(perfil);
+
+    if (p === "coordenador") return "Coordenador/Gestor";
+    if (p === "recepcao") return "Recepção";
+    return "Assistencial";
+}
+
+function aplicarPerfilVisualAPS(perfil) {
+    const perfilNormalizado =
+        normalizarPerfilAPS(perfil);
+
+    document.body.classList.remove(
+        "perfil-coordenador",
+        "perfil-assistencial",
+        "perfil-recepcao"
+    );
+
+    document.body.classList.add(
+        `perfil-${perfilNormalizado}`
+    );
+
+    window.perfilVisualUsuarioAPS =
+        perfilNormalizado;
+
+    localStorage.setItem(
+        "perfilVisualUsuarioAPS",
+        perfilNormalizado
+    );
+
+    const cargo =
+        document.getElementById("cargoUsuarioLogado");
+
+    if (cargo) {
+        cargo.innerText =
+            rotuloPerfilAPS(perfilNormalizado);
+    }
+
+    const seletor =
+        document.getElementById("seletorPerfilVisualAPS");
+
+    if (seletor) {
+        seletor.value =
+            perfilNormalizado;
+
+        seletor.style.display =
+            normalizarPerfilAPS(window.perfilRealUsuarioAPS) === "coordenador"
+                ? ""
+                : "none";
+    }
+}
+
+function trocarPerfilVisualAPS(perfil) {
+    if (
+        normalizarPerfilAPS(window.perfilRealUsuarioAPS) !==
+        "coordenador"
+    ) {
+        aplicarPerfilVisualAPS(window.perfilRealUsuarioAPS);
+        return;
+    }
+
+    aplicarPerfilVisualAPS(perfil);
+}
+
+function configurarPerfilUsuarioAPS(perfil) {
+    const perfilNormalizado =
+        normalizarPerfilAPS(perfil);
+
+    window.perfilRealUsuarioAPS =
+        perfilNormalizado;
+
+    localStorage.setItem(
+        "perfilRealUsuarioAPS",
+        perfilNormalizado
+    );
+
+    if (perfilNormalizado !== "coordenador") {
+        aplicarPerfilVisualAPS(perfilNormalizado);
+        return;
+    }
+
+    aplicarPerfilVisualAPS(
+        localStorage.getItem("perfilVisualUsuarioAPS") ||
+        "coordenador"
+    );
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+        const cargoAtual =
+            document.getElementById("cargoUsuarioLogado")?.innerText ||
+            localStorage.getItem("perfilRealUsuarioAPS") ||
+            "coordenador";
+
+        configurarPerfilUsuarioAPS(cargoAtual);
+    }, 800);
+});
+
+window.aplicarPerfilVisualAPS = aplicarPerfilVisualAPS;
+window.trocarPerfilVisualAPS = trocarPerfilVisualAPS;
+window.configurarPerfilUsuarioAPS = configurarPerfilUsuarioAPS;
+window.normalizarPerfilAPS = normalizarPerfilAPS;
+</script>
+
+
+<script id="guardNavigatePerfisAPS">
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+        if (
+            typeof window.navigate === "function" &&
+            !window.navigate.__perfilAPSGuard
+        ) {
+            const navigateOriginalPerfilAPS =
+                window.navigate;
+
+            const bloqueios = {
+                assistencial: [
+                    "estoque",
+                    "auditoria-estoque",
+                    "motor-cognitivo-aps",
+                    "motor-regras-aps",
+                    "motor-predicao-aps"
+                ],
+                recepcao: [
+                    "prontuario",
+                    "pendencias-clinicas",
+                    "visita-domiciliar-aps",
+                    "territorio-inteligente",
+                    "agenda-inteligente-aps",
+                    "motor-cognitivo-aps",
+                    "motor-regras-aps",
+                    "motor-predicao-aps",
+                    "torre-controle-aps",
+                    "sala-situacao-aps",
+                    "estoque",
+                    "auditoria-estoque"
+                ]
+            };
+
+            window.navigate = function (view) {
+                const perfil =
+                    normalizarPerfilAPS(
+                        window.perfilVisualUsuarioAPS ||
+                        window.perfilRealUsuarioAPS
+                    );
+
+                if (
+                    bloqueios[perfil] &&
+                    bloqueios[perfil].includes(view)
+                ) {
+                    mostrarToast?.("Acesso restrito para este perfil.");
+                    alert("Acesso restrito para este perfil.");
+                    return;
+                }
+
+                return navigateOriginalPerfilAPS(view);
+            };
+
+            window.navigate.__perfilAPSGuard = true;
+        }
+    }, 1000);
+});
 </script>
 
 </body>
