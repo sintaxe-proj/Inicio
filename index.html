@@ -198,6 +198,35 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
+<style id="cssAgendaInteligenteAPS">
+/* ==========================================================
+   AGENDA INTELIGENTE APS — SCORE TERRITORIAL GLOBAL
+   ========================================================== */
+
+#view-agenda-inteligente-aps .table-sintaxe small {
+    display:block;
+    color:var(--text-muted);
+    margin-top:3px;
+}
+
+#view-agenda-inteligente-aps .dash-card {
+    cursor:default;
+}
+
+.agenda-aps-alerta-ia {
+    border-left:6px solid var(--primary);
+}
+
+.agenda-aps-resumo-ia {
+    white-space:pre-line;
+    background:rgba(124,58,237,.08);
+    border:1px solid rgba(124,58,237,.25);
+    border-radius:14px;
+    padding:16px;
+    color:var(--text-main);
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -285,6 +314,10 @@ body.login-ativo #painelDiscagemContainer {
 
                 <a class="nav-link" onclick="abrirCopilotoAPS()">
                     <span class="nav-emoji">🧠</span><span class="nav-text">Copiloto APS</span>
+                </a>
+
+                <a class="nav-link" onclick="navigate('agenda-inteligente-aps')">
+                    <span class="nav-emoji">🗓️</span><span class="nav-text">Agenda Inteligente APS</span>
                 </a>
 
                 <a class="nav-link" onclick="navigate('motor-predicao-aps')">
@@ -509,6 +542,16 @@ body.login-ativo #painelDiscagemContainer {
                         </div>
                     </div>
 
+                    <div class="dash-card dashboard-kpi-card" onclick="navigate('agenda-inteligente-aps')">
+                        <div class="dash-icon icon-cyan">🗓️</div>
+                        <div>
+                            <span class="card-label">Agenda APS</span>
+                            <h3 id="dashInicialAgendaAPS">0</h3>
+                            <p>Ações priorizadas para hoje</p>
+                            <span class="card-trend">Score Territorial Global</span>
+                        </div>
+                    </div>
+
                     <div class="dash-card dashboard-kpi-card" onclick="navigate('motor-predicao-aps')">
                         <div class="dash-icon icon-purple">🔮</div>
                         <div>
@@ -559,6 +602,24 @@ body.login-ativo #painelDiscagemContainer {
                         <div id="dashInicialRecomendacoesIA">
                             <p style="color:var(--text-muted);">
                                 Abra o Motor de Predição APS para gerar recomendações.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-header-row">
+                            <div>
+                                <h3>🗓️ Agenda Inteligente APS</h3>
+                                <p>Busca ativa, visitas e consultas priorizadas pelo Score Territorial Global.</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" onclick="navigate('agenda-inteligente-aps')">
+                                Ver agenda
+                            </button>
+                        </div>
+
+                        <div id="dashInicialAgendaResumoAPS">
+                            <p style="color:var(--text-muted);">
+                                Abra a Agenda Inteligente APS para gerar a agenda do dia.
                             </p>
                         </div>
                     </div>
@@ -672,6 +733,14 @@ body.login-ativo #painelDiscagemContainer {
                         <div>
                             <strong>Solicitar material</strong>
                             <small>Nova solicitação</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-cyan" onclick="navigate('agenda-inteligente-aps')">
+                        <div style="font-size:24px;">🗓️</div>
+                        <div>
+                            <strong>Agenda APS</strong>
+                            <small>Gerar fila do dia</small>
                         </div>
                     </div>
 
@@ -3992,10 +4061,11 @@ body.login-ativo #painelDiscagemContainer {
 <script src="./js/pendenciasClinicas.js"></script>
 <script src="./js/linhaTempoTerritorial.js"></script>
 <script src="./js/georreferenciamento2.js"></script>
-<script src="./js/torreControleAPS.js"></script>
-<script src="./js/salaSituacaoAPS.js"></script>
 <script src="./js/dashboardInicial.js"></script>
 <script src="./js/territorioInteligente.js"></script>
+<script src="./js/torreControleAPS.js"></script>
+<script src="./js/agendaInteligenteAps.js"></script>
+<script src="./js/salaSituacaoAPS.js"></script>
 <script src="./js/motorPredicaoAPS.js"></script>
 <script src="./js/copilotoAPS.js"></script>
 <script src="./js/centralPrioridadesAPS.js"></script>
@@ -4223,6 +4293,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </div>
 
+
+<script id="scriptAgendaTerritorioTorrePatches">
+(function () {
+    window.titulosViewsSintaxeHub = Object.assign({}, window.titulosViewsSintaxeHub || {}, {
+        "agenda-inteligente-aps": {
+            titulo: "Agenda Inteligente APS",
+            subtitulo: "Fila operacional priorizada pelo Score Territorial Global"
+        },
+        "torre-controle-aps": {
+            titulo: "Torre de Controle APS",
+            subtitulo: "Centro de comando executivo da APS"
+        },
+        "sala-situacao-aps": {
+            titulo: "Sala de Situação APS",
+            subtitulo: "Inteligência territorial integrada"
+        }
+    });
+
+    if (typeof window.atualizarTituloViewSintaxeHub !== "function") {
+        window.atualizarTituloViewSintaxeHub = function (view) {
+            var info = window.titulosViewsSintaxeHub?.[view];
+            var titulo = document.getElementById("tituloViewAtual");
+            var subtitulo = document.getElementById("subtituloViewAtual");
+
+            if (titulo && info?.titulo) titulo.innerText = info.titulo;
+            if (subtitulo && info?.subtitulo) subtitulo.innerText = info.subtitulo;
+        };
+    }
+
+    window.atualizarResumoAgendaDashboardInicial = async function () {
+        try {
+            if (typeof supabaseClient === "undefined") return;
+
+            var hoje = new Date().toISOString().slice(0, 10);
+            var resp = await supabaseClient
+                .from("agenda_aps")
+                .select("tipo,prioridade,data_sugerida")
+                .eq("data_sugerida", hoje);
+
+            if (resp.error) return;
+
+            var lista = resp.data || [];
+            var criticos = lista.filter(function (a) {
+                return String(a.prioridade || "").toUpperCase().includes("CRIT");
+            }).length;
+
+            if (typeof setTextoApp === "function") {
+                setTextoApp("dashInicialAgendaAPS", lista.length);
+            }
+
+            var box = document.getElementById("dashInicialAgendaResumoAPS");
+            if (box) {
+                var buscas = lista.filter(function (a) { return a.tipo === "BUSCA_ATIVA"; }).length;
+                var visitas = lista.filter(function (a) { return a.tipo === "VISITA_DOMICILIAR"; }).length;
+                var gestantes = lista.filter(function (a) { return a.tipo === "PRE_NATAL"; }).length;
+
+                box.innerHTML = 
+                    '<div class="dashboard-list">' +
+                        '<div class="dashboard-list-item"><div><strong>🚨 Casos críticos</strong><small>Prioridade territorial para hoje</small></div><span class="status-badge status-danger">' + criticos + '</span></div>' +
+                        '<div class="dashboard-list-item"><div><strong>📞 Busca ativa</strong><small>Contatos programados</small></div><span class="status-badge status-info">' + buscas + '</span></div>' +
+                        '<div class="dashboard-list-item"><div><strong>🏠 Visitas domiciliares</strong><small>Prioridade ACS/enfermagem</small></div><span class="status-badge status-warning">' + visitas + '</span></div>' +
+                        '<div class="dashboard-list-item"><div><strong>🤰 Gestantes</strong><small>Pré-natal priorizado</small></div><span class="status-badge status-warning">' + gestantes + '</span></div>' +
+                    '</div>';
+            }
+        } catch (erro) {
+            console.warn("Resumo Agenda APS dashboard:", erro);
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(function () {
+            if (typeof window.atualizarResumoAgendaDashboardInicial === "function") {
+                window.atualizarResumoAgendaDashboardInicial();
+            }
+        }, 1200);
+    });
+})();
+</script>
 
 <script id="scriptLoginOcultaFlutuantes">
 (function () {
