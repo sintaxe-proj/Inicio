@@ -76,7 +76,6 @@
 }
 </style>
 
-
 <style id="cssMotorPredicaoDashboard">
 #dashInicialRecomendacoesIA .dashboard-list-item,
 #dashInicialGemeoDigital .dashboard-list-item {
@@ -87,7 +86,6 @@
     overflow-x: auto;
 }
 </style>
-
 
 <style id="cssBotoesFlutuantesSafeArea">
 /* ==========================================================
@@ -149,7 +147,6 @@
 }
 </style>
 
-
 <style id="cssLoginOcultaFlutuantes">
 /* ==========================================================
    LOGIN — OCULTAR BOTÕES FLUTUANTES
@@ -168,7 +165,6 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
-
 <style id="cssTorreControleAPS2">
 #view-torre-controle-aps .table-sintaxe small {
     display:block;
@@ -180,7 +176,6 @@ body.login-ativo #painelDiscagemContainer {
     cursor:default;
 }
 </style>
-
 
 <style id="cssVisitaDomiciliarAPS">
 #view-visita-domiciliar-aps label {
@@ -227,8 +222,6 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
-
-
 <style id="cssCIPEMotorCognitivoAPS">
 /* ==========================================================
    CIPE + MOTOR COGNITIVO APS
@@ -273,8 +266,6 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
-
-
 <style id="cssCentralOperacoesAPS4">
 /* ==========================================================
    CENTRAL DE OPERAÇÕES APS 4.0
@@ -293,7 +284,6 @@ body.login-ativo #painelDiscagemContainer {
     border-left:6px solid var(--primary);
 }
 </style>
-
 
 <style id="cssCuidaSOAPIntegrado">
 /* ==========================================================
@@ -364,7 +354,6 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
-
 <style id="cssLinhaVidaTerritorialProntuario">
 /* ==========================================================
    LINHA DA VIDA TERRITORIAL — DENTRO DO PRONTUÁRIO
@@ -399,7 +388,6 @@ body.login-ativo #painelDiscagemContainer {
 }
 </style>
 
-
 <style id="cssCopilotoSemFlutuanteTopbar">
 /* ==========================================================
    COPILOTO APS — SEM BOTÃO FLUTUANTE
@@ -424,7 +412,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     text-align: center;
 }
 </style>
-
 
 <style id="cssBaseTerritorialOperacionalUnificada">
 #blocoFiltrosOperacionaisBaseTerritorial {
@@ -453,6 +440,45 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     .quick-actions-dashboard-top {
         grid-template-columns: 1fr;
     }
+}
+</style>
+
+<style id="cssTopbarBuscaBrancaDashboardLimpo">
+/* Busca global branca na TopBar */
+.topbar .global-search-wrapper {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, .14) !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .12);
+}
+
+.topbar .global-search-wrapper input,
+#buscaGlobalPaciente {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+.topbar .global-search-wrapper input::placeholder,
+#buscaGlobalPaciente::placeholder {
+    color: #64748b !important;
+}
+
+.topbar .global-search-icon,
+.topbar .global-search-shortcut {
+    color: #334155 !important;
+}
+
+.global-search-results {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, .14) !important;
+}
+
+.global-search-item {
+    color: #0f172a !important;
+}
+
+.global-search-item small {
+    color: #475569 !important;
 }
 </style>
 
@@ -551,8 +577,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                 <a class="nav-link" onclick="navigate('motor-predicao-aps')">
                     <span class="nav-emoji">🔮</span><span class="nav-text">Motor de Predição</span>
                 </a>
-
-
 
                 <a class="nav-link" onclick="navigate('central-prioridades-aps')">
                     <span class="nav-emoji">🚨</span><span class="nav-text">Central de Prioridades</span>
@@ -720,49 +744,25 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                     </div>
 
                     <div class="button-row">
-                        <button class="btn-primary" onclick="carregarDashboardInicialSintaxeHub?.(); carregarMotorPredicaoAPS?.(); carregarMotorCognitivoAPSView?.();">
-                            🔄 Atualizar Dashboard
+                        <button class="btn-primary" onclick="navigate('visita-domiciliar-aps')">
+                            🏠 Visita Domiciliar
                         </button>
 
-                        <button class="btn-info" onclick="abrirCopilotoAPS()">
-                            🧠 Abrir Copiloto APS
+                        <button class="btn-info" onclick="navigate('prontuario')">
+                            🩺 Novo Atendimento
                         </button>
                     </div>
                 </div>
 
 <div class="quick-actions quick-actions-dashboard-top">
 
-                    <div class="quick-action-card quick-action-blue" onclick="focarBuscaGlobalSintaxeHub()">
-                        <div style="font-size:24px;">🔎</div>
-                        <div>
-                            <strong>Buscar cidadão</strong>
-                            <small>Localizar por CPF ou CNS</small>
-                        </div>
-                    </div>
+                    
 
-                    <div class="quick-action-card quick-action-green" onclick="navigate('prontuario')">
-                        <div style="font-size:24px;">🩺</div>
-                        <div>
-                            <strong>Novo atendimento</strong>
-                            <small>Abrir prontuário SOAP</small>
-                        </div>
-                    </div>
+                    
 
-                    <div class="quick-action-card quick-action-blue" onclick="navigate('visita-domiciliar-aps')">
-                        <div style="font-size:24px;">🏠</div>
-                        <div>
-                            <strong>Visita domiciliar</strong>
-                            <small>EVFAM e vulnerabilidade</small>
-                        </div>
-                    </div>
+                    
 
-                    <div class="quick-action-card quick-action-purple" onclick="abrirCopilotoAPS()">
-                        <div style="font-size:24px;">🧠</div>
-                        <div>
-                            <strong>Copiloto APS</strong>
-                            <small>Perguntar ao sistema</small>
-                        </div>
-                    </div>
+                    
 
                     <div class="quick-action-card quick-action-purple" onclick="navigate('motor-cognitivo-aps')">
                         <div style="font-size:24px;">🧠</div>
@@ -883,7 +883,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
                 <div class="dashboard-grid dashboard-hero-grid">
 
@@ -1150,7 +1149,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                 </div>
 
                 
-
 
             </div>
 
@@ -1467,7 +1465,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                         <textarea id="soapSubjetivo" rows="3" placeholder="Paciente relata..."></textarea>
                     </div>
 
-
                     <div class="cuida-soap-bloco" id="blocoCuidaHistoricoSOAP">
                         <h4>🧾 Histórico ampliado — Cuida</h4>
                         <small>
@@ -1613,7 +1610,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                             </button>
                         </div>
                     </div>
-
 
                     <label style="color: var(--primary-neon); margin-bottom: 12px; font-size:14px; text-transform:uppercase;">
     O - Objetivo: Triagem de Sinais Vitais (SSVV)
@@ -1789,7 +1785,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                     </div>
                 </div>
             </div>
-
 
 <!-- ======================================================
      MODAL — ANAMNESE DE GORDON ESTRUTURADA
@@ -2160,7 +2155,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 </div>
 
-
 <div id="view-banco" class="view">
 
     <div class="page-header">
@@ -2333,7 +2327,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
             📋 Cidadãos monitorados
         </h3>
 
-
 <div class="form-section" id="blocoFiltrosOperacionaisBaseTerritorial">
     <h3 style="margin-top:0;">🧭 Filtros Operacionais APS</h3>
     <p style="color:var(--text-muted); margin-top:-4px;">
@@ -2406,10 +2399,8 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
             </select>
         </div>
 
-
     </div>
 </div>
-
 
         <div
             id="tabelaBancoContainer"
@@ -2571,7 +2562,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
         </div>
     </div>
 </div>
-
 
 <div id="view-mapa-territorial" class="view">
 
@@ -2739,8 +2729,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
-
 
 <div id="view-georreferenciamento" class="view">
 
@@ -2925,11 +2913,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
-
-
-
-
 
 <div id="view-central-prioridades-aps" class="view">
     <div class="page-header">
@@ -3283,7 +3266,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
         </div>
 
-
         <div class="form-grid">
             <div>
                 <label>Data</label>
@@ -3536,8 +3518,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 </div>
 
-
-
 <div id="view-auditoria-estoque" class="view">
 
     <div class="page-header">
@@ -3676,7 +3656,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
             
 <div id="view-relatorios" class="view">
@@ -3837,8 +3816,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
 </div>
 
-
-
 <div id="view-gestor-executivo" class="view">
 
     <div class="page-header">
@@ -3907,7 +3884,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
 <div id="view-pendencias-clinicas" class="view">
 
@@ -4093,7 +4069,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
 <div id="view-territorio-inteligente" class="view">
 
@@ -4326,7 +4301,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
 </div>
 
-
 <div id="view-motor-predicao-aps" class="view">
 
     <div class="page-header">
@@ -4368,7 +4342,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
 <div id="view-sala-situacao-aps" class="view">
 
@@ -4587,7 +4560,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
 </div>
 
-
 <div id="view-config" class="view">
                 <div class="form-section">
                     <h3 style="margin-top:0; color:var(--text-main);">⚡ Painel Avançado de Interoperabilidade e Testes</h3>
@@ -4702,7 +4674,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
 </div>
 
-
 <!-- ======================================================
      MODAL — REGISTRO DE INTERAÇÃO CENTRAL APS
      ====================================================== -->
@@ -4780,7 +4751,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 
 </div>
-
 
 <!-- ==========================================================
      📦 MODAL DE SOLICITAÇÃO DE MATERIAIS / FARMÁCIA
@@ -4982,7 +4952,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     </div>
 </div>
 
-
     <button class="btn-flutuante-discador" onclick="alternarCentralDiscagem()" title="Abrir Central Operacional de Contatos">📞</button>
 
     <div id="painelDiscagemContainer">
@@ -5060,8 +5029,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
     console.log("✅ Supabase conectado.");
 </script>
 
-
-
 <div id="view-central-operacoes-aps" class="view">
 
     <div class="page-header">
@@ -5117,7 +5084,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 <!-- Módulos SintaxeHub — ordem corrigida -->
 <script src="./js/utils.js"></script>
 
-
 <script src="./js/dashboard.js"></script>
 <script src="./js/riscoClinico.js"></script>
 <script src="./js/soap.js"></script>
@@ -5151,8 +5117,6 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 <script src="./js/centralPrioridadesAPS.js"></script>
 <script src="./js/visitaDomiciliarAPS.js"></script>
 <script src="./js/motorRegrasAPS.js"></script>
-
-
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -5200,7 +5164,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const originalNavigateCentralAPS =
@@ -5225,7 +5188,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 </script>
-
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -5252,7 +5214,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const originalNavigateGeo =
@@ -5277,7 +5238,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 </script>
-
 
 <!-- ======================================================
      COPILOTO APS — INTERFACE
@@ -5387,7 +5347,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </div>
 
-
 <script id="scriptAgendaTerritorioTorrePatches">
 (function () {
     window.titulosViewsSintaxeHub = Object.assign({}, window.titulosViewsSintaxeHub || {}, {
@@ -5469,8 +5428,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 })();
 </script>
-
-
 
 <script id="scriptCIPEMotorCognitivoAPS">
 (function () {
@@ -5643,8 +5600,6 @@ document.addEventListener("DOMContentLoaded", () => {
 })();
 </script>
 
-
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const originalNavigateTerritorio = window.navigate;
@@ -5696,7 +5651,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 </script>
-
 
 <script id="scriptCuidaSOAPGordonAPS">
 (function () {
@@ -5913,7 +5867,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
-
 <script id="compatFiltroEVFAMBaseTerritorial">
 /* Complemento do filtro de Pontuação EVFAM na Base Territorial */
 (function () {
@@ -5951,6 +5904,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     };
 })();
+</script>
+
+<script id="autoAtualizarDashboardSintaxeHub">
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+        if (typeof carregarDashboardInicialSintaxeHub === "function") {
+            carregarDashboardInicialSintaxeHub();
+        }
+    }, 1200);
+});
 </script>
 
 </body>
