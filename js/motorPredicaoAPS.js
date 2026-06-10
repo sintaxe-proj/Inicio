@@ -1058,12 +1058,7 @@ function escaparMotorAPS(valor) {
         .replace(/>/g, "&gt;");
 }
 
-if (
-    view === "motor-predicao-aps" &&
-    typeof carregarMotorPredicaoAPS === "function"
-) {
-    carregarMotorPredicaoAPS();
-}
+console.log("✅ Motor de Predição APS carregado com segurança.");
 
 /* ==========================================================
    GLOBAL
