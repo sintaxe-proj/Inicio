@@ -912,7 +912,7 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                         <div>
                             <span class="card-label">Pendentes</span>
                             <h3 id="dashInicialPendentes">0</h3>
-                            <p>Retornos / pendências</p>
+                            <p>Critérios que exigem ação</p>
                             <span class="card-trend trend-warning">Acompanhar</span>
                         </div>
                     </div>
@@ -2385,6 +2385,27 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                 <option value="EVFAM_ALTO">EVFAM alto (≥15)</option>
             </select>
         </div>
+
+        <div>
+            <label>Tipo de Pendência</label>
+            <select
+                id="filtroTipoPendenciaBase"
+                onchange="aplicarFiltrosBaseTerritorial()">
+
+                <option value="TODOS">Todos os tipos</option>
+                <option value="TODAS_PENDENCIAS">Todas as pendências</option>
+
+                <option value="HAS_SEM_PA">🩺 HAS sem PA</option>
+                <option value="DM_SEM_HBA1C">🍬 DM sem HbA1c</option>
+                <option value="GESTANTE_SEM_CONSULTA">🤰 Gestante sem consulta recente</option>
+                <option value="TB_SEM_ACOMPANHAMENTO">🫁 TB sem acompanhamento</option>
+                <option value="HANSEN_SEM_AVALIACAO">🖐️ Hanseníase sem avaliação</option>
+                <option value="RETORNO_VENCIDO">📅 Retorno vencido</option>
+                <option value="SEM_ATENDIMENTO_180">⏳ Sem atendimento &gt;180 dias</option>
+                <option value="EVFAM_ALTO">⚠️ EVFAM alto</option>
+            </select>
+        </div>
+
 
     </div>
 </div>
