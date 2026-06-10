@@ -603,40 +603,59 @@ function calcularDadosTorreControleAPS(base, filtros) {
     const solicitacoes =
         torreControleAPSAtual.solicitacoes || [];
 
+    const baseOrdenada =
+        [...(base || [])].sort((a, b) =>
+            Number(b.score_territorial_global || 0) - Number(a.score_territorial_global || 0) ||
+            Number(b.predicao?.score || 0) - Number(a.predicao?.score || 0) ||
+            (b.pendencias || []).length - (a.pendencias || []).length
+        );
+
     const criticos =
-        base.filter(p =>
-            Number(p.prazo) === 0 ||
-            normalizarTorreAPS(p.risco_global).includes("alto") ||
-            Number(p.risco_pontos || 0) >= 6 ||
-            p.predicao.score >= 10
+        baseOrdenada.filter(p =>
+            Number(p.score_territorial_global || 0) >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase() === "CRITICO"
+        );
+
+    const altos =
+        baseOrdenada.filter(p =>
+            Number(p.score_territorial_global || 0) >= 65 &&
+            Number(p.score_territorial_global || 0) < 85
+        );
+
+    const moderados =
+        baseOrdenada.filter(p =>
+            Number(p.score_territorial_global || 0) >= 40 &&
+            Number(p.score_territorial_global || 0) < 65
+        );
+
+    const baixos =
+        baseOrdenada.filter(p =>
+            Number(p.score_territorial_global || 0) < 40
         );
 
     const pendencias =
-        base.reduce(
+        baseOrdenada.reduce(
             (total, p) => total + (p.pendencias?.length || 0),
             0
         );
 
     const pacientesPrioritarios =
-        base
+        baseOrdenada
             .filter(p =>
-                p.predicao.score >= 6 ||
+                Number(p.score_territorial_global || 0) >= 40 ||
+                Number(p.predicao?.score || 0) >= 6 ||
                 Number(p.prazo) === 0 ||
                 (p.pendencias?.length || 0) > 0
-            )
-            .sort((a, b) =>
-                b.predicao.score - a.predicao.score ||
-                (b.pendencias?.length || 0) - (a.pendencias?.length || 0)
             )
             .slice(0, 50);
 
     const hotspots =
-        calcularHotspotsTorreAPS(base);
+        calcularHotspotsTorreAPS(baseOrdenada);
 
     const busca =
         calcularBuscaAtivaTorreAPS(
             interacoes,
-            base
+            baseOrdenada
         );
 
     const eventosColetivos =
@@ -663,11 +682,11 @@ function calcularDadosTorreControleAPS(base, filtros) {
         );
 
     const estratificacao =
-        calcularEstratificacaoTerritorialTorreAPS(base);
+        calcularEstratificacaoTerritorialTorreAPS(baseOrdenada);
 
     return {
         filtros,
-        base,
+        base: baseOrdenada,
         atendimentos,
         interacoes,
         reunioes,
@@ -675,13 +694,16 @@ function calcularDadosTorreControleAPS(base, filtros) {
         estoque,
         solicitacoes,
 
-        populacao: base.length,
-        has: base.filter(p => valorSimTorreAPS(p.has)).length,
-        dm: base.filter(p => valorSimTorreAPS(p.dm)).length,
-        gestantes: base.filter(p => valorSimTorreAPS(p.gestante)).length,
-        tb: base.filter(p => valorSimTorreAPS(p.tb)).length,
-        hansen: base.filter(p => valorSimTorreAPS(p.hansen)).length,
+        populacao: baseOrdenada.length,
+        has: baseOrdenada.filter(p => valorSimTorreAPS(p.has)).length,
+        dm: baseOrdenada.filter(p => valorSimTorreAPS(p.dm)).length,
+        gestantes: baseOrdenada.filter(p => valorSimTorreAPS(p.gestante)).length,
+        tb: baseOrdenada.filter(p => valorSimTorreAPS(p.tb)).length,
+        hansen: baseOrdenada.filter(p => valorSimTorreAPS(p.hansen)).length,
         criticos: criticos.length,
+        altos: altos.length,
+        moderados: moderados.length,
+        baixos: baixos.length,
         pendencias,
 
         pacientesPrioritarios,
@@ -696,6 +718,7 @@ function calcularDadosTorreControleAPS(base, filtros) {
         territorioInteligente: torreControleAPSAtual.territorioInteligente || []
     };
 }
+
 
 function filtrarListaPorEquipeUBSTorreAPS(lista, filtros) {
     return (lista || []).filter(item => {
@@ -1739,7 +1762,7 @@ function renderizarEstoqueAlertasTorreAPS(dados) {
 function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
     return `
         <div class="form-section">
-            <h3 style="margin-top:0;">🚨 Pacientes Prioritários</h3>
+            <h3 style="margin-top:0;">🧠 Ranking Territorial APS</h3>
 
             ${
                 !lista.length
@@ -1748,17 +1771,22 @@ function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
                         <table class="table-sintaxe">
                             <thead>
                                 <tr>
+                                    <th>Ordem</th>
                                     <th>Paciente</th>
                                     <th>Equipe</th>
-                                    <th>Predição</th>
+                                    <th>Score Global</th>
+                                    <th>Prioridade</th>
                                     <th>Pendências</th>
+                                    <th>Ação recomendada</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody>
-                                ${lista.map(p => `
+                                ${lista.map((p, index) => `
                                     <tr>
+                                        <td><strong>${p.ordem_fila || index + 1}</strong></td>
+
                                         <td>
                                             <strong>${escaparTorreAPS(p.nome || "Sem nome")}</strong>
                                             <small>CPF: ${escaparTorreAPS(p.cpf || "-")} | CNS: ${escaparTorreAPS(p.cns || "-")}</small>
@@ -1770,9 +1798,14 @@ function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
                                         </td>
 
                                         <td>
-                                            <strong>${p.predicao.score}</strong>
-                                            <small>${escaparTorreAPS(p.predicao.classe)}</small>
-                                            <small>${escaparTorreAPS((p.predicao.fatores || []).join(", "))}</small>
+                                            <strong>${Number(p.score_territorial_global || 0)}</strong>
+                                            <small>Predição: ${Number(p.predicao?.score || 0)}</small>
+                                        </td>
+
+                                        <td>
+                                            <span class="status-badge ${classeBadgePrioridadeTorreAPS(p.nivel_prioridade)}">
+                                                ${rotuloPrioridadeTerritorialTorreAPS(p.nivel_prioridade)}
+                                            </span>
                                         </td>
 
                                         <td>
@@ -1783,6 +1816,10 @@ function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
                                                     ).join(" ")
                                                     : `<span style="color:var(--text-muted);">-</span>`
                                             }
+                                        </td>
+
+                                        <td>
+                                            <small>${escaparTorreAPS(p.acao_recomendada || p.recomendacao_ia || "Acompanhamento conforme rotina APS.")}</small>
                                         </td>
 
                                         <td>
@@ -1815,6 +1852,7 @@ function renderizarTabelaPacientesPrioritariosTorreAPS(lista) {
         </div>
     `;
 }
+
 
 /* ==========================================================
    PENDÊNCIAS
@@ -1874,38 +1912,96 @@ function enriquecerBaseComTerritorioInteligenteTorreAPS(base, territorioIntelige
     const mapaTI = new Map();
 
     (territorioInteligente || []).forEach(t => {
-        const chave =
-            limparDocumentoTorreAPS(t.cpf || "") ||
-            String(t.cns || "");
+        const chaveCpf =
+            limparDocumentoTorreAPS(t.cpf || "");
 
-        if (chave) {
-            mapaTI.set(chave, t);
-        }
+        const chaveCns =
+            String(t.cns || "").trim();
+
+        if (chaveCpf) mapaTI.set(chaveCpf, t);
+        if (chaveCns) mapaTI.set(chaveCns, t);
     });
 
     (base || []).forEach(p => {
-        const chave =
-            limparDocumentoTorreAPS(p.cpf || "") ||
-            String(p.cns || "");
+        const chaveCpf =
+            limparDocumentoTorreAPS(p.cpf || "");
+
+        const chaveCns =
+            String(p.cns || "").trim();
 
         const ti =
-            mapaTI.get(chave);
+            mapaTI.get(chaveCpf) ||
+            mapaTI.get(chaveCns);
 
-        if (!ti) return;
+        if (!ti) {
+            p.score_territorial_global = Number(p.score_territorial_global || 0);
+            p.nivel_prioridade = p.nivel_prioridade || classificarNivelPrioridadeTorreAPS(p.score_territorial_global);
+            p.acao_recomendada = p.acao_recomendada || "Acompanhamento conforme rotina da APS.";
+            p.ordem_fila = Number(p.ordem_fila || 0);
+            p.score_ia = Number(p.score_territorial_global || p.score_ia || 0);
+            return;
+        }
+
+        const scoreGlobal =
+            Number(
+                ti.score_territorial_global ??
+                ti.score_geral ??
+                0
+            );
 
         p.territorio_inteligente = ti;
-        p.score_ia = Number(ti.score_geral || 0);
-        p.prioridade_ia = ti.prioridade || "";
-        p.classe_ia = ti.classe_risco || "";
-        p.recomendacao_ia = ti.recomendacao_ia || "";
-        p.resumo_ia = ti.resumo_ia || "";
+
+        p.score_territorial_global =
+            scoreGlobal;
+
+        p.nivel_prioridade =
+            ti.nivel_prioridade ||
+            classificarNivelPrioridadeTorreAPS(scoreGlobal);
+
+        p.ordem_fila =
+            Number(ti.ordem_fila || 0);
+
+        p.acao_recomendada =
+            ti.acao_recomendada ||
+            ti.recomendacao_ia ||
+            gerarAcaoRecomendadaTorreAPS({
+                ...p,
+                score_territorial_global: scoreGlobal,
+                nivel_prioridade: ti.nivel_prioridade
+            });
+
+        // Compatibilidade com telas antigas da Torre APS.
+        p.score_ia =
+            scoreGlobal;
+
+        p.prioridade_ia =
+            p.nivel_prioridade;
+
+        p.classe_ia =
+            ti.classe_risco ||
+            p.nivel_prioridade ||
+            "";
+
+        p.recomendacao_ia =
+            p.acao_recomendada;
+
+        p.resumo_ia =
+            ti.resumo_ia ||
+            `${p.nome || "Paciente"}: Score Territorial Global ${scoreGlobal}, prioridade ${p.nivel_prioridade}.`;
 
         if (Array.isArray(ti.pendencias) && ti.pendencias.length) {
             p.pendencias =
                 [...new Set([...(p.pendencias || []), ...ti.pendencias])];
         }
     });
+
+    (base || []).sort((a, b) =>
+        Number(b.score_territorial_global || 0) - Number(a.score_territorial_global || 0) ||
+        Number(b.predicao?.score || 0) - Number(a.predicao?.score || 0) ||
+        (b.pendencias || []).length - (a.pendencias || []).length
+    );
 }
+
 
 /* ==========================================================
    CENTRO DE COMANDO
@@ -2158,22 +2254,115 @@ function renderizarRecomendacoesIATorreAPS(dados) {
    ========================================================== */
 
 function gerarAgendaInteligenteTorreAPS(base, territorioInteligente) {
-    return (base || [])
-        .filter(p =>
-            Number(p.score_ia || 0) >= 60 ||
-            p.prioridade_ia === "Crítica" ||
-            p.prioridade_ia === "Alta" ||
-            Number(p.predicao?.score || 0) >= 8 ||
-            Number(p.prazo) === 0 ||
-            (p.pendencias || []).length >= 2
-        )
-        .sort((a, b) =>
-            Number(b.score_ia || 0) - Number(a.score_ia || 0) ||
+    const hoje =
+        new Date().toISOString().slice(0, 10);
+
+    const agenda = [];
+
+    const baseOrdenada =
+        [...(base || [])].sort((a, b) =>
+            Number(b.score_territorial_global || 0) - Number(a.score_territorial_global || 0) ||
             Number(b.predicao?.score || 0) - Number(a.predicao?.score || 0) ||
             (b.pendencias || []).length - (a.pendencias || []).length
-        )
-        .slice(0, 16)
-        .map((p, index) => {
+        );
+
+    const adicionar = (p, tipo, prioridade, motivo, origem) => {
+        agenda.push({
+            paciente_cpf: p.cpf || "",
+            paciente_nome: p.nome || "Sem nome",
+            tipo,
+            prioridade,
+            data_sugerida: hoje,
+            motivo,
+            origem,
+            paciente: p
+        });
+    };
+
+    baseOrdenada.forEach(p => {
+        const score =
+            Number(p.score_territorial_global || 0);
+
+        const pendencias =
+            p.pendencias || [];
+
+        if (
+            score >= 85 ||
+            String(p.nivel_prioridade || "").toUpperCase() === "CRITICO"
+        ) {
+            adicionar(
+                p,
+                "VISITA_DOMICILIAR",
+                "CRITICA",
+                p.acao_recomendada || "Paciente com Score Territorial Global crítico.",
+                "SCORE_TERRITORIAL_GLOBAL"
+            );
+        }
+
+        if (
+            score >= 65 ||
+            pendencias.length >= 2 ||
+            Number(p.prazo) === 0
+        ) {
+            adicionar(
+                p,
+                "BUSCA_ATIVA",
+                score >= 85 ? "CRITICA" : "ALTA",
+                pendencias.length ? pendencias.join(", ") : "Alta prioridade territorial.",
+                "TORRE_APS"
+            );
+        }
+
+        if (
+            valorSimTorreAPS(p.gestante) &&
+            (
+                score >= 40 ||
+                pendencias.some(x => normalizarTorreAPS(x).includes("gestante"))
+            )
+        ) {
+            adicionar(
+                p,
+                "PRE_NATAL",
+                score >= 65 ? "ALTA" : "MODERADA",
+                "Gestante com necessidade de acompanhamento prioritário.",
+                "LINHA_CUIDADO_GESTANTE"
+            );
+        }
+
+        if (
+            pendencias.some(x =>
+                normalizarTorreAPS(x).includes("vacina") ||
+                normalizarTorreAPS(x).includes("imunizacao") ||
+                normalizarTorreAPS(x).includes("imunização")
+            )
+        ) {
+            adicionar(
+                p,
+                "VACINACAO",
+                score >= 65 ? "ALTA" : "MODERADA",
+                "Pendência vacinal identificada.",
+                "PENDENCIAS_ASSISTENCIAIS"
+            );
+        }
+
+        if (
+            score >= 65 &&
+            !valorSimTorreAPS(p.gestante) &&
+            !pendencias.some(x => normalizarTorreAPS(x).includes("visita"))
+        ) {
+            adicionar(
+                p,
+                "CONSULTA",
+                score >= 85 ? "CRITICA" : "ALTA",
+                "Consulta prioritária por risco clínico-territorial.",
+                "SCORE_TERRITORIAL_GLOBAL"
+            );
+        }
+    });
+
+    return agenda
+        .slice(0, 40)
+        .map((item, index) => {
             const hora =
                 8 + Math.floor(index / 2);
 
@@ -2181,28 +2370,39 @@ function gerarAgendaInteligenteTorreAPS(base, territorioInteligente) {
                 index % 2 === 0 ? "00" : "30";
 
             return {
-                horario: `${String(hora).padStart(2, "0")}:${minuto}`,
-                paciente: p,
-                motivo:
-                    p.recomendacao_ia ||
-                    (p.pendencias || []).join(", ") ||
-                    p.predicao?.classe ||
-                    "Prioridade clínica/territorial"
+                ...item,
+                horario: `${String(hora).padStart(2, "0")}:${minuto}`
             };
         });
 }
+
 
 function renderizarAgendaInteligenteTorreAPS(dados) {
     const agenda =
         dados.agendaSugerida || [];
 
+    const buscaAtiva =
+        agenda.filter(a => a.tipo === "BUSCA_ATIVA").length;
+
+    const visitas =
+        agenda.filter(a => a.tipo === "VISITA_DOMICILIAR").length;
+
+    const consultas =
+        agenda.filter(a => a.tipo === "CONSULTA").length;
+
+    const gestantes =
+        agenda.filter(a => a.tipo === "PRE_NATAL").length;
+
+    const criticos =
+        agenda.filter(a => a.prioridade === "CRITICA").length;
+
     return `
         <div class="form-section">
             <div class="section-header">
                 <div>
-                    <h3 style="margin:0;">📅 Agenda Inteligente APS do Dia</h3>
+                    <h3 style="margin:0;">🗓 Agenda Inteligente APS</h3>
                     <p style="color:var(--text-muted); margin:6px 0 0 0;">
-                        Sugestão automática baseada em prioridade, score, pendências e risco territorial.
+                        Sugestão automática baseada no Score Territorial Global, EVFAM, pendências e linhas de cuidado.
                     </p>
                 </div>
 
@@ -2211,40 +2411,54 @@ function renderizarAgendaInteligenteTorreAPS(dados) {
                 </button>
             </div>
 
+            <div class="dashboard-grid">
+                ${cardTorreAPS("📞", buscaAtiva, "Busca Ativa Hoje", "icon-blue")}
+                ${cardTorreAPS("🏠", visitas, "Visitas Hoje", "icon-green")}
+                ${cardTorreAPS("🩺", consultas, "Consultas Prioritárias", "icon-purple")}
+                ${cardTorreAPS("🤰", gestantes, "Gestantes", "icon-yellow")}
+                ${cardTorreAPS("🚨", criticos, "Casos Críticos", "icon-red")}
+            </div>
+
             ${
                 agenda.length
                     ? `<table class="table-sintaxe">
                         <thead>
                             <tr>
                                 <th>Horário</th>
+                                <th>Tipo</th>
                                 <th>Paciente</th>
                                 <th>Equipe / UBS</th>
                                 <th>Prioridade</th>
+                                <th>Score</th>
                                 <th>Motivo</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${agenda.map(item => {
-                                const p = item.paciente;
+                                const p = item.paciente || {};
                                 return `
                                     <tr>
-                                        <td><strong>${item.horario}</strong></td>
+                                        <td><strong>${item.horario || "-"}</strong></td>
+                                        <td><strong>${formatarTipoAgendaTorreAPS(item.tipo)}</strong></td>
                                         <td>
-                                            <strong>${escaparTorreAPS(p.nome || "Sem nome")}</strong>
-                                            <small>CPF: ${escaparTorreAPS(p.cpf || "-")} | CNS: ${escaparTorreAPS(p.cns || "-")}</small>
+                                            <strong>${escaparTorreAPS(item.paciente_nome || p.nome || "Sem nome")}</strong>
+                                            <small>CPF: ${escaparTorreAPS(item.paciente_cpf || p.cpf || "-")} | CNS: ${escaparTorreAPS(p.cns || "-")}</small>
                                         </td>
                                         <td>
                                             ${escaparTorreAPS(p.equipe || "-")}
                                             <small>${escaparTorreAPS(p.ubs || "-")}</small>
                                         </td>
                                         <td>
-                                            <span class="status-badge status-warning">
-                                                ${escaparTorreAPS(p.prioridade_ia || p.predicao?.classe || "Prioridade")}
+                                            <span class="status-badge ${classeBadgePrioridadeTorreAPS(item.prioridade)}">
+                                                ${escaparTorreAPS(item.prioridade || p.nivel_prioridade || "Prioridade")}
                                             </span>
-                                            <small>Score IA: ${Number(p.score_ia || 0)}</small>
                                         </td>
-                                        <td><small>${escaparTorreAPS(item.motivo)}</small></td>
+                                        <td>
+                                            <strong>${Number(p.score_territorial_global || 0)}</strong>
+                                            <small>${escaparTorreAPS(p.nivel_prioridade || "")}</small>
+                                        </td>
+                                        <td><small>${escaparTorreAPS(item.motivo || "-")}</small></td>
                                         <td>
                                             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                                 <button class="btn-table-action btn-edit" onclick="abrirAtendimentoExistente('${escaparTorreAPS(p.cpf || "")}', '${escaparTorreAPS(p.cns || "")}')">
@@ -2266,6 +2480,7 @@ function renderizarAgendaInteligenteTorreAPS(dados) {
     `;
 }
 
+
 function copiarResumoExecutivoTorreAPS() {
     const dados =
         calcularDadosTorreControleAPS(
@@ -2273,17 +2488,33 @@ function copiarResumoExecutivoTorreAPS() {
             obterFiltrosTorreControleAPS()
         );
 
+    const agenda =
+        dados.agendaSugerida || [];
+
+    const visitas =
+        agenda.filter(a => a.tipo === "VISITA_DOMICILIAR").length;
+
+    const buscas =
+        agenda.filter(a => a.tipo === "BUSCA_ATIVA").length;
+
+    const gestantes =
+        agenda.filter(a => a.tipo === "PRE_NATAL").length;
+
     const texto =
         [
-            "Torre de Controle APS — Resumo Executivo",
+            "🧠 Bom dia.",
             "",
-            `População: ${dados.populacao}`,
-            `Críticos: ${dados.criticos}`,
-            `Pendências clínicas: ${dados.pendencias}`,
-            `Busca ativa sem contato: ${dados.busca.semContato}`,
-            `Materiais pendentes: ${dados.estoqueAlertas.pendentes}`,
+            "Existem:",
             "",
-            "Recomendações:",
+            `• ${dados.criticos} pacientes críticos`,
+            `• ${buscas} buscas ativas`,
+            `• ${visitas} visitas domiciliares prioritárias`,
+            `• ${gestantes} gestantes em acompanhamento prioritário`,
+            `• ${dados.pendencias} pendências clínicas`,
+            "",
+            "Deseja gerar a Agenda Inteligente APS?",
+            "",
+            "Recomendações executivas:",
             ...(dados.recomendacoesIA || []).map(r => `- ${r.titulo}: ${r.acao}`)
         ].join("\n");
 
@@ -2295,6 +2526,7 @@ function copiarResumoExecutivoTorreAPS() {
     }
 }
 
+
 function exportarAgendaInteligenteTorreAPSCSV() {
     const agenda =
         torreControleAPSAtual.agendaSugerida || [];
@@ -2305,22 +2537,25 @@ function exportarAgendaInteligenteTorreAPSCSV() {
     }
 
     const linhas = [
-        ["horario", "nome", "cpf", "cns", "equipe", "ubs", "prioridade", "score_ia", "motivo"]
+        ["horario", "data_sugerida", "tipo", "nome", "cpf", "cns", "equipe", "ubs", "prioridade", "score_territorial_global", "motivo", "origem"]
     ];
 
     agenda.forEach(item => {
         const p = item.paciente || {};
 
         linhas.push([
-            item.horario,
-            p.nome,
-            p.cpf,
-            p.cns,
-            p.equipe,
-            p.ubs,
-            p.prioridade_ia || p.predicao?.classe || "",
-            p.score_ia || 0,
-            item.motivo
+            item.horario || "",
+            item.data_sugerida || "",
+            item.tipo || "",
+            item.paciente_nome || p.nome || "",
+            item.paciente_cpf || p.cpf || "",
+            p.cns || "",
+            p.equipe || "",
+            p.ubs || "",
+            item.prioridade || p.nivel_prioridade || "",
+            p.score_territorial_global || 0,
+            item.motivo || "",
+            item.origem || ""
         ]);
     });
 
@@ -2352,6 +2587,7 @@ function exportarAgendaInteligenteTorreAPSCSV() {
 
     URL.revokeObjectURL(url);
 }
+
 
 
 /* ==========================================================
@@ -2463,6 +2699,69 @@ function exportarTorreControleAPSCSV() {
     a.click();
 
     URL.revokeObjectURL(url);
+}
+
+
+/* ==========================================================
+   SCORE TERRITORIAL GLOBAL — HELPERS DA TORRE APS
+   ========================================================== */
+
+function classificarNivelPrioridadeTorreAPS(score) {
+    const valor = Number(score || 0);
+
+    if (valor >= 85) return "CRITICO";
+    if (valor >= 65) return "ALTO";
+    if (valor >= 40) return "MODERADO";
+    return "BAIXO";
+}
+
+function gerarAcaoRecomendadaTorreAPS(p) {
+    const score = Number(p.score_territorial_global || 0);
+
+    if (score >= 85) {
+        return "Visita domiciliar prioritária, busca ativa hoje e discussão em reunião de equipe.";
+    }
+
+    if (score >= 65) {
+        return "Busca ativa e consulta prioritária com revisão das pendências assistenciais.";
+    }
+
+    if (score >= 40) {
+        return "Monitoramento programado pela equipe e atualização do plano de cuidado.";
+    }
+
+    return "Acompanhamento conforme rotina da APS.";
+}
+
+function rotuloPrioridadeTerritorialTorreAPS(prioridade) {
+    const p = String(prioridade || "").toUpperCase();
+
+    if (p === "CRITICO" || p === "CRITICA") return "🔴 CRÍTICO";
+    if (p === "ALTO" || p === "ALTA") return "🟠 ALTO";
+    if (p === "MODERADO" || p === "MODERADA") return "🟡 MODERADO";
+    return "🟢 BAIXO";
+}
+
+function classeBadgePrioridadeTorreAPS(prioridade) {
+    const p = String(prioridade || "").toUpperCase();
+
+    if (p === "CRITICO" || p === "CRITICA") return "status-danger";
+    if (p === "ALTO" || p === "ALTA") return "status-warning";
+    if (p === "MODERADO" || p === "MODERADA") return "status-info";
+    return "status-success";
+}
+
+function formatarTipoAgendaTorreAPS(tipo) {
+    const t = String(tipo || "").toUpperCase();
+
+    if (t === "BUSCA_ATIVA") return "📞 Busca ativa";
+    if (t === "VISITA_DOMICILIAR") return "🏠 Visita domiciliar";
+    if (t === "CONSULTA") return "🩺 Consulta";
+    if (t === "PRE_NATAL") return "🤰 Pré-natal";
+    if (t === "VACINACAO") return "💉 Vacinação";
+    if (t === "ENTREGA_MATERIAL") return "📦 Entrega de material";
+
+    return escaparTorreAPS(tipo || "Agenda");
 }
 
 /* ==========================================================
@@ -2602,3 +2901,5 @@ window.copiarResumoExecutivoTorreAPS = copiarResumoExecutivoTorreAPS;
 window.exportarAgendaInteligenteTorreAPSCSV = exportarAgendaInteligenteTorreAPSCSV;
 window.gerarAgendaInteligenteTorreAPS = gerarAgendaInteligenteTorreAPS;
 window.gerarRecomendacoesExecutivasTorreAPS = gerarRecomendacoesExecutivasTorreAPS;
+window.classificarNivelPrioridadeTorreAPS = classificarNivelPrioridadeTorreAPS;
+window.gerarAcaoRecomendadaTorreAPS = gerarAcaoRecomendadaTorreAPS;
