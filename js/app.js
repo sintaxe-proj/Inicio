@@ -128,6 +128,13 @@ function navigate(view) {
         ) {
             carregarHistoricoClinicoPaciente(cpf, cns);
         }
+
+        if (
+            (cpf || cns) &&
+            typeof carregarLinhaVidaTerritorialPaciente === "function"
+        ) {
+            carregarLinhaVidaTerritorialPaciente(cpf, cns);
+        }
     }
 
     if (
@@ -231,38 +238,6 @@ function navigate(view) {
     ) {
         carregarPendenciasClinicasAPS();
     }
-
-    if (
-        view === "linha-tempo-territorial" &&
-        typeof carregarLinhaTempoTerritorialAPS === "function"
-    ) {
-        const cpfLinhaTempo =
-            document.getElementById("linhaTempoCPF")?.value ||
-            document.getElementById("cpfPaciente")?.value ||
-            window.pacienteAtual?.cpf ||
-            window.pacienteSelecionado?.cpf ||
-            "";
-
-        const cnsLinhaTempo =
-            document.getElementById("linhaTempoCNS")?.value ||
-            document.getElementById("cnsPaciente")?.value ||
-            window.pacienteAtual?.cns ||
-            window.pacienteSelecionado?.cns ||
-            "";
-
-        const buscaLivreLinhaTempo =
-            document.getElementById("buscaLinhaTempoTerritorial")?.value || "";
-
-        if (
-            cpfLinhaTempo ||
-            cnsLinhaTempo ||
-            buscaLivreLinhaTempo
-        ) {
-            carregarLinhaTempoTerritorialAPS(
-                cpfLinhaTempo,
-                cnsLinhaTempo
-            );
-        }
     }
 
     if (
@@ -376,6 +351,7 @@ function navigate(view) {
 // ======================================================
 
 function abrirLinhaTempoPacienteAtualApp() {
+    // Linha da Vida agora faz parte do prontuário
     const cpf =
         document.getElementById("cpfPaciente")?.value ||
         window.pacienteAtual?.cpf ||
@@ -389,16 +365,16 @@ function abrirLinhaTempoPacienteAtualApp() {
         "";
 
     if (
-        typeof abrirLinhaTempoTerritorial === "function"
+        typeof carregarLinhaVidaTerritorialPaciente === "function"
     ) {
-        abrirLinhaTempoTerritorial(cpf, cns);
+        carregarLinhaVidaTerritorialPaciente(cpf, cns);
         return;
     }
 
     if (
-        typeof navigate === "function"
+        typeof abrirLinhaTempoTerritorial === "function"
     ) {
-        navigate("linha-tempo-territorial");
+        abrirLinhaTempoTerritorial(cpf, cns);
     }
 }
 
