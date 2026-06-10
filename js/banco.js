@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🗂️ BASE TERRITORIAL 2.0
+   🗂️ BASE TERRITORIAL OPERACIONAL 2.1
    Supabase puro
    pacientes + atendimentos
    Arquivo: js/banco.js
@@ -414,8 +414,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 : atual.prazo;
 
         atual.ciap =
-            a.ciapSelecionado ||
             a.inputBuscaCIAPS ||
+            a.ciap ||
             atual.ciap ||
             "";
 
@@ -539,6 +539,9 @@ function aplicarFiltrosBaseTerritorial() {
     const filaOperacional =
         document.getElementById("filtroFilaOperacionalAPS")?.value || "TODOS";
 
+    const filtroEVFAM =
+        document.getElementById("filtroPontuacaoEVFAMBase")?.value || "TODOS";
+
     const termoNormalizado =
         normalizarTextoBase(termo);
 
@@ -617,6 +620,12 @@ function aplicarFiltrosBaseTerritorial() {
         filtrarFilaOperacionalAPS(
             base,
             filaOperacional
+        );
+
+    base =
+        filtrarPontuacaoEVFAMBaseTerritorial(
+            base,
+            filtroEVFAM
         );
 
     atualizarIndicadoresBaseTerritorial(base);
@@ -749,6 +758,49 @@ function filtrarFilaOperacionalAPS(base, fila) {
 }
 
 
+
+function filtrarPontuacaoEVFAMBaseTerritorial(base, filtro) {
+    if (filtro === "TODOS") {
+        return base;
+    }
+
+    return (base || []).filter(p => {
+        const evfam =
+            Number(p.evfam_total || 0);
+
+        const classificacao =
+            normalizarTextoBase(p.evfam_classificacao || "");
+
+        if (filtro === "SEM_EVFAM") {
+            return !evfam;
+        }
+
+        if (filtro === "EVFAM_BAIXO") {
+            return (
+                (evfam >= 1 && evfam <= 7) ||
+                classificacao.includes("baixo")
+            );
+        }
+
+        if (filtro === "EVFAM_MODERADO") {
+            return (
+                (evfam >= 8 && evfam <= 14) ||
+                classificacao.includes("moderado")
+            );
+        }
+
+        if (filtro === "EVFAM_ALTO") {
+            return (
+                evfam >= 15 ||
+                classificacao.includes("alto")
+            );
+        }
+
+        return true;
+    });
+}
+
+
 /* ==========================================================================
    INDICADORES
    ========================================================================== */
@@ -874,8 +926,8 @@ function renderizarTabelaBaseTerritorial(base) {
 
                                 <button
                                     class="btn-table-action btn-ok"
-                                    onclick="navigate('central-aps'); setTimeout(() => { const campo = document.getElementById('buscaCentralAPS'); if (campo) campo.value='${escaparBase(p.cpf || p.cns || "")}'; if (typeof aplicarFilaCentralAPS === 'function') aplicarFilaCentralAPS('PENDENCIAS'); }, 400);">
-                                    🧭 Central
+                                    onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || aplicarFiltrosBaseTerritorial()">
+                                    🧭 Pendências
                                 </button>
                             </div>
                         </td>
@@ -1063,6 +1115,12 @@ function exportarBaseTerritorialCSV() {
             "tb",
             "hansen",
             "risco_global",
+            "score_territorial_global",
+            "nivel_prioridade",
+            "evfam_total",
+            "evfam_classificacao",
+            "pendencias",
+            "acao_recomendada",
             "prazo",
             "ultimo_atendimento"
         ]
@@ -1082,6 +1140,12 @@ function exportarBaseTerritorialCSV() {
             p.tb,
             p.hansen,
             p.risco_global,
+            p.score_territorial_global || 0,
+            p.nivel_prioridade || "",
+            p.evfam_total || 0,
+            p.evfam_classificacao || "",
+            (p.pendencias || []).join(" | "),
+            p.acao_recomendada || "",
             p.prazo,
             p.ultimo_atendimento
         ]);
@@ -1197,8 +1261,8 @@ async function abrirFallbackTentativaLigacaoBase(cpf, cns, nome, telefone) {
 
         mostrarToast?.(`📞 Tentativa registrada: ${status}`);
 
-        if (typeof carregarCentralAPS === "function") {
-            carregarCentralAPS();
+        if (typeof carregarTabelaBanco === "function") {
+            carregarTabelaBanco();
         }
 
     } catch (erro) {
@@ -1271,6 +1335,7 @@ window.carregarTabelaBanco = carregarTabelaBanco;
 window.limparBuscaBaseTerritorial = limparBuscaBaseTerritorial;
 window.aplicarFiltrosBaseTerritorial = aplicarFiltrosBaseTerritorial;
 window.filtrarFilaOperacionalAPS = filtrarFilaOperacionalAPS;
+window.filtrarPontuacaoEVFAMBaseTerritorial = filtrarPontuacaoEVFAMBaseTerritorial;
 window.carregarFiltrosBaseTerritorial = carregarFiltrosBaseTerritorial;
 window.exportarBaseTerritorialCSV = exportarBaseTerritorialCSV;
 window.abrirFallbackTentativaLigacaoBase = abrirFallbackTentativaLigacaoBase;
