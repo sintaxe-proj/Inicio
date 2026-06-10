@@ -47,6 +47,26 @@ function limparFormularioProntuario() {
         "inputBuscaCIAPS",
         "inputBuscaCIPE",
 
+        "sintomaIntensidade",
+        "sintomaFrequencia",
+        "historicoSaude",
+        "medicamentosUso",
+        "habitosSociais",
+        "eventosClinicos",
+        "historicoCirurgico",
+        "gestacoesAnteriores",
+        "gordonPercepcaoSaude",
+        "gordonNutricionalMetabolico",
+        "gordonEliminacao",
+        "gordonAtividadeExercicio",
+        "gordonSonoRepouso",
+        "gordonCognitivoPerceptivo",
+        "gordonAutopercepcao",
+        "gordonPapeisRelacionamentos",
+        "gordonSexualidadeReproducao",
+        "gordonAdaptacaoEstresse",
+        "gordonValoresCrencas",
+
         "nomePaciente",
         "cpfPaciente",
         "cnsPaciente",
@@ -527,6 +547,17 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
                     cipe ? `CIPE: ${cipe}` : ""
                 ].filter(Boolean).join(" | ") || "-";
                 const plano = at.soapPlanoConduta || at.plano || "-";
+                const gordon = at.anamnese_gordon || {};
+                const dadosCuida = [
+                    at.sintoma_intensidade ? `Intensidade: ${at.sintoma_intensidade}` : "",
+                    at.sintoma_frequencia ? `Frequência: ${at.sintoma_frequencia}` : "",
+                    at.historico_saude ? `Histórico de saúde: ${at.historico_saude}` : "",
+                    at.medicamentos_uso ? `Medicamentos: ${at.medicamentos_uso}` : "",
+                    at.habitos_sociais ? `Hábitos sociais: ${at.habitos_sociais}` : "",
+                    at.eventos_clinicos ? `Eventos clínicos: ${at.eventos_clinicos}` : "",
+                    at.historico_cirurgico ? `Histórico cirúrgico: ${at.historico_cirurgico}` : "",
+                    at.gestacoes_anteriores ? `Gestações anteriores: ${at.gestacoes_anteriores}` : ""
+                ].filter(Boolean);
 
                 return `
                     <div class="timeline-item">
@@ -541,6 +572,16 @@ async function carregarHistoricoClinicoPaciente(cpf, cns) {
 
                             <br>
                             <b>A:</b> ${avaliacao}
+
+                            ${dadosCuida.length ? `
+                                <br>
+                                <b>Anamnese ampliada:</b>
+                                <ul style="margin:4px 0 0 18px;">
+                                    ${dadosCuida.map(item => `<li>${item}</li>`).join("")}
+                                </ul>
+                            ` : ""}
+
+                            ${resumoAnamneseGordonHTML(gordon)}
 
                             <br>
                             <b>P:</b> ${plano}
@@ -575,6 +616,138 @@ function formatarDataHistorico(valor) {
     if (!valor) return "-";
     return new Date(valor).toLocaleString("pt-BR");
 }
+
+
+/* ==========================================================================
+   🧠 CUIDA + ANAMNESE DE GORDON — CAMPOS ESTRUTURADOS
+   ========================================================================== */
+
+function abrirAnamneseGordon() {
+    const modal =
+        document.getElementById("modalAnamneseGordon");
+
+    if (modal) {
+        modal.style.display = "flex";
+        return;
+    }
+
+    const painel =
+        document.getElementById("painelAnamneseGordon");
+
+    if (painel) {
+        painel.style.display =
+            painel.style.display === "none" || !painel.style.display
+                ? "block"
+                : "none";
+    }
+}
+
+function fecharAnamneseGordon() {
+    const modal =
+        document.getElementById("modalAnamneseGordon");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function coletarAnamneseGordon() {
+    return {
+        percepcao_saude:
+            document.getElementById("gordonPercepcaoSaude")?.value || "",
+
+        nutricional_metabolico:
+            document.getElementById("gordonNutricionalMetabolico")?.value || "",
+
+        eliminacao:
+            document.getElementById("gordonEliminacao")?.value || "",
+
+        atividade_exercicio:
+            document.getElementById("gordonAtividadeExercicio")?.value || "",
+
+        sono_repouso:
+            document.getElementById("gordonSonoRepouso")?.value || "",
+
+        cognitivo_perceptivo:
+            document.getElementById("gordonCognitivoPerceptivo")?.value || "",
+
+        autopercepcao:
+            document.getElementById("gordonAutopercepcao")?.value || "",
+
+        papeis_relacionamentos:
+            document.getElementById("gordonPapeisRelacionamentos")?.value || "",
+
+        sexualidade_reproducao:
+            document.getElementById("gordonSexualidadeReproducao")?.value || "",
+
+        adaptacao_estresse:
+            document.getElementById("gordonAdaptacaoEstresse")?.value || "",
+
+        valores_crencas:
+            document.getElementById("gordonValoresCrencas")?.value || ""
+    };
+}
+
+function preencherAnamneseGordon(dados = {}) {
+    const mapa = {
+        gordonPercepcaoSaude: dados.percepcao_saude,
+        gordonNutricionalMetabolico: dados.nutricional_metabolico,
+        gordonEliminacao: dados.eliminacao,
+        gordonAtividadeExercicio: dados.atividade_exercicio,
+        gordonSonoRepouso: dados.sono_repouso,
+        gordonCognitivoPerceptivo: dados.cognitivo_perceptivo,
+        gordonAutopercepcao: dados.autopercepcao,
+        gordonPapeisRelacionamentos: dados.papeis_relacionamentos,
+        gordonSexualidadeReproducao: dados.sexualidade_reproducao,
+        gordonAdaptacaoEstresse: dados.adaptacao_estresse,
+        gordonValoresCrencas: dados.valores_crencas
+    };
+
+    Object.entries(mapa).forEach(([id, valor]) => {
+        const el =
+            document.getElementById(id);
+
+        if (el && valor !== undefined && valor !== null) {
+            el.value =
+                valor;
+        }
+    });
+}
+
+function resumoAnamneseGordonHTML(dados = {}) {
+    const itens = [
+        ["Percepção da saúde", dados.percepcao_saude],
+        ["Nutricional-metabólico", dados.nutricional_metabolico],
+        ["Eliminação", dados.eliminacao],
+        ["Atividade-exercício", dados.atividade_exercicio],
+        ["Sono-repouso", dados.sono_repouso],
+        ["Cognitivo-perceptivo", dados.cognitivo_perceptivo],
+        ["Autopercepção", dados.autopercepcao],
+        ["Papéis e relacionamentos", dados.papeis_relacionamentos],
+        ["Sexualidade-reprodução", dados.sexualidade_reproducao],
+        ["Adaptação ao estresse", dados.adaptacao_estresse],
+        ["Valores e crenças", dados.valores_crencas]
+    ].filter(([, valor]) => valor);
+
+    if (!itens.length) {
+        return "";
+    }
+
+    return `
+        <br>
+        <b>Anamnese de Gordon:</b>
+        <ul style="margin:4px 0 0 18px;">
+            ${itens.map(([rotulo, valor]) => `
+                <li><strong>${rotulo}:</strong> ${valor}</li>
+            `).join("")}
+        </ul>
+    `;
+}
+
+function obterCampoSOAP(id) {
+    return document.getElementById(id)?.value || "";
+}
+
 
 /* ==========================================================================
    💾 SALVAR PRONTUÁRIO SUPABASE
@@ -739,6 +912,9 @@ async function salvarProntuario() {
         const reavaliacao =
             Number(document.getElementById("soapReavaliacaoDias")?.value || 0);
 
+        const anamneseGordon =
+            coletarAnamneseGordon();
+
         const atendimento = {
             usuario_id: usuario.id,
             paciente_id: pacienteIdSalvo,
@@ -765,6 +941,17 @@ async function salvarProntuario() {
             inputBuscaCIAPS: document.getElementById("inputBuscaCIAPS")?.value || "",
             inputBuscaCIPE: document.getElementById("inputBuscaCIPE")?.value || "",
             cipe: document.getElementById("inputBuscaCIPE")?.value || "",
+
+            sintoma_intensidade: obterCampoSOAP("sintomaIntensidade"),
+            sintoma_frequencia: obterCampoSOAP("sintomaFrequencia"),
+            historico_saude: obterCampoSOAP("historicoSaude"),
+            medicamentos_uso: obterCampoSOAP("medicamentosUso"),
+            habitos_sociais: obterCampoSOAP("habitosSociais"),
+            eventos_clinicos: obterCampoSOAP("eventosClinicos"),
+            historico_cirurgico: obterCampoSOAP("historicoCirurgico"),
+            gestacoes_anteriores: obterCampoSOAP("gestacoesAnteriores"),
+            anamnese_gordon: anamneseGordon,
+
             soapPlanoConduta: document.getElementById("soapPlanoConduta")?.value || "",
 
             retorno_dias: reavaliacao,
@@ -895,6 +1082,23 @@ async function salvarProntuario() {
             (paciente.cpf || paciente.cns)
         ) {
             analisarPacienteComIA(paciente.cpf || paciente.cns).catch(console.warn);
+        }
+
+        if (
+            typeof gerarHipoteseDiagnosticaAPS === "function"
+        ) {
+            try {
+                gerarHipoteseDiagnosticaAPS(atendimento);
+            } catch (erroHipotese) {
+                console.warn("Hipótese diagnóstica APS não executada:", erroHipotese);
+            }
+        }
+
+        if (
+            typeof atualizarEcossistemaAPS === "function"
+        ) {
+            atualizarEcossistemaAPS()
+                .catch(console.warn);
         }
 
         await carregarHistoricoClinicoPaciente(
@@ -1048,5 +1252,10 @@ window.valorSimNaoCampo = valorSimNaoCampo;
 window.carregarDatalistCIPE = carregarDatalistCIPE;
 window.obterValorCIPEProntuario = obterValorCIPEProntuario;
 window.obterValorCIAPProntuario = obterValorCIAPProntuario;
+window.abrirAnamneseGordon = abrirAnamneseGordon;
+window.fecharAnamneseGordon = fecharAnamneseGordon;
+window.coletarAnamneseGordon = coletarAnamneseGordon;
+window.preencherAnamneseGordon = preencherAnamneseGordon;
+window.resumoAnamneseGordonHTML = resumoAnamneseGordonHTML;
 
 window.atualizarTerritorioInteligenteDoFormulario = atualizarTerritorioInteligenteDoFormulario;
