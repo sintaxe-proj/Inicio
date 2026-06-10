@@ -482,6 +482,57 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 }
 </style>
 
+
+<style id="cssCentralAvisosPendenciasAPS">
+/* ==========================================================
+   CENTRAL DE AVISOS APS — FILAS DE PENDÊNCIAS
+   ========================================================== */
+#modalCentralAvisosPendenciasAPS .modal-content {
+    width: 95%;
+    max-width: 1120px;
+}
+
+.central-avisos-grid-aps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.central-aviso-card-aps {
+    background: rgba(17, 28, 46, .78);
+    border: 1px solid var(--border);
+    border-left: 6px solid var(--primary);
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.central-aviso-card-aps:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-neon);
+}
+
+.central-aviso-card-aps strong {
+    display: block;
+    font-size: 26px;
+    color: var(--text-main);
+}
+
+.central-aviso-card-aps small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+.central-aviso-card-aps.danger { border-left-color: var(--danger); }
+.central-aviso-card-aps.warning { border-left-color: var(--warning); }
+.central-aviso-card-aps.success { border-left-color: var(--success); }
+.central-aviso-card-aps.info { border-left-color: var(--info, #38bdf8); }
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -682,8 +733,8 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                     <div
                         id="centralAvisosContainer"
                         class="alert-badge topbar-alert"
-                        onclick="abrirPainelEpidemiologico('criticos')"
-                        title="Avisos e pendências">
+                        onclick="abrirCentralAvisosPendenciasAPS()"
+                        title="Central de Pendências APS">
                         🔔 <span id="contadorAvisosSininho">0</span>
                     </div>
 
@@ -5914,6 +5965,516 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }, 1200);
 });
+</script>
+
+
+<script id="centralAvisosPendenciasAPS">
+/* ==========================================================
+   🔔 CENTRAL DE AVISOS APS — PENDÊNCIAS POR FILA
+   Substitui o contador genérico por filas clicáveis.
+   ========================================================== */
+
+window.centralAvisosPendenciasAPSAtual = {
+    filas: [],
+    pacientesComPendencia: 0,
+    totalPendencias: 0,
+    atualizadoEm: null
+};
+
+function normalizarCentralAvisosAPS(valor) {
+    return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function limparDocumentoCentralAvisosAPS(valor) {
+    return String(valor || "")
+        .replace(/\D/g, "");
+}
+
+function dataValidaCentralAvisosAPS(valor) {
+    if (!valor) return null;
+
+    const d =
+        new Date(valor);
+
+    return Number.isNaN(d.getTime())
+        ? null
+        : d;
+}
+
+function diasDesdeCentralAvisosAPS(valor) {
+    const d =
+        dataValidaCentralAvisosAPS(valor);
+
+    if (!d) return 99999;
+
+    return Math.floor(
+        (Date.now() - d.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
+function valorSimCentralAvisosAPS(valor) {
+    const v =
+        normalizarCentralAvisosAPS(valor);
+
+    return (
+        valor === true ||
+        valor === 1 ||
+        v === "sim" ||
+        v === "s" ||
+        v === "true" ||
+        v === "1" ||
+        v === "ativo" ||
+        v === "presente"
+    );
+}
+
+async function carregarCentralAvisosPendenciasAPS() {
+    if (typeof supabaseClient === "undefined") {
+        console.warn("Central de Avisos APS: Supabase não carregado.");
+        return window.centralAvisosPendenciasAPSAtual;
+    }
+
+    try {
+        const [pacientesResp, atendimentosResp, territorioResp] =
+            await Promise.all([
+                supabaseClient
+                    .from("pacientes")
+                    .select("*")
+                    .limit(12000),
+
+                supabaseClient
+                    .from("atendimentos")
+                    .select("*")
+                    .order("data_atendimento", { ascending: false, nullsFirst: false })
+                    .limit(50000),
+
+                supabaseClient
+                    .from("territorio_inteligente")
+                    .select("*")
+                    .limit(50000)
+            ]);
+
+        const pacientes =
+            pacientesResp.data || [];
+
+        const atendimentos =
+            atendimentosResp.data || [];
+
+        const territorio =
+            territorioResp.data || [];
+
+        const dados =
+            calcularCentralAvisosPendenciasAPS(
+                pacientes,
+                atendimentos,
+                territorio
+            );
+
+        window.centralAvisosPendenciasAPSAtual =
+            dados;
+
+        atualizarContadorCentralAvisosPendenciasAPS(dados);
+
+        return dados;
+
+    } catch (erro) {
+        console.error("Erro ao carregar Central de Avisos APS:", erro);
+        return window.centralAvisosPendenciasAPSAtual;
+    }
+}
+
+function calcularCentralAvisosPendenciasAPS(pacientes, atendimentos, territorio) {
+    const mapa =
+        new Map();
+
+    function obterRegistro(chave, base = {}) {
+        const atual =
+            mapa.get(chave) || {
+                cpf: base.cpf || base.paciente_cpf || "",
+                cns: base.cns || "",
+                nome: base.nome || base.nome_paciente || base.paciente_nome || "",
+                telefone: base.telefone || "",
+                pendencias: new Set(),
+                ultimoAtendimento: null,
+                linhas: {
+                    has: false,
+                    dm: false,
+                    gestante: false,
+                    tb: false,
+                    hansen: false
+                },
+                hasPAS: null,
+                hasPAD: null,
+                dmHbA1c: null,
+                evfam: 0,
+                prioridadeAlta: false,
+                visita: false
+            };
+
+        if (!atual.nome && (base.nome || base.nome_paciente || base.paciente_nome)) {
+            atual.nome = base.nome || base.nome_paciente || base.paciente_nome;
+        }
+
+        if (!atual.telefone && base.telefone) {
+            atual.telefone = base.telefone;
+        }
+
+        mapa.set(chave, atual);
+        return atual;
+    }
+
+    (pacientes || []).forEach(p => {
+        const chave =
+            limparDocumentoCentralAvisosAPS(p.cpf || "") ||
+            String(p.cns || "").trim() ||
+            String(p.id || "");
+
+        if (!chave) return;
+
+        obterRegistro(chave, p);
+    });
+
+    (atendimentos || []).forEach(a => {
+        const chave =
+            limparDocumentoCentralAvisosAPS(a.paciente_cpf || a.cpf || "") ||
+            String(a.cns || "").trim();
+
+        if (!chave) return;
+
+        const r =
+            obterRegistro(chave, a);
+
+        if (valorSimCentralAvisosAPS(a.has)) r.linhas.has = true;
+        if (valorSimCentralAvisosAPS(a.dm)) r.linhas.dm = true;
+        if (valorSimCentralAvisosAPS(a.gestante)) r.linhas.gestante = true;
+        if (valorSimCentralAvisosAPS(a.tb)) r.linhas.tb = true;
+        if (valorSimCentralAvisosAPS(a.hansen)) r.linhas.hansen = true;
+
+        r.hasPAS =
+            a.hasPAS || a.has_pas || a.objPAS || r.hasPAS;
+
+        r.hasPAD =
+            a.hasPAD || a.has_pad || a.objPAD || r.hasPAD;
+
+        r.dmHbA1c =
+            a.dmHbA1c || a.dm_hba1c || a.hba1c || r.dmHbA1c;
+
+        const prazo =
+            a.reavaliacaoDias ??
+            a.retorno_dias ??
+            a.prazo ??
+            null;
+
+        if (
+            prazo !== null &&
+            prazo !== undefined &&
+            Number(prazo) === 0
+        ) {
+            r.pendencias.add("RETORNO_VENCIDO");
+        }
+
+        const dataAtendimento =
+            dataValidaCentralAvisosAPS(
+                a.data_atendimento ||
+                a.criado_em ||
+                a.created_at
+            );
+
+        if (
+            dataAtendimento &&
+            (!r.ultimoAtendimento || dataAtendimento > r.ultimoAtendimento)
+        ) {
+            r.ultimoAtendimento =
+                dataAtendimento;
+        }
+    });
+
+    (territorio || []).forEach(t => {
+        const chave =
+            limparDocumentoCentralAvisosAPS(t.cpf || "") ||
+            limparDocumentoCentralAvisosAPS(t.paciente_cpf || "") ||
+            String(t.cns || "").trim();
+
+        if (!chave) return;
+
+        const r =
+            obterRegistro(chave, t);
+
+        const evfam =
+            Number(t.evfam_total || 0);
+
+        r.evfam =
+            Math.max(r.evfam || 0, evfam);
+
+        if (
+            evfam >= 15 ||
+            normalizarCentralAvisosAPS(t.evfam_classificacao).includes("alto")
+        ) {
+            r.pendencias.add("EVFAM_ALTO");
+        }
+
+        const score =
+            Number(t.score_territorial_global || t.score_geral || 0);
+
+        const nivel =
+            normalizarCentralAvisosAPS(t.nivel_prioridade || t.prioridade || "");
+
+        if (score >= 65 || nivel.includes("alto") || nivel.includes("critic")) {
+            r.prioridadeAlta = true;
+            r.pendencias.add("PRIORIDADE_ALTA");
+        }
+
+        const acao =
+            normalizarCentralAvisosAPS(`${t.acao_recomendada || ""} ${t.tipo_visita_sugerida || ""}`);
+
+        if (
+            t.visita_domiciliar_indicada === true ||
+            Number(t.score_domiciliar || 0) > 0 ||
+            acao.includes("visita") ||
+            acao.includes("domic")
+        ) {
+            r.visita = true;
+            r.pendencias.add("VISITA");
+        }
+
+        if (Array.isArray(t.pendencias)) {
+            t.pendencias.forEach(p => {
+                const texto =
+                    normalizarCentralAvisosAPS(p);
+
+                if (texto.includes("has") && texto.includes("pa")) r.pendencias.add("HAS_SEM_PA");
+                if (texto.includes("dm") && texto.includes("hba1c")) r.pendencias.add("DM_SEM_HBA1C");
+                if (texto.includes("gestante")) r.pendencias.add("GESTANTE_SEM_CONSULTA");
+                if (texto.includes("tb") || texto.includes("tuberculose")) r.pendencias.add("TB_SEM_ACOMPANHAMENTO");
+                if (texto.includes("hansen")) r.pendencias.add("HANSEN_SEM_AVALIACAO");
+                if (texto.includes("retorno")) r.pendencias.add("RETORNO_VENCIDO");
+            });
+        }
+    });
+
+    mapa.forEach(r => {
+        if (r.linhas.has && (!r.hasPAS || !r.hasPAD)) {
+            r.pendencias.add("HAS_SEM_PA");
+        }
+
+        if (r.linhas.dm && !r.dmHbA1c) {
+            r.pendencias.add("DM_SEM_HBA1C");
+        }
+
+        if (r.linhas.gestante && diasDesdeCentralAvisosAPS(r.ultimoAtendimento) > 30) {
+            r.pendencias.add("GESTANTE_SEM_CONSULTA");
+        }
+
+        if (r.linhas.tb && diasDesdeCentralAvisosAPS(r.ultimoAtendimento) > 30) {
+            r.pendencias.add("TB_SEM_ACOMPANHAMENTO");
+        }
+
+        if (r.linhas.hansen && diasDesdeCentralAvisosAPS(r.ultimoAtendimento) > 60) {
+            r.pendencias.add("HANSEN_SEM_AVALIACAO");
+        }
+
+        if (!r.ultimoAtendimento) {
+            r.pendencias.add("SEM_ATENDIMENTO_REGISTRADO");
+        } else if (diasDesdeCentralAvisosAPS(r.ultimoAtendimento) > 180) {
+            r.pendencias.add("SEM_ATENDIMENTO_180");
+        }
+    });
+
+    const pacientesComPendencia =
+        [...mapa.values()].filter(r => r.pendencias.size > 0);
+
+    const filas = [
+        criarFilaCentralAvisosAPS("TODAS_PENDENCIAS", "⚠️", "Pacientes com pendência", "Pessoas com ao menos uma pendência", "warning", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("RETORNO_VENCIDO", "📅", "Retorno vencido", "Prazo de reavaliação igual a zero", "danger", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("BUSCA_ATIVA", "📞", "Busca ativa", "Pendências que exigem contato", "info", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("VISITA", "🏠", "Visita domiciliar", "Indicação por score, EVFAM ou condição domiciliar", "success", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("HAS_SEM_PA", "🩺", "HAS sem PA", "Hipertensos sem PA registrada", "danger", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("DM_SEM_HBA1C", "🍬", "DM sem HbA1c", "Diabéticos sem HbA1c registrada", "warning", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("GESTANTE_SEM_CONSULTA", "🤰", "Gestantes pendentes", "Gestantes sem consulta recente", "warning", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("TB_SEM_ACOMPANHAMENTO", "🫁", "TB sem acompanhamento", "TB sem acompanhamento recente", "danger", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("HANSEN_SEM_AVALIACAO", "🖐️", "Hanseníase pendente", "Hanseníase sem avaliação recente", "warning", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("EVFAM_ALTO", "⚠️", "EVFAM alto", "Famílias com maior vulnerabilidade", "danger", pacientesComPendencia),
+        criarFilaCentralAvisosAPS("SEM_ATENDIMENTO_180", "⏳", "Sem atendimento >180 dias", "Sem registro assistencial recente", "info", pacientesComPendencia)
+    ];
+
+    return {
+        filas,
+        pacientesComPendencia: pacientesComPendencia.length,
+        totalPendencias: pacientesComPendencia.reduce((total, r) => total + r.pendencias.size, 0),
+        atualizadoEm: new Date().toISOString()
+    };
+}
+
+function criarFilaCentralAvisosAPS(codigo, icone, titulo, descricao, classe, pacientes) {
+    let total = 0;
+
+    if (codigo === "TODAS_PENDENCIAS") {
+        total =
+            pacientes.length;
+    } else if (codigo === "BUSCA_ATIVA") {
+        total =
+            pacientes.filter(p =>
+                p.pendencias.has("RETORNO_VENCIDO") ||
+                p.pendencias.has("HAS_SEM_PA") ||
+                p.pendencias.has("DM_SEM_HBA1C") ||
+                p.pendencias.has("GESTANTE_SEM_CONSULTA") ||
+                p.pendencias.has("TB_SEM_ACOMPANHAMENTO") ||
+                p.pendencias.has("HANSEN_SEM_AVALIACAO") ||
+                p.pendencias.has("SEM_ATENDIMENTO_180") ||
+                p.pendencias.has("SEM_ATENDIMENTO_REGISTRADO")
+            ).length;
+    } else {
+        total =
+            pacientes.filter(p => p.pendencias.has(codigo)).length;
+    }
+
+    return {
+        codigo,
+        icone,
+        titulo,
+        descricao,
+        classe,
+        total
+    };
+}
+
+function atualizarContadorCentralAvisosPendenciasAPS(dados) {
+    const contador =
+        document.getElementById("contadorAvisosSininho");
+
+    if (contador) {
+        contador.innerText =
+            Number(dados?.pacientesComPendencia || 0)
+                .toLocaleString("pt-BR");
+    }
+}
+
+async function abrirCentralAvisosPendenciasAPS() {
+    const dados =
+        await carregarCentralAvisosPendenciasAPS();
+
+    let modal =
+        document.getElementById("modalCentralAvisosPendenciasAPS");
+
+    if (!modal) {
+        modal =
+            document.createElement("div");
+
+        modal.id =
+            "modalCentralAvisosPendenciasAPS";
+
+        modal.className =
+            "modal";
+
+        modal.style.display =
+            "none";
+
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                <div>
+                    <h2 style="margin:0;">🔔 Central de Pendências APS</h2>
+                    <p style="color:var(--text-muted); margin:6px 0 0 0;">
+                        ${Number(dados.pacientesComPendencia || 0).toLocaleString("pt-BR")} paciente(s) com pendência ·
+                        ${Number(dados.totalPendencias || 0).toLocaleString("pt-BR")} pendência(s) identificada(s).
+                    </p>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn-secondary" onclick="carregarCentralAvisosPendenciasAPS().then(abrirCentralAvisosPendenciasAPS)">
+                        🔄 Atualizar
+                    </button>
+                    <button class="btn-danger" onclick="fecharCentralAvisosPendenciasAPS()">
+                        ✕ Fechar
+                    </button>
+                </div>
+            </div>
+
+            <div class="central-avisos-grid-aps">
+                ${dados.filas.map(fila => `
+                    <div class="central-aviso-card-aps ${fila.classe}" onclick="abrirBaseTerritorialPorPendenciaAPS('${fila.codigo}')">
+                        <span>${fila.icone}</span>
+                        <strong>${Number(fila.total || 0).toLocaleString("pt-BR")}</strong>
+                        <b>${fila.titulo}</b>
+                        <small>${fila.descricao}</small>
+                    </div>
+                `).join("")}
+            </div>
+        </div>
+    `;
+
+    modal.style.display =
+        "flex";
+}
+
+function fecharCentralAvisosPendenciasAPS() {
+    const modal =
+        document.getElementById("modalCentralAvisosPendenciasAPS");
+
+    if (modal) {
+        modal.style.display =
+            "none";
+    }
+}
+
+function abrirBaseTerritorialPorPendenciaAPS(tipo) {
+    fecharCentralAvisosPendenciasAPS();
+
+    if (typeof navigate === "function") {
+        navigate("banco");
+    }
+
+    setTimeout(() => {
+        const filtroFila =
+            document.getElementById("filtroFilaOperacionalAPS");
+
+        const filtroTipo =
+            document.getElementById("filtroTipoPendenciaBase");
+
+        if (filtroFila) {
+            filtroFila.value =
+                tipo === "VISITA"
+                    ? "VISITA"
+                    : tipo === "BUSCA_ATIVA"
+                        ? "BUSCA_ATIVA"
+                        : tipo === "EVFAM_ALTO"
+                            ? "EVFAM_ALTO"
+                            : tipo === "TODAS_PENDENCIAS"
+                                ? "PENDENCIAS"
+                                : "TODOS";
+        }
+
+        if (filtroTipo) {
+            filtroTipo.value =
+                tipo === "BUSCA_ATIVA"
+                    ? "TODAS_PENDENCIAS"
+                    : tipo;
+        }
+
+        if (typeof aplicarFiltrosBaseTerritorial === "function") {
+            aplicarFiltrosBaseTerritorial();
+        }
+    }, 550);
+}
+
+// Atualiza automaticamente ao abrir o sistema e corrige eventuais sobrescritas antigas do dashboard.js.
+document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(carregarCentralAvisosPendenciasAPS, 1800);
+    setTimeout(carregarCentralAvisosPendenciasAPS, 4500);
+});
+
+window.abrirCentralAvisosPendenciasAPS = abrirCentralAvisosPendenciasAPS;
+window.fecharCentralAvisosPendenciasAPS = fecharCentralAvisosPendenciasAPS;
+window.carregarCentralAvisosPendenciasAPS = carregarCentralAvisosPendenciasAPS;
+window.abrirBaseTerritorialPorPendenciaAPS = abrirBaseTerritorialPorPendenciaAPS;
 </script>
 
 </body>
