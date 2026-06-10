@@ -1248,8 +1248,8 @@ function renderizarListaCriticosCentralOperacoesAPS(dados) {
                                         📋 Prontuário
                                     </button>
 
-                                    <button class="btn-table-action btn-ok" onclick="abrirLinhaTempoTerritorial?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}')">
-                                        🧬 Linha
+                                    <button class="btn-table-action btn-ok" onclick="abrirAtendimentoExistente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'); setTimeout(() => carregarLinhaVidaTerritorialPaciente?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}'), 700);">
+                                        🧬 Vida
                                     </button>
 
                                     <button class="btn-table-action btn-warn" onclick="abrirModuloVisitaDomiciliarAPS?.('${escaparCentralOperacoesAPS(p.cpf || "")}', '${escaparCentralOperacoesAPS(p.cns || "")}', 'ACS')">
@@ -1563,10 +1563,20 @@ function escaparCentralOperacoesAPS(valor) {
    ========================================================== */
 
 window.carregarCentralOperacoesAPS = carregarCentralOperacoesAPS;
+
+/* Compatibilidade com botões e módulos antigos */
+window.carregarCentralAPS = carregarCentralOperacoesAPS;
+
+window.aplicarFilaCentralAPS = window.aplicarFilaCentralAPS || function () {
+    return carregarCentralOperacoesAPS();
+};
+
+window.buscarBaseCentralAPSSupabase = window.buscarBaseCentralAPSSupabase || null;
+
 window.centralOperacoesAPSAtual = centralOperacoesAPSAtual;
 window.gerarBomDiaCopilotoExecutivoAPS = gerarBomDiaCopilotoExecutivoAPS;
 window.atualizarCopilotoExecutivoCentralOperacoesAPS = atualizarCopilotoExecutivoCentralOperacoesAPS;
 window.copiarResumoCentralOperacoesAPS = copiarResumoCentralOperacoesAPS;
 window.exportarCentralOperacoesAPSCSV = exportarCentralOperacoesAPSCSV;
 
-console.log("✅ Central de Operações APS 4.0 carregada.");
+console.log("✅ Central de Operações APS 4.0 carregada com compatibilidade.");
