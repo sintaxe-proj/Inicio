@@ -84,6 +84,28 @@ async function atualizarTodosTerritoriosInteligentes(limite = 5000) {
     return resultados;
 }
 
+
+async function reordenarFilaTerritorialGlobal() {
+    const lista =
+        await listarPrioridadesTerritorioInteligente(5000);
+
+    const ordenada =
+        calcularOrdemFilaTerritorialGlobal(lista);
+
+    for (const item of ordenada) {
+        if (!item.cpf) continue;
+
+        await supabaseClient
+            .from("territorio_inteligente")
+            .update({
+                ordem_fila: item.ordem_fila
+            })
+            .eq("cpf", item.cpf);
+    }
+
+    return ordenada;
+}
+
 /* ==========================================================
    CONTEXTO
    ========================================================== */
@@ -175,6 +197,137 @@ async function buscarTabelaOpcionalTerritorioInteligente(tabela, identificador) 
         console.warn(`Falha opcional em ${tabela}`, erro);
         return [];
     }
+}
+
+/* ==========================================================
+   SCORE TERRITORIAL APS GLOBAL
+   Indicador único para Torre APS, Agenda Inteligente e Copiloto.
+   ========================================================== */
+
+function calcularScoreTerritorialGlobal(resultado) {
+    const scoreClinico =
+        Number(resultado.score_clinico || 0);
+
+    const scoreAssistencial =
+        Number(resultado.score_assistencial || 0);
+
+    const scoreSocial =
+        Number(resultado.score_social || 0);
+
+    const scoreDomiciliar =
+        Number(resultado.score_domiciliar || 0);
+
+    const evfamTotal =
+        Number(resultado.evfam_total || 0);
+
+    return limitarScoreTerritorioInteligente(
+        scoreClinico +
+        scoreAssistencial +
+        scoreSocial +
+        scoreDomiciliar +
+        evfamTotal * 2
+    );
+}
+
+function classificarScoreTerritorialGlobal(score) {
+    const s =
+        Number(score || 0);
+
+    if (s >= 85) return "CRITICO";
+    if (s >= 65) return "ALTO";
+    if (s >= 40) return "MODERADO";
+    return "BAIXO";
+}
+
+function classificarPrioridadeTerritorialGlobal(score) {
+    const nivel =
+        classificarScoreTerritorialGlobal(score);
+
+    if (nivel === "CRITICO") {
+        return {
+            prioridade: "Crítica",
+            classe: "Muito alto risco",
+            nivel
+        };
+    }
+
+    if (nivel === "ALTO") {
+        return {
+            prioridade: "Alta",
+            classe: "Alto risco",
+            nivel
+        };
+    }
+
+    if (nivel === "MODERADO") {
+        return {
+            prioridade: "Moderada",
+            classe: "Risco moderado",
+            nivel
+        };
+    }
+
+    return {
+        prioridade: "Baixa",
+        classe: "Rotina",
+        nivel
+    };
+}
+
+function definirAcaoRecomendadaTerritorialGlobal(registro) {
+    const score =
+        Number(registro.score_territorial_global || 0);
+
+    const pendencias =
+        registro.pendencias || [];
+
+    const visitaIndicada =
+        registro.visita_domiciliar_indicada === true;
+
+    if (score >= 85) {
+        if (visitaIndicada) {
+            return "Priorizar visita domiciliar, busca ativa imediata e discussão em reunião de equipe.";
+        }
+
+        return "Priorizar busca ativa imediata, consulta protegida e discussão em reunião de equipe.";
+    }
+
+    if (score >= 65) {
+        if (pendencias.length >= 2) {
+            return "Realizar busca ativa, revisar pendências e programar consulta prioritária.";
+        }
+
+        return "Programar consulta prioritária e monitoramento territorial pela equipe.";
+    }
+
+    if (score >= 40) {
+        return "Manter monitoramento programado e revisar pendências no próximo contato.";
+    }
+
+    return "Manter acompanhamento de rotina conforme linha de cuidado.";
+}
+
+function calcularOrdemFilaTerritorialGlobal(lista) {
+    return (lista || [])
+        .slice()
+        .sort((a, b) =>
+            Number(b.score_territorial_global || 0) -
+            Number(a.score_territorial_global || 0)
+        )
+        .map((item, index) => ({
+            ...item,
+            ordem_fila:
+                index + 1
+        }));
+}
+
+function ordenarPorScoreTerritorialGlobal(lista) {
+    return (lista || [])
+        .slice()
+        .sort((a, b) =>
+            Number(b.score_territorial_global || 0) -
+            Number(a.score_territorial_global || 0)
+        );
 }
 
 /* ==========================================================
@@ -272,17 +425,19 @@ function calcularTerritorioInteligente(contexto) {
             }
         );
 
+    const scoreTerritorialGlobal =
+        calcularScoreTerritorialGlobal({
+            score_clinico: clinico.score,
+            score_assistencial: assistencial.score,
+            score_social: social.score,
+            score_domiciliar: domiciliar.score,
+            evfam_total: evfam.total
+        });
+
+    // Mantido como compatibilidade para módulos antigos.
+    // A partir desta versão, o indicador oficial é score_territorial_global.
     const scoreGeral =
-        limitarScoreTerritorioInteligente(
-            Math.round(
-                clinico.score * 0.26 +
-                assistencial.score * 0.22 +
-                social.score * 0.16 +
-                domiciliar.score * 0.16 +
-                territorial.score * 0.10 +
-                evfam.scoreNormalizado * 0.10
-            )
-        );
+        scoreTerritorialGlobal;
 
     const fatores =
         [
@@ -302,7 +457,7 @@ function calcularTerritorioInteligente(contexto) {
         ];
 
     const prioridade =
-        classificarPrioridadeTerritorioInteligente(scoreGeral);
+        classificarPrioridadeTerritorialGlobal(scoreTerritorialGlobal);
 
     const visita =
         indicarVisitaDomiciliarTerritorioInteligente(
@@ -382,6 +537,22 @@ function calcularTerritorioInteligente(contexto) {
 
         score_geral:
             scoreGeral,
+
+        score_territorial_global:
+            scoreTerritorialGlobal,
+
+        nivel_prioridade:
+            classificarScoreTerritorialGlobal(scoreTerritorialGlobal),
+
+        ordem_fila:
+            null,
+
+        acao_recomendada:
+            definirAcaoRecomendadaTerritorialGlobal({
+                score_territorial_global: scoreTerritorialGlobal,
+                visita_domiciliar_indicada: visita.indicada,
+                pendencias
+            }),
 
         score_clinico:
             clinico.score,
@@ -1380,7 +1551,7 @@ async function listarPrioridadesTerritorioInteligente(limite = 100) {
         await supabaseClient
             .from("territorio_inteligente")
             .select("*")
-            .order("score_geral", { ascending: false })
+            .order("score_territorial_global", { ascending: false })
             .limit(limite);
 
     if (error) {
@@ -1400,16 +1571,16 @@ async function carregarResumoTerritorioInteligente() {
             lista.length,
 
         criticos:
-            lista.filter(x => x.prioridade === "Crítica").length,
+            lista.filter(x => x.nivel_prioridade === "CRITICO" || x.prioridade === "Crítica").length,
 
         alta:
-            lista.filter(x => x.prioridade === "Alta").length,
+            lista.filter(x => x.nivel_prioridade === "ALTO" || x.prioridade === "Alta").length,
 
         moderada:
-            lista.filter(x => x.prioridade === "Moderada").length,
+            lista.filter(x => x.nivel_prioridade === "MODERADO" || x.prioridade === "Moderada").length,
 
         baixa:
-            lista.filter(x => x.prioridade === "Baixa").length,
+            lista.filter(x => x.nivel_prioridade === "BAIXO" || x.prioridade === "Baixa").length,
 
         gestantes:
             lista.filter(x => x.gestante).length,
@@ -1428,6 +1599,242 @@ async function carregarResumoTerritorioInteligente() {
 
         lista
     };
+}
+
+
+/* ==========================================================
+   AGENDA INTELIGENTE APS
+   ========================================================== */
+
+async function gerarAgendaInteligenteAPS(opcoes = {}) {
+    if (typeof supabaseClient === "undefined") {
+        console.warn("Supabase não carregado para Agenda Inteligente APS.");
+        return [];
+    }
+
+    const dataSugerida =
+        opcoes.data_sugerida ||
+        new Date().toISOString().split("T")[0];
+
+    const origem =
+        opcoes.origem ||
+        "SCORE_TERRITORIAL_GLOBAL";
+
+    const pacientes =
+        await listarPrioridadesTerritorioInteligente(5000);
+
+    const agenda = [];
+
+    pacientes.forEach((paciente) => {
+        const score =
+            Number(paciente.score_territorial_global || paciente.score_geral || 0);
+
+        const pendencias =
+            Array.isArray(paciente.pendencias)
+                ? paciente.pendencias
+                : [];
+
+        const nome =
+            paciente.nome || paciente.paciente_nome || "Sem nome";
+
+        const cpf =
+            paciente.cpf || paciente.paciente_cpf || "";
+
+        if (!cpf) return;
+
+        if (score >= 85 || paciente.visita_domiciliar_indicada === true) {
+            agenda.push({
+                paciente_cpf: cpf,
+                paciente_nome: nome,
+                tipo: "VISITA_DOMICILIAR",
+                prioridade: score >= 85 ? "CRITICA" : "ALTA",
+                data_sugerida: dataSugerida,
+                motivo: score >= 85
+                    ? "Score Territorial APS Global crítico"
+                    : paciente.tipo_visita_sugerida || "Visita domiciliar indicada",
+                origem
+            });
+        }
+
+        if (score >= 65 || pendencias.length > 0) {
+            agenda.push({
+                paciente_cpf: cpf,
+                paciente_nome: nome,
+                tipo: "BUSCA_ATIVA",
+                prioridade: score >= 85 ? "CRITICA" : "ALTA",
+                data_sugerida: dataSugerida,
+                motivo: pendencias.length
+                    ? pendencias.join(", ")
+                    : "Alta prioridade territorial",
+                origem
+            });
+        }
+
+        if (valorSimTerritorioInteligente(paciente.gestante)) {
+            agenda.push({
+                paciente_cpf: cpf,
+                paciente_nome: nome,
+                tipo: "PRE_NATAL",
+                prioridade: score >= 65 ? "ALTA" : "MODERADA",
+                data_sugerida: dataSugerida,
+                motivo: "Gestante em acompanhamento territorial",
+                origem: "LINHA_CUIDADO_GESTANTE"
+            });
+        }
+
+        if (normalizarTerritorioInteligente(paciente.acao_recomendada).includes("material")) {
+            agenda.push({
+                paciente_cpf: cpf,
+                paciente_nome: nome,
+                tipo: "ENTREGA_MATERIAL",
+                prioridade: score >= 65 ? "ALTA" : "MODERADA",
+                data_sugerida: dataSugerida,
+                motivo: "Necessidade de entrega ou acompanhamento de material",
+                origem: "MATERIAIS_APS"
+            });
+        }
+    });
+
+    return removerDuplicidadesAgendaAPS(agenda);
+}
+
+function removerDuplicidadesAgendaAPS(agenda) {
+    const mapa = new Map();
+
+    (agenda || []).forEach((item) => {
+        const chave =
+            [
+                item.paciente_cpf,
+                item.tipo,
+                item.data_sugerida,
+                item.motivo
+            ].join("|");
+
+        if (!mapa.has(chave)) {
+            mapa.set(chave, item);
+        }
+    });
+
+    return Array.from(mapa.values());
+}
+
+async function salvarAgendaInteligenteAPS(agenda) {
+    if (!agenda || !agenda.length) {
+        return [];
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("agenda_aps")
+            .insert(agenda)
+            .select();
+
+    if (error) {
+        console.error("Erro ao salvar Agenda Inteligente APS:", error);
+        return [];
+    }
+
+    mostrarToast?.(`🗓 Agenda Inteligente APS gerada: ${data.length} item(ns).`);
+
+    return data || [];
+}
+
+async function gerarESalvarAgendaInteligenteAPS(opcoes = {}) {
+    const agenda =
+        await gerarAgendaInteligenteAPS(opcoes);
+
+    return salvarAgendaInteligenteAPS(agenda);
+}
+
+async function carregarResumoCopilotoTerritorialAPS() {
+    const pacientes =
+        await listarPrioridadesTerritorioInteligente(5000);
+
+    const agenda =
+        await gerarAgendaInteligenteAPS();
+
+    const criticos =
+        pacientes.filter(p =>
+            Number(p.score_territorial_global || p.score_geral || 0) >= 85
+        ).length;
+
+    const buscasAtivas =
+        agenda.filter(a =>
+            a.tipo === "BUSCA_ATIVA"
+        ).length;
+
+    const visitasPrioritarias =
+        agenda.filter(a =>
+            a.tipo === "VISITA_DOMICILIAR"
+        ).length;
+
+    const gestantes =
+        agenda.filter(a =>
+            a.tipo === "PRE_NATAL"
+        ).length;
+
+    return {
+        criticos,
+        buscasAtivas,
+        visitasPrioritarias,
+        gestantes,
+        mensagem:
+`🧠 Bom dia.
+
+Existem:
+
+• ${criticos} pacientes críticos
+• ${buscasAtivas} buscas ativas
+• ${visitasPrioritarias} visitas domiciliares prioritárias
+• ${gestantes} gestantes sem consulta ou em acompanhamento prioritário
+
+Deseja gerar a agenda do dia?`
+    };
+}
+
+function renderizarCardsAgendaInteligenteAPS(agenda) {
+    const lista =
+        agenda || [];
+
+    const contar =
+        (tipo) => lista.filter(a => a.tipo === tipo).length;
+
+    const criticos =
+        lista.filter(a => a.prioridade === "CRITICA").length;
+
+    return `
+        <section class="agenda-aps-cards">
+            <article class="card-agenda-aps">
+                <span>📞</span>
+                <strong>${contar("BUSCA_ATIVA")}</strong>
+                <small>Busca Ativa Hoje</small>
+            </article>
+
+            <article class="card-agenda-aps">
+                <span>🏠</span>
+                <strong>${contar("VISITA_DOMICILIAR")}</strong>
+                <small>Visitas Hoje</small>
+            </article>
+
+            <article class="card-agenda-aps">
+                <span>🩺</span>
+                <strong>${contar("CONSULTA")}</strong>
+                <small>Consultas Prioritárias</small>
+            </article>
+
+            <article class="card-agenda-aps">
+                <span>🤰</span>
+                <strong>${contar("PRE_NATAL")}</strong>
+                <small>Gestantes</small>
+            </article>
+
+            <article class="card-agenda-aps alerta">
+                <span>🚨</span>
+                <strong>${criticos}</strong>
+                <small>Casos Críticos</small>
+            </article>
+        </section>
+    `;
 }
 
 /* ==========================================================
@@ -1539,3 +1946,15 @@ window.carregarResumoTerritorioInteligente = carregarResumoTerritorioInteligente
 window.calcularEVFAMTerritorioInteligente = calcularEVFAMTerritorioInteligente;
 window.classificarEVFAMTerritorioInteligente = classificarEVFAMTerritorioInteligente;
 window.indicarVisitaDomiciliarTerritorioInteligente = indicarVisitaDomiciliarTerritorioInteligente;
+window.calcularScoreTerritorialGlobal = calcularScoreTerritorialGlobal;
+window.classificarScoreTerritorialGlobal = classificarScoreTerritorialGlobal;
+window.classificarPrioridadeTerritorialGlobal = classificarPrioridadeTerritorialGlobal;
+window.definirAcaoRecomendadaTerritorialGlobal = definirAcaoRecomendadaTerritorialGlobal;
+window.ordenarPorScoreTerritorialGlobal = ordenarPorScoreTerritorialGlobal;
+window.calcularOrdemFilaTerritorialGlobal = calcularOrdemFilaTerritorialGlobal;
+window.reordenarFilaTerritorialGlobal = reordenarFilaTerritorialGlobal;
+window.gerarAgendaInteligenteAPS = gerarAgendaInteligenteAPS;
+window.salvarAgendaInteligenteAPS = salvarAgendaInteligenteAPS;
+window.gerarESalvarAgendaInteligenteAPS = gerarESalvarAgendaInteligenteAPS;
+window.carregarResumoCopilotoTerritorialAPS = carregarResumoCopilotoTerritorialAPS;
+window.renderizarCardsAgendaInteligenteAPS = renderizarCardsAgendaInteligenteAPS;
