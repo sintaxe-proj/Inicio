@@ -329,6 +329,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
             endereco: p.endereco || "",
             numero: p.numero || "",
             complemento: p.complemento || "",
+            microarea: p.microarea || p.micro_area || p.area || p.ma || "Não informada",
+            acs: p.acs || p.agente_comunitario || "",
             ubs: p.ubs_vinculacao || p.unidade || p.ubs || "Não informado",
             equipe: p.equipe_esf || p.equipe || "Não informado",
 
@@ -374,6 +376,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 endereco: "",
                 numero: "",
                 complemento: "",
+                microarea: a.microarea || a.micro_area || a.area || a.ma || "Não informada",
+                acs: a.acs || a.agente_comunitario || "",
                 ubs: a.ubs_vinculacao || a.unidade || a.ubs || "Não informado",
                 equipe: a.equipe_esf || a.equipe || "Não informado",
 
@@ -517,6 +521,12 @@ function carregarFiltrosBaseTerritorial(base) {
         base.map(p => p.ubs || "Não informado"),
         "Todas as UBS"
     );
+
+    carregarSelectBase(
+        "filtroMicroareaBase",
+        base.map(p => p.microarea || "Não informada"),
+        "Todas as microáreas"
+    );
 }
 
 function carregarSelectBase(id, valores, rotuloTodos) {
@@ -563,6 +573,9 @@ function aplicarFiltrosBaseTerritorial() {
     const ubs =
         document.getElementById("filtroUBSBase")?.value || "TODOS";
 
+    const microarea =
+        document.getElementById("filtroMicroareaBase")?.value || "TODAS";
+
     const linha =
         document.getElementById("filtroLinhaCuidadoBase")?.value || "TODAS";
 
@@ -595,6 +608,8 @@ function aplicarFiltrosBaseTerritorial() {
                         ${p.telefone}
                         ${p.ubs}
                         ${p.equipe}
+                        ${p.microarea}
+                        ${p.acs}
                         ${p.ciap}
                     `);
 
@@ -613,6 +628,13 @@ function aplicarFiltrosBaseTerritorial() {
         base =
             base.filter(p =>
                 String(p.ubs || "Não informado") === ubs
+            );
+    }
+
+    if (microarea !== "TODAS") {
+        base =
+            base.filter(p =>
+                String(p.microarea || "Não informada") === microarea
             );
     }
 
@@ -1054,6 +1076,7 @@ function renderizarTabelaBaseTerritorial(base) {
                         <td>
                             ${escaparBase(p.equipe || "-")}
                             <small>${escaparBase(p.ubs || "-")}</small>
+                            <small>Microárea: ${escaparBase(p.microarea || "Não informada")}</small>
                         </td>
 
                         <td>
@@ -1284,6 +1307,8 @@ function exportarBaseTerritorialCSV() {
             "telefone",
             "ubs",
             "equipe",
+            "microarea",
+            "acs",
             "has",
             "dm",
             "gestante",
@@ -1309,6 +1334,8 @@ function exportarBaseTerritorialCSV() {
             p.telefone,
             p.ubs,
             p.equipe,
+            p.microarea,
+            p.acs,
             p.has,
             p.dm,
             p.gestante,
