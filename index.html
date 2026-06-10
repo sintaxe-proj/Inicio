@@ -440,6 +440,22 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 }
 </style>
 
+<style id="cssDashboardOperacionalTopo">
+.quick-actions-dashboard-top {
+    margin: 0 0 18px 0;
+}
+
+.dashboard-operacional-grid {
+    margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+    .quick-actions-dashboard-top {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 </head>
 <body class="login-ativo">
 
@@ -714,15 +730,170 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
                     </div>
                 </div>
 
+<div class="quick-actions quick-actions-dashboard-top">
+
+                    <div class="quick-action-card quick-action-blue" onclick="focarBuscaGlobalSintaxeHub()">
+                        <div style="font-size:24px;">🔎</div>
+                        <div>
+                            <strong>Buscar cidadão</strong>
+                            <small>Localizar por CPF ou CNS</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-green" onclick="navigate('prontuario')">
+                        <div style="font-size:24px;">🩺</div>
+                        <div>
+                            <strong>Novo atendimento</strong>
+                            <small>Abrir prontuário SOAP</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-blue" onclick="navigate('visita-domiciliar-aps')">
+                        <div style="font-size:24px;">🏠</div>
+                        <div>
+                            <strong>Visita domiciliar</strong>
+                            <small>EVFAM e vulnerabilidade</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-purple" onclick="abrirCopilotoAPS()">
+                        <div style="font-size:24px;">🧠</div>
+                        <div>
+                            <strong>Copiloto APS</strong>
+                            <small>Perguntar ao sistema</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-cognitivo-aps')">
+                        <div style="font-size:24px;">🧠</div>
+                        <div>
+                            <strong>Motor Cognitivo</strong>
+                            <small>Análise explicável APS</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-regras-aps')">
+                        <div style="font-size:24px;">⚙️</div>
+                        <div>
+                            <strong>Motor de Regras</strong>
+                            <small>Automação APS</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-cyan" onclick="navigate('motor-predicao-aps')">
+                        <div style="font-size:24px;">🔮</div>
+                        <div>
+                            <strong>Predição APS</strong>
+                            <small>Riscos e recomendações</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-orange" onclick="abrirModuloSolicitacoesMateriais()">
+                        <div style="font-size:24px;">📋</div>
+                        <div>
+                            <strong>Solicitar material</strong>
+                            <small>Nova solicitação</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-cyan" onclick="navigate('agenda-inteligente-aps')">
+                        <div style="font-size:24px;">🗓️</div>
+                        <div>
+                            <strong>Agenda APS</strong>
+                            <small>Gerar fila do dia</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-blue" onclick="navigate('territorio-inteligente')">
+                        <div style="font-size:24px;">🌎</div>
+                        <div>
+                            <strong>Território Inteligente</strong>
+                            <small>Score global APS</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('torre-controle-aps')">
+                        <div style="font-size:24px;">🏢</div>
+                        <div>
+                            <strong>Torre APS</strong>
+                            <small>Centro de comando</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-action-card quick-action-dark" onclick="navigate('banco')">
+                        <div style="font-size:24px;">🗄️</div>
+                        <div>
+                            <strong>Base Operacional APS</strong>
+                            <small>Filas, EVFAM e ações</small>
+                        </div>
+                    </div>
+
+                </div>
+
+<div class="dashboard-grid dashboard-operacional-grid" id="dashboardCardsOperacionaisAPS">
+
+    <div class="dash-card dashboard-kpi-card" onclick="navigate('banco')">
+        <div class="dash-icon icon-blue">👥</div>
+        <div>
+            <span class="card-label">População cadastrada</span>
+            <h3 id="dashInicialPopulacaoCadastrada">0</h3>
+            <p>Total real da tabela pacientes</p>
+            <span class="card-trend">Supabase exact count</span>
+        </div>
+    </div>
+
+    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('PENDENCIAS') || navigate('banco')">
+        <div class="dash-icon icon-yellow">📡</div>
+        <div>
+            <span class="card-label">Em monitoramento ativo</span>
+            <h3 id="dashInicialMonitoramentoAtivo">0</h3>
+            <p>Com score, EVFAM ou pendências</p>
+            <span class="card-trend trend-warning">Base operacional</span>
+        </div>
+    </div>
+
+    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('ALTO') || navigate('banco')">
+        <div class="dash-icon icon-red">🚨</div>
+        <div>
+            <span class="card-label">Prioridade alta</span>
+            <h3 id="dashInicialPrioridadeAlta">0</h3>
+            <p>Alto ou crítico territorial</p>
+            <span class="card-trend trend-danger">Score ≥ 65</span>
+        </div>
+    </div>
+
+    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('VISITA') || navigate('banco')">
+        <div class="dash-icon icon-green">🏠</div>
+        <div>
+            <span class="card-label">Visita domiciliar</span>
+            <h3 id="dashInicialVisitaDomiciliar">0</h3>
+            <p>Indicada por EVFAM/score domiciliar</p>
+            <span class="card-trend">ACS / equipe</span>
+        </div>
+    </div>
+
+    <div class="dash-card dashboard-kpi-card" onclick="abrirBaseTerritorialOperacionalApp?.('EVFAM_ALTO') || navigate('banco')">
+        <div class="dash-icon icon-purple">⚠️</div>
+        <div>
+            <span class="card-label">EVFAM alto</span>
+            <h3 id="dashInicialEVFAMAlto">0</h3>
+            <p>Famílias com maior vulnerabilidade</p>
+            <span class="card-trend trend-warning">EVFAM ≥ 15</span>
+        </div>
+    </div>
+
+</div>
+
+
                 <div class="dashboard-grid dashboard-hero-grid">
 
                     <div class="dash-card dashboard-kpi-card" onclick="navigate('banco')">
                         <div class="dash-icon icon-blue">👥</div>
                         <div>
-                            <span class="card-label">Pessoas monitoradas</span>
+                            <span class="card-label">Pessoas cadastradas</span>
                             <h3 id="dashInicialPessoas">0</h3>
-                            <p>Base territorial ativa</p>
-                            <span class="card-trend" id="dashInicialPessoasTrend">Supabase</span>
+                            <p>Total real do cadastro</p>
+                            <span class="card-trend" id="dashInicialPessoasTrend">count exato</span>
                         </div>
                     </div>
 
@@ -978,105 +1149,8 @@ button[data-copiloto-topbar="true"].tem-alerta-copiloto {
 
                 </div>
 
-                <div class="quick-actions quick-actions-footer">
+                
 
-                    <div class="quick-action-card quick-action-blue" onclick="focarBuscaGlobalSintaxeHub()">
-                        <div style="font-size:24px;">🔎</div>
-                        <div>
-                            <strong>Buscar cidadão</strong>
-                            <small>Localizar por CPF ou CNS</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-green" onclick="navigate('prontuario')">
-                        <div style="font-size:24px;">🩺</div>
-                        <div>
-                            <strong>Novo atendimento</strong>
-                            <small>Abrir prontuário SOAP</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-blue" onclick="navigate('visita-domiciliar-aps')">
-                        <div style="font-size:24px;">🏠</div>
-                        <div>
-                            <strong>Visita domiciliar</strong>
-                            <small>EVFAM e vulnerabilidade</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-purple" onclick="abrirCopilotoAPS()">
-                        <div style="font-size:24px;">🧠</div>
-                        <div>
-                            <strong>Copiloto APS</strong>
-                            <small>Perguntar ao sistema</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-cognitivo-aps')">
-                        <div style="font-size:24px;">🧠</div>
-                        <div>
-                            <strong>Motor Cognitivo</strong>
-                            <small>Análise explicável APS</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-purple" onclick="navigate('motor-regras-aps')">
-                        <div style="font-size:24px;">⚙️</div>
-                        <div>
-                            <strong>Motor de Regras</strong>
-                            <small>Automação APS</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-cyan" onclick="navigate('motor-predicao-aps')">
-                        <div style="font-size:24px;">🔮</div>
-                        <div>
-                            <strong>Predição APS</strong>
-                            <small>Riscos e recomendações</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-orange" onclick="abrirModuloSolicitacoesMateriais()">
-                        <div style="font-size:24px;">📋</div>
-                        <div>
-                            <strong>Solicitar material</strong>
-                            <small>Nova solicitação</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-cyan" onclick="navigate('agenda-inteligente-aps')">
-                        <div style="font-size:24px;">🗓️</div>
-                        <div>
-                            <strong>Agenda APS</strong>
-                            <small>Gerar fila do dia</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-blue" onclick="navigate('territorio-inteligente')">
-                        <div style="font-size:24px;">🌎</div>
-                        <div>
-                            <strong>Território Inteligente</strong>
-                            <small>Score global APS</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-dark" onclick="navigate('torre-controle-aps')">
-                        <div style="font-size:24px;">🏢</div>
-                        <div>
-                            <strong>Torre APS</strong>
-                            <small>Centro de comando</small>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card quick-action-dark" onclick="navigate('banco')">
-                        <div style="font-size:24px;">🗄️</div>
-                        <div>
-                            <strong>Base Operacional APS</strong>
-                            <small>Filas, EVFAM e ações</small>
-                        </div>
-                    </div>
-
-                </div>
 
             </div>
 
