@@ -230,9 +230,8 @@ function consolidarBaseTerritorial(pacientes, atendimentos) {
                 : atual.prazo;
 
         atual.ciap =
-            a.ciapSelecionado ||
             a.inputBuscaCIAPS ||
-            atual.ciap ||
+            a.ciap ||
             "";
 
         atual.ultimo_atendimento =
