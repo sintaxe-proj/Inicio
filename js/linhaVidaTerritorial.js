@@ -586,7 +586,6 @@ function montarEventosLinhaVidaTerritorial(
 
             titulo:
                 a.inputBuscaCIAPS ||
-                a.ciapSelecionado ||
                 a.ciap ||
                 a.inputBuscaCIPE ||
                 "SOAP",
