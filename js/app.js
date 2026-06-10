@@ -10,6 +10,25 @@
 
 function navigate(view) {
 
+    const rotasUnificadas = {
+        "central-aps": "banco",
+        "central-operacoes-aps": "banco",
+        "pendencias-clinicas": "banco",
+        "mapa-territorial": "banco",
+        "monitoramento": "banco",
+        "motor-cognitivo-aps": "sala-situacao-aps",
+        "motor-regras-aps": "sala-situacao-aps",
+        "motor-predicao-aps": "sala-situacao-aps",
+        "territorio-inteligente": "banco",
+        "agenda-inteligente-aps": "banco",
+        "agenda-aps": "banco"
+    };
+
+    if (rotasUnificadas[view]) {
+        view =
+            rotasUnificadas[view];
+    }
+
     if (typeof atualizarTituloViewSintaxeHub === "function") {
         atualizarTituloViewSintaxeHub(view);
     }
@@ -70,8 +89,13 @@ function navigate(view) {
             .then(resumo => {
                 console.log("🧠 Resumo Território Inteligente:", resumo);
 
-                if (typeof setTextoApp === "function") {
-                    setTextoApp("dashInicialCriticos", resumo?.criticos ?? 0);
+                if (
+                    typeof setTextoApp === "function" &&
+                    Number(resumo?.total || 0) > 0
+                ) {
+                    if (Number(resumo?.total || 0) > 0) {
+                        setTextoApp("dashInicialCriticos", resumo?.criticos ?? 0);
+                    }
                 }
             })
             .catch(console.warn);
@@ -153,13 +177,6 @@ function navigate(view) {
         typeof carregarAuditoriaEstoque === "function"
     ) {
         carregarAuditoriaEstoque();
-    }
-
-    if (
-        view === "mapa-territorial" &&
-        typeof carregarMapaTerritorialAPS === "function"
-    ) {
-        carregarMapaTerritorialAPS();
     }
 
     if (view === "central-aps") {
@@ -342,6 +359,23 @@ function navigate(view) {
     }
 
 
+
+    if (
+        [
+            "inicio",
+            "banco",
+            "sala-situacao-aps",
+            "torre-controle-aps",
+            "agenda-inteligente-aps",
+            "agenda-aps",
+            "prontuario"
+        ].includes(view)
+    ) {
+        setTimeout(() => {
+            executarEcossistemaIAAPSApp();
+        }, 900);
+    }
+
     if (view === "config") {
 
         console.log("⚙️ Configurações & Carga aberta.");
@@ -355,6 +389,29 @@ function navigate(view) {
 
 
 
+
+
+
+
+// ======================================================
+// ECOSSISTEMA IA APS — ORQUESTRAÇÃO SEGURA
+// ======================================================
+
+function executarEcossistemaIAAPSApp() {
+    if (typeof executarEcossistemaIAAPS === "function") {
+        return Promise
+            .resolve(executarEcossistemaIAAPS())
+            .catch(console.warn);
+    }
+
+    if (typeof carregarMotorIAOperacionalAPS === "function") {
+        return Promise
+            .resolve(carregarMotorIAOperacionalAPS())
+            .catch(console.warn);
+    }
+
+    return null;
+}
 
 
 // ======================================================
@@ -1529,6 +1586,7 @@ window.atualizarResumoCentralOperacoesDashboardInicial = atualizarResumoCentralO
 window.abrirCentralOperacoesAPSApp = abrirCentralOperacoesAPSApp;
 window.abrirBaseTerritorialOperacionalApp = abrirBaseTerritorialOperacionalApp;
 window.abrirCentralOperacionalUnificadaApp = abrirCentralOperacionalUnificadaApp;
+window.executarEcossistemaIAAPSApp = executarEcossistemaIAAPSApp;
 
 
 window.atualizarResumoMotorRegrasDashboardInicial = atualizarResumoMotorRegrasDashboardInicial;
